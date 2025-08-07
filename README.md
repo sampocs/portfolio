@@ -5,6 +5,42 @@
 - [IBKR Oauth1](https://github.com/Voyz/ibind/wiki/OAuth-1.0a)
 - [Coinbase API Keys](https://www.coinbase.com/settings/api)
 
+### IBKR
+
+We connect to IBKR via the ibind python package. There are two ways to connect:
+
+1. Using Oauth1
+
+- This is the cleanest startup, but requires a more involved setup to generate keys and wait at least 24 hours to tokens to become usable
+- If using Oauth1, specify the following variables
+
+```
+  IBIND_USE_OAUTH=True
+  IBIND_OAUTH1A_CONSUMER_KEY=
+  IBIND_OAUTH1A_ENCRYPTION_KEY_FP=
+  IBIND_OAUTH1A_SIGNATURE_KEY_FP=
+  IBIND_OAUTH1A_ACCESS_TOKEN=
+  IBIND_OAUTH1A_ACCESS_TOKEN_SECRET=
+  IBIND_OAUTH1A_DH_PRIME=
+```
+
+2. Using the Gateway
+
+- This consists of setup up a local gateway in docker, and authorizing using 2FA via your phone, and then sending requests through the local client
+- This is a non-starter for automated flows due to the 2FA, but it's the easiest way to get started as you only need a user name and password
+- The gateway is run via IBeam. You can start it with:
+
+```
+IBEAM_ACCOUNT={ibkr_username} IBEAM_PASSWORD='{ibkr_password}' make start-ibeam
+```
+
+- Then set the following env variables:
+
+```
+IBIND_USE_OAUTH=True
+IBEAM_PORT=8000
+```
+
 ## Historical Exports
 
 ### Vanguard
