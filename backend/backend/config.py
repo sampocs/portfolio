@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 from ibind.oauth.oauth1a import OAuth1aConfig
 
-PROJECT_HOME = Path(__file__).parent.parent
+PROJECT_HOME = Path(__file__).parent.parent.parent
 ENV_FILE = ".env"
 
 
