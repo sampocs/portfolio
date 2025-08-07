@@ -23,11 +23,23 @@ class Trade(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     platform: Mapped[str] = mapped_column(String, nullable=False)
-    date: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     action: Mapped[str] = mapped_column(String, nullable=False)
     asset: Mapped[str] = mapped_column(String, nullable=False)
     price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     quantity: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     fees: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+    cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+    value: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+
+
+class Position(Base):
+    """Stores the current positions across each asset"""
+
+    asset: Mapped[str] = mapped_column(String, primary_key=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    current_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+    average_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     value: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
