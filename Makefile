@@ -21,3 +21,6 @@ ifndef IBEAM_PASSWORD
 	$(error IBEAM_PASSWORD environment variable is required)
 endif
 	@docker run --env IBEAM_ACCOUNT=$(IBEAM_ACCOUNT) --env IBEAM_PASSWORD=$(IBEAM_PASSWORD) -p 7000:5000 voyz/ibeam
+
+pip-freeze:
+	@pipreqs backend --force
