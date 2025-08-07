@@ -13,7 +13,7 @@ def main():
     coinbase_df = pd.read_csv(config.project_home / "data" / "coinbase_clean.csv")
     trades_df = pd.concat([vanguard_df, coinbase_df], ignore_index=True)
 
-    trades_df["date"] = pd.to_datetime(trades_df["date"]).dt.tz_localize(None)
+    trades_df["timestamp"] = pd.to_datetime(trades_df["timestamp"]).dt.tz_localize(None)
     for col in ["price", "quantity", "fees", "cost", "value"]:
         trades_df[col] = trades_df[col].astype(str).map(lambda x: Decimal(x))
 

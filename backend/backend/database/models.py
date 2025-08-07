@@ -36,6 +36,8 @@ class Trade(Base):
 class Position(Base):
     """Stores the current positions across each asset"""
 
+    __tablename__ = "positions"
+
     asset: Mapped[str] = mapped_column(String, primary_key=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     current_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
@@ -43,3 +45,4 @@ class Position(Base):
     quantity: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     value: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+    returns: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
