@@ -2,6 +2,7 @@ from ibind import IbkrClient
 from backend.config import config
 from backend.database import models
 from datetime import datetime
+from decimal import Decimal
 
 _client: IbkrClient = None  # type: ignore
 
@@ -36,12 +37,12 @@ def get_current_holdings() -> list[models.Position]:
             models.Position(
                 asset=asset,
                 updated_at=datetime.now(),
-                current_price=price,
-                average_price=average_price,
-                quantity=quantity,
-                cost=cost,
-                value=value,
-                returns=returns,
+                current_price=Decimal(price),
+                average_price=Decimal(average_price),
+                quantity=Decimal(quantity),
+                cost=Decimal(cost),
+                value=Decimal(value),
+                returns=Decimal(returns),
             )
         )
 

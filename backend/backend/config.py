@@ -11,6 +11,7 @@ ENV_FILE = ".env"
 class Config(BaseSettings):
     project_home: Path = Field(default=PROJECT_HOME)
 
+    coinbase_account_id: str = Field(alias="COINBASE_ACCOUNT_ID")
     ibkr_account_id: str = Field(alias="IBKR_ACCOUNT_ID")
 
     ibind_use_oauth: bool = Field(alias="IBIND_USE_OAUTH", default=False)

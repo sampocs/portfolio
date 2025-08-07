@@ -3,7 +3,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from backend.database import connection, crud
-from backend.scrapers import ibkr
+from backend.scrapers import ibkr, coinbase
 from backend.config import config
 
 app = FastAPI(title="Portfolio Tracker")
@@ -39,4 +39,4 @@ async def get_positions(
     _: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)
 ):
     """Returns all trades"""
-    return ibkr.get_current_holdings()
+    return ibkr.get_current_holdings() + coinbase.get_current_holdings()
