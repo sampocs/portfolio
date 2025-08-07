@@ -9,6 +9,9 @@ ENV_FILE = ".env"
 
 
 class Config(BaseSettings):
+    project_home: Path = Field(default=PROJECT_HOME)
+
+    coinbase_account_id: str = Field(alias="COINBASE_ACCOUNT_ID")
     ibkr_account_id: str = Field(alias="IBKR_ACCOUNT_ID")
 
     ibind_use_oauth: bool = Field(alias="IBIND_USE_OAUTH", default=False)
@@ -25,7 +28,7 @@ class Config(BaseSettings):
 
     postgres_url: str = Field(alias="POSTGRES_URL")
 
-    project_home: Path = Field(default=PROJECT_HOME)
+    fastapi_secret: str = Field(alias="FASTAPI_SECRET")
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow")
 
@@ -61,8 +64,8 @@ class Config(BaseSettings):
 
         return OAuth1aConfig(
             consumer_key=self.ibind_oauth1a_consumer_key,
-            encryption_key_fp=self.ibind_oauth1a_encryption_key_fp,
-            signature_key_fp=self.ibind_oauth1a_signature_key_fp,
+            encryption_key_fp=str(PROJECT_HOME / self.ibind_oauth1a_encryption_key_fp),
+            signature_key_fp=str(PROJECT_HOME / self.ibind_oauth1a_signature_key_fp),
             access_token=self.ibind_oauth1a_access_token,
             access_token_secret=self.ibind_oauth1a_access_token_secret,
             dh_prime=self.ibind_oauth1a_dh_prime,
