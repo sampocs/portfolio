@@ -1,5 +1,5 @@
 fastapi==0.116.1
-uvicorn[standard]==0.32.0
+uvicorn==0.35.0
 ibind==0.1.18
 pandas==2.3.1
 pydantic==2.11.7
