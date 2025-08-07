@@ -27,8 +27,9 @@ class Config(BaseSettings):
     coinbase_api_secret: str = Field(alias="COINBASE_API_SECRET")
 
     postgres_url: str = Field(alias="POSTGRES_URL")
-
     fastapi_secret: str = Field(alias="FASTAPI_SECRET")
+
+    finhub_api_token: str = Field(alias="FINHUB_API_TOKEN")
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow")
 
