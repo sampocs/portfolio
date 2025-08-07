@@ -8,10 +8,10 @@ install:
 	@$(PYTHON) -m pip install -r backend/requirements.txt
 
 start-api:
-	@$(PYTHON) -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+	@(cd backend && $(PYTHON) -m uvicorn backend.main:app --host 0.0.0.0 --port 8000)
 
 bootstrap:
-	@$(PYTHON) -m backend.bootstrap.load
+	@(cd backend && $(PYTHON) -m backend.bootstrap.load)
 
 start-ibeam:
 ifndef IBEAM_ACCOUNT
