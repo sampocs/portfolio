@@ -2,6 +2,8 @@ import os
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
+from backend.database import connection, crud
 
 app = FastAPI(title="Portfolio Tracker")
 
@@ -25,3 +27,9 @@ def health_check():
 @app.get("/portfolio.csv", response_class=PlainTextResponse)
 async def get_portfolio_csv(_: HTTPAuthorizationCredentials = Depends(verify_token)):
     return "ticker,quantity,price\nBTC,0.1,30000"
+
+
+@app.get("/trades")
+async def get_trades(_: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)):
+    """Returns all trades"""
+    return crud.get_all_trades(db)
