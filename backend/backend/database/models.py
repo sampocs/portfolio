@@ -1,8 +1,8 @@
-from datetime import datetime
+import datetime
 from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import DECIMAL, DateTime, String
+from sqlalchemy import DECIMAL, Date, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -23,7 +23,7 @@ class Trade(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     platform: Mapped[str] = mapped_column(String, nullable=False)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     action: Mapped[str] = mapped_column(String, nullable=False)
     asset: Mapped[str] = mapped_column(String, nullable=False)
     price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
@@ -39,7 +39,7 @@ class Position(Base):
     __tablename__ = "positions"
 
     asset: Mapped[str] = mapped_column(String, primary_key=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    updated_at: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     current_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     average_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     quantity: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
