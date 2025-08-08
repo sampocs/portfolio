@@ -60,42 +60,43 @@ IBEAM_PORT=8000
 
 ### Historical
 
-Download CSVs from the following:
+**Crypto:**
 
-- Crypto:
-  - https://www.coingecko.com/en/coins/bitcoin/historical_data?start=2025-01-02&end=2030-01-01
-  - https://www.coingecko.com/en/coins/solana/historical_data?start=2020-01-02&end=2030-01-01
-  - https://www.coingecko.com/en/coins/ethereum/historical_data?start=2020-01-02&end=2030-01-01
-- Stocks
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VT&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VOO&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VO&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VB&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VXUS&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VWO&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=COIN&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=HOOD&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=AAAU&outputsize=full&datatype=csv&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VNQ&outputsize=full&datatype=csv&apikey={API_KEY}
+- Download the following CSV manually
+- https://www.coingecko.com/en/coins/{token-name}/historical_data?start=2020-01-02&end=2030-01-01
+  - Where `{token-name}` is `bitcoin`, `ethereum`, and `solana`
 
-### Current Price and Previous Close
+**Stocks**
 
-- Crypto: (Coingecko free tier)
-  - https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1&interval=daily
-  - https://api.coingecko.com/api/v3/coins/solana/market_chart?vs_currency=usd&days=1&interval=daily
-  - https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=1&interval=daily
-- Stocks: (Alpha Vantage with API Key)
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VOO&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VT&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VOO&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VO&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VB&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VXUS&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VWO&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=COIN&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=HOOD&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=AAAU&apikey={API_KEY}
-  - https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VNQ&apikey={API_KEY}
+- Download the following CSV via Pandas (API Key Rate Limits at 25 req/day)
+- https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&datatype=csv&apikey={API_KEY}
+  - Where `symbol` is the ticker
+
+### Previous Close Price
+
+**Crypto:**
+
+- Coingecko free tier
+- https://api.coingecko.com/api/v3/coins/{token-name}/market_chart?vs_currency=usd&days={N}&interval=daily
+- Where `{token-name}` is `bitcoin`, `ethereum`, and `solana` and `{N}` is the number of days to look back
+
+**Stocks:**
+
+- Alpha Vantage with API Key
+- https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=compact&datatype=json&apikey={API_KEY}
+  - Where `symbol` is the ticker
+
+### Live Prices
+
+**Crypto:**
+
+- CoinGecko (Free Tier Rate Limit: 5 req/sec)
+- https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd
+
+**Stocks:**
+
+- FinHub (Rate Limit with API Key: 30 req/sec)
+- https://finnhub.io/api/v1/quote?symbol={symbol}&token={API_TOKEN}
 
 ## Tracking Trades
 
