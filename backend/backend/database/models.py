@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import DECIMAL, Date, String
+from sqlalchemy import DECIMAL, Date, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -39,7 +39,7 @@ class Position(Base):
     __tablename__ = "positions"
 
     asset: Mapped[str] = mapped_column(String, primary_key=True)
-    updated_at: Mapped[datetime.date] = mapped_column(Date, nullable=False)
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     average_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     quantity: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
