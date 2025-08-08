@@ -26,8 +26,9 @@ class Platform(Enum):
     COINBASE = "coinbase"
 
 
-class PriceSource(Enum):
-    ALPHAVANTAGE = "alphavantage"
+class PriceType(Enum):
+    STOCKS = "stocks"
+    CRYPTO = "crypto"
 
 
 @dataclass
@@ -37,7 +38,7 @@ class Asset:
     target_allocation: int
     category: Category
     platform: Platform
-    price_source: PriceSource
+    price_type: PriceType
 
     @classmethod
     def from_dict(cls, data: dict) -> "Asset":
@@ -48,7 +49,7 @@ class Asset:
             target_allocation=data["target_allocation"],
             category=Category(data["category"]),
             platform=Platform(data["platform"]),
-            price_source=PriceSource(data["price_source"]),
+            price_type=PriceType(data["price_type"]),
         )
 
 
@@ -78,6 +79,12 @@ class Config(BaseSettings):
     fastapi_secret: str = Field(alias="FASTAPI_SECRET")
 
     finhub_api_token: str = Field(alias="FINHUB_API_TOKEN")
+    alpha_vantage_api_token: str = Field(alias="ALPHA_VANTAGE_API_TOKEN")
+
+    finhub_live_price_api: str = Field(default="https://finnhub.io/api/v1/quote")
+    coingecko_live_price_api: str = Field(default="https://api.coingecko.com/api/v3/simple/price")
+    alpha_prev_close_api: str = Field(default="https://www.alphavantage.co/query")
+    coingecko_prev_close_api: str = Field(default="https://api.coingecko.com/api/v3/coins/{}/market_chart")
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow")
 
@@ -132,7 +139,26 @@ class Config(BaseSettings):
         with open(self.assets_config, "r") as f:
             asset_data = yaml.safe_load(f)
 
-        return {asset.asset: Asset.from_dict(asset) for asset in asset_data}
+        return {asset["asset"]: Asset.from_dict(asset) for asset in asset_data["assets"]}
+
+    @property
+    def stock_tickers(self) -> list[str]:
+        """Returns a list of all stock tickers"""
+        return [asset_id for asset_id, asset_info in self.assets.items() if asset_info.price_type == PriceType.STOCKS]
+
+    @property
+    def crypto_tokens(self) -> list[str]:
+        """Returns a list of all crypto tokens"""
+        return [asset_id for asset_id, asset_info in self.assets.items() if asset_info.price_type == PriceType.CRYPTO]
+
+    @property
+    def coingecko_ids(self) -> dict[str, str]:
+        """Returns a mapping of each crypto token to it's coingecko ID"""
+        return {
+            asset_id: asset_info.description.lower()
+            for asset_id, asset_info in self.assets.items()
+            if asset_info.price_type == PriceType.CRYPTO
+        }
 
 
 config = Config()  # type: ignore
