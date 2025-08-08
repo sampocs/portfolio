@@ -1,15 +1,60 @@
+from enum import Enum
 from typing import Any
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 from ibind.oauth.oauth1a import OAuth1aConfig
+from dataclasses import dataclass
+from functools import cached_property
+import yaml
 
 PROJECT_HOME = Path(__file__).parent.parent.parent
 ENV_FILE = ".env"
+ASSETS_FILE = "assets.yaml"
+
+
+class Category(Enum):
+    STOCK_ETFS = "Stock ETFs"
+    CRYPTO_STOCKS = "Crypto Stocks"
+    GOLD = "Gold"
+    REAL_ESTATE = "Real Estate"
+    CRYPTO_TOKENS = "Crypto Tokens"
+
+
+class Platform(Enum):
+    IBKR = "ibkr"
+    COINBASE = "coinbase"
+
+
+class PriceSource(Enum):
+    ALPHAVANTAGE = "alphavantage"
+
+
+@dataclass
+class Asset:
+    asset: str
+    description: str
+    target_allocation: int
+    category: Category
+    platform: Platform
+    price_source: PriceSource
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Asset":
+        """Create an Asset instance from a dictionary with validation."""
+        return cls(
+            asset=data["asset"],
+            description=data["description"],
+            target_allocation=data["target_allocation"],
+            category=Category(data["category"]),
+            platform=Platform(data["platform"]),
+            price_source=PriceSource(data["price_source"]),
+        )
 
 
 class Config(BaseSettings):
     project_home: Path = Field(default=PROJECT_HOME)
+    assets_config: Path = Field(default=PROJECT_HOME / ASSETS_FILE)
 
     coinbase_account_id: str = Field(alias="COINBASE_ACCOUNT_ID")
     ibkr_account_id: str = Field(alias="IBKR_ACCOUNT_ID")
@@ -34,7 +79,7 @@ class Config(BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow")
 
     @model_validator(mode="after")
-    def validate_ibind_config(self) -> 'Config':
+    def validate_ibind_config(self) -> "Config":
         """Validate OAuth configuration when OAuth is enabled"""
         if self.ibind_use_oauth:
             oauth_fields = {
@@ -77,6 +122,14 @@ class Config(BaseSettings):
         if self.ibind_use_oauth:
             return {"use_oauth": True, "oauth_config": self.ibind_oauth_config}
         return {"port": self.ibeam_port}
+
+    @cached_property
+    def assets(self) -> dict[str, Asset]:
+        """Load and parse assets YAML"""
+        with open(self.assets_config, "r") as f:
+            asset_data = yaml.safe_load(f)
+
+        return {asset.asset: Asset.from_dict(asset) for asset in asset_data}
 
 
 config = Config()  # type: ignore
