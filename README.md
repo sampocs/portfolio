@@ -78,7 +78,34 @@ Download CSVs from the following:
   - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=AAAU&outputsize=full&datatype=csv&apikey={API_KEY}
   - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VNQ&outputsize=full&datatype=csv&apikey={API_KEY}
 
-### Current Price Data
+### Current Price and Previous Close
 
 - Crypto: Coingecko free tier API
-- Stocks: Finhub (requires API key)
+
+- Stocks: Alpha Vantage (requires API key)
+
+### Previous Close
+
+- Crypto: (Coingecko free tier)
+  - https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1&interval=daily
+  - https://api.coingecko.com/api/v3/coins/solana/market_chart?vs_currency=usd&days=1&interval=daily
+  - https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=1&interval=daily
+- Stocks: (Alpha Vantage with API Key)
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VT&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VOO&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VO&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VB&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VXUS&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VWO&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=COIN&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=HOOD&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=AAAU&outputsize=compact&datatype=json&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VNQ&outputsize=compact&datatype=json&apikey={API_KEY}
+
+## Tracking Trades
+
+In order to automatically track trades, they must be done as follows:
+
+- Stocks/ETFs: Executed through IBKR
+- Crypto: Executed through Coinbase Advanced
+  - For lowest fees, place limit order at highest sell price, and set to "Post Only" (instead of "Taker")
