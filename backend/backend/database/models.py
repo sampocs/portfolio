@@ -46,3 +46,22 @@ class Position(Base):
     cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     value: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     returns: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+
+
+class HistoricalPrice(Base):
+    """Stores daily historical close price for each asset"""
+
+    __tablename__ = "prices_historical"
+
+    asset: Mapped[str] = mapped_column(String, primary_key=True)
+    date: Mapped[datetime.date] = mapped_column(Date, primary_key=True)
+    price: Mapped[Decimal] = mapped_column(DECIMAL)
+
+
+class LivePrice(Base):
+    """Cache for the latest price for each asset"""
+
+    __tablename__ = "prices_live"
+
+    asset: Mapped[str] = mapped_column(String, primary_key=True)
+    price: Mapped[Decimal] = mapped_column(DECIMAL)

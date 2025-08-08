@@ -56,6 +56,9 @@ class Config(BaseSettings):
     project_home: Path = Field(default=PROJECT_HOME)
     assets_config: Path = Field(default=PROJECT_HOME / ASSETS_FILE)
 
+    trades_data_dir: Path = Field(default=PROJECT_HOME / "data" / "trades" / "clean")
+    prices_data_dir: Path = Field(default=PROJECT_HOME / "data" / "prices" / "clean")
+
     coinbase_account_id: str = Field(alias="COINBASE_ACCOUNT_ID")
     ibkr_account_id: str = Field(alias="IBKR_ACCOUNT_ID")
 
