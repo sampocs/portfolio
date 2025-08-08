@@ -55,3 +55,30 @@ IBEAM_PORT=8000
 - Enter a date range to encapsulate all trades
 - Select CSV and download
 - Then the first few metadata rows of the CSV were manually removed so that it started with the main headers
+
+## Price Data
+
+### Historical
+
+Download CSVs from the following:
+
+- Crypto:
+  - https://www.coingecko.com/en/coins/bitcoin/historical_data?start=2025-01-02&end=2030-01-01
+  - https://www.coingecko.com/en/coins/solana/historical_data?start=2020-01-02&end=2030-01-01
+  - https://www.coingecko.com/en/coins/ethereum/historical_data?start=2020-01-02&end=2030-01-01
+- Stocks
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VT&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VOO&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VO&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VB&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VXUS&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VWO&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=COIN&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=HOOD&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=AAAU&outputsize=full&datatype=csv&apikey={API_KEY}
+  - https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VNQ&outputsize=full&datatype=csv&apikey={API_KEY}
+
+### Current Price Data
+
+- Crypto: Coingecko free tier API
+- Stocks: Finhub (requires API key)
