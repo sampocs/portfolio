@@ -40,12 +40,9 @@ class Position(Base):
 
     asset: Mapped[str] = mapped_column(String, primary_key=True)
     updated_at: Mapped[datetime.date] = mapped_column(Date, nullable=False)
-    current_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     average_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     quantity: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
-    value: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
-    returns: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
 
 
 class HistoricalPrice(Base):
