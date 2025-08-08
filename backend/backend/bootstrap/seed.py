@@ -19,10 +19,9 @@ def backfill_trades():
     records = trades_df.to_dict("records")
 
     with connection.engine.begin() as conn:
-        for record in records:
-            stmt = insert(models.Trade).values(record)
-            stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
-            conn.execute(stmt)
+        stmt = insert(models.Trade).values(records)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
+        conn.execute(stmt)
 
 
 def backfill_prices():
@@ -36,10 +35,9 @@ def backfill_prices():
     records = trades_df.to_dict("records")
 
     with connection.engine.begin() as conn:
-        for record in records:
-            stmt = insert(models.Trade).values(record)
-            stmt = stmt.on_conflict_do_nothing(index_elements=["asset", "date"])
-            conn.execute(stmt)
+        stmt = insert(models.HistoricalPrice).values(records)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["asset", "date"])
+        conn.execute(stmt)
 
 
 def main():
