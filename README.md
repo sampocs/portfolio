@@ -55,3 +55,53 @@ IBEAM_PORT=8000
 - Enter a date range to encapsulate all trades
 - Select CSV and download
 - Then the first few metadata rows of the CSV were manually removed so that it started with the main headers
+
+## Price Data
+
+### Historical
+
+**Crypto:**
+
+- Download the following CSV manually
+- https://www.coingecko.com/en/coins/{token-name}/historical_data?start=2020-01-02&end=2030-01-01
+  - Where `{token-name}` is `bitcoin`, `ethereum`, and `solana`
+
+**Stocks**
+
+- Download the following CSV via Pandas (API Key Rate Limits at 25 req/day)
+- https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&datatype=csv&apikey={API_KEY}
+  - Where `symbol` is the ticker
+
+### Previous Close Price
+
+**Crypto:**
+
+- Coingecko free tier
+- https://api.coingecko.com/api/v3/coins/{token-name}/market_chart?vs_currency=usd&days={N}&interval=daily
+- Where `{token-name}` is `bitcoin`, `ethereum`, and `solana` and `{N}` is the number of days to look back
+
+**Stocks:**
+
+- Alpha Vantage with API Key
+- https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=compact&datatype=json&apikey={API_KEY}
+  - Where `symbol` is the ticker
+
+### Live Prices
+
+**Crypto:**
+
+- CoinGecko (Free Tier Rate Limit: 5 req/sec)
+- https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd
+
+**Stocks:**
+
+- FinHub (Rate Limit with API Key: 30 req/sec)
+- https://finnhub.io/api/v1/quote?symbol={symbol}&token={API_TOKEN}
+
+## Tracking Trades
+
+In order to automatically track trades, they must be done as follows:
+
+- Stocks/ETFs: Executed through IBKR
+- Crypto: Executed through Coinbase Advanced
+  - For lowest fees, place limit order at highest sell price, and set to "Post Only" (instead of "Taker")

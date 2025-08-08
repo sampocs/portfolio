@@ -1,0 +1,79 @@
+assets:
+  - asset: VT
+    description: Total World
+    target_allocation: 32
+    category: Stock ETFs
+    platform: ibkr
+    price_type: stocks
+  - asset: VOO
+    description: Large Cap
+    target_allocation: 13
+    category: Stock ETFs
+    platform: ibkr
+    price_type: stocks
+  - asset: VO
+    description: Mid Cap
+    target_allocation: 6
+    category: Stock ETFs
+    platform: ibkr
+    price_type: stocks
+  - asset: VB
+    description: "Small Cap"
+    target_allocation: 10
+    category: Stock ETFs
+    platform: ibkr
+    price_type: stocks
+  - asset: VXUS
+    description: International
+    target_allocation: 2
+    category: Stock ETFs
+    platform: ibkr
+    price_type: stocks
+  - asset: VWO
+    description: "Emerging"
+    target_allocation: 2
+    category: Stock ETFs
+    platform: ibkr
+    price_type: stocks
+  - asset: COIN
+    description: "Coinbase"
+    target_allocation: 5
+    category: Crypto Stocks
+    platform: ibkr
+    price_type: stocks
+  - asset: HOOD
+    description: "Robinhood"
+    target_allocation: 5
+    category: Crypto Stocks
+    platform: ibkr
+    price_type: stocks
+  - asset: AAAU
+    description: "Gold"
+    target_allocation: 5
+    category: Gold
+    platform: ibkr
+    price_type: stocks
+  - asset: VNQ
+    description: "Real Estate"
+    target_allocation: 2
+    category: Real Estate
+    platform: ibkr
+    price_type: stocks
+  - asset: BTC
+    description: Bitcoin
+    target_allocation: 12
+    category: Crypto Tokens
+    platform: coinbase
+    price_type: crypto
+  - asset: ETH
+    description: Ethereum
+    target_allocation: 3
+    category: Crypto Tokens
+    platform: coinbase
+    price_type: crypto
+  - asset: SOL
+    description: Solana
+    target_allocation: 3
+    category: Crypto Tokens
+    platform: coinbase
+    price_type: crypto
