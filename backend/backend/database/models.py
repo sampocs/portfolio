@@ -8,6 +8,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+decimal_sql_type = DECIMAL(18, 6)
+
 
 class TradeAction(str, Enum):
     """Trade action: Buy or Sell"""
@@ -26,11 +28,11 @@ class Trade(Base):
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     action: Mapped[str] = mapped_column(String, nullable=False)
     asset: Mapped[str] = mapped_column(String, nullable=False)
-    price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
-    quantity: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
-    fees: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
-    cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
-    value: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+    price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    fees: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    cost: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    value: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
     excluded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
@@ -41,9 +43,9 @@ class Position(Base):
 
     asset: Mapped[str] = mapped_column(String, primary_key=True)
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
-    average_price: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
-    quantity: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
-    cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+    average_price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    cost: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
 
 
 class HistoricalPrice(Base):
@@ -53,7 +55,7 @@ class HistoricalPrice(Base):
 
     asset: Mapped[str] = mapped_column(String, primary_key=True)
     date: Mapped[datetime.date] = mapped_column(Date, primary_key=True)
-    price: Mapped[Decimal] = mapped_column(DECIMAL)
+    price: Mapped[Decimal] = mapped_column(decimal_sql_type)
 
 
 class LivePrice(Base):
@@ -62,7 +64,7 @@ class LivePrice(Base):
     __tablename__ = "prices_live"
 
     asset: Mapped[str] = mapped_column(String, primary_key=True)
-    price: Mapped[Decimal] = mapped_column(DECIMAL)
+    price: Mapped[Decimal] = mapped_column(decimal_sql_type)
     updated_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=datetime.datetime.now(datetime.timezone.utc)
     )

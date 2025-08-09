@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from backend.database import models
 from decimal import Decimal
 from collections import defaultdict
+from backend.config import config
 
 
 def get_all_trades(db: Session):
@@ -22,6 +23,8 @@ def build_position_from_trades(db: Session):
     # Group trades by asset
     asset_trades = defaultdict(list)
     for trade in trades:
+        if trade.asset not in config.assets.keys():
+            continue
         asset_trades[trade.asset].append(trade)
 
     # Clear existing positions
@@ -33,6 +36,9 @@ def build_position_from_trades(db: Session):
         total_cost = Decimal(0)
 
         for trade in trades_list:
+            if trade.excluded:
+                continue
+
             if trade.action == models.TradeAction.BUY:
                 total_quantity += trade.quantity
                 total_cost += trade.cost
@@ -62,3 +68,4 @@ def store_live_prices(db: Session, price_data: dict[str, Decimal]):
     """Stores live price data in the DB"""
     price_objects = [models.LivePrice(asset=asset, price=price) for (asset, price) in price_data.items()]
     db.bulk_save_objects(price_objects)
+    db.commit()
