@@ -10,6 +10,11 @@ def get_all_trades(db: Session):
     return db.query(models.Trade).all()
 
 
+def get_all_positions(db: Session):
+    """Returns all active positions"""
+    return db.query(models.Position).all()
+
+
 def build_position_from_trades(db: Session):
     """Builds the current portfolio positions from the trade history"""
     trades = get_all_trades(db)
@@ -51,3 +56,9 @@ def build_position_from_trades(db: Session):
         db.add(position)
 
     db.commit()
+
+
+def store_live_prices(db: Session, price_data: dict[str, Decimal]):
+    """Stores live price data in the DB"""
+    price_objects = [models.LivePrice(asset=asset, price=price) for (asset, price) in price_data.items()]
+    db.bulk_save_objects(price_objects)

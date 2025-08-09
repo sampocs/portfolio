@@ -86,6 +86,8 @@ class Config(BaseSettings):
     alpha_prev_close_api: str = Field(default="https://www.alphavantage.co/query")
     coingecko_prev_close_api: str = Field(default="https://api.coingecko.com/api/v3/coins/{}/market_chart")
 
+    price_cache_ttl_min: int = Field(default=5)
+
     model_config = SettingsConfigDict(case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow")
 
     @model_validator(mode="after")
