@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import DECIMAL, Date, DateTime, String
+from sqlalchemy import DECIMAL, Date, DateTime, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -31,6 +31,7 @@ class Trade(Base):
     fees: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     cost: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
     value: Mapped[Decimal] = mapped_column(DECIMAL, nullable=False)
+    excluded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
 class Position(Base):

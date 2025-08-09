@@ -3,7 +3,7 @@ from decimal import Decimal
 from sqlalchemy.dialects.postgresql import insert
 
 
-from backend.database import connection, models
+from backend.database import connection, models, crud
 from backend.config import config
 
 
@@ -44,6 +44,9 @@ def main():
     models.Base.metadata.create_all(connection.engine)
     backfill_trades()
     backfill_prices()
+
+    with connection.SessionLocal() as db:
+        crud.build_position_from_trades(db)
 
 
 if __name__ == "__main__":
