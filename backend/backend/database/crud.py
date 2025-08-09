@@ -66,6 +66,11 @@ def build_position_from_trades(db: Session):
 
 def store_live_prices(db: Session, price_data: dict[str, Decimal]):
     """Stores live price data in the DB"""
+    # Clear exisiting prices
+    db.query(models.LivePrice).delete()
+
+    # Bulk insert new prices
     price_objects = [models.LivePrice(asset=asset, price=price) for (asset, price) in price_data.items()]
     db.bulk_save_objects(price_objects)
+
     db.commit()

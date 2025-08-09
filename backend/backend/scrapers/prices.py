@@ -99,7 +99,6 @@ def get_cached_asset_prices(db: Session) -> dict[str, Decimal]:
 
     # The updated time should be the same for each asset, so we only have to check the first one
     last_fetched_time = all_price_data[0].updated_at.astimezone(datetime.timezone.utc)
-    # TODO: test
     current_time = datetime.datetime.now(datetime.timezone.utc)
     ttl_length = datetime.timedelta(minutes=config.price_cache_ttl_min)
     price_is_fresh = current_time - last_fetched_time < ttl_length

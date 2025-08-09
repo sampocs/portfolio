@@ -66,5 +66,5 @@ class LivePrice(Base):
     asset: Mapped[str] = mapped_column(String, primary_key=True)
     price: Mapped[Decimal] = mapped_column(decimal_sql_type)
     updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.now(datetime.timezone.utc)
+        DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc)
     )
