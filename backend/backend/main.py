@@ -6,8 +6,19 @@ from backend.database import connection, crud
 from backend.config import config
 from backend.schemas import Position
 from backend.scrapers import prices
+from backend.jobs import schedules
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Portfolio Tracker")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Controls the app startup and shutdown with scheduled jobs"""
+    scheduler = schedules.get_scheduler()
+    yield  # main app flow
+    scheduler.shutdown()
+
+
+app = FastAPI(title="Portfolio Tracker", lifespan=lifespan)
 
 
 def verify_token(request: Request):

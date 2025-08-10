@@ -29,7 +29,7 @@ def fill_historical_prices(db: Session):
     logger.info(f"Filling historical prices from {start_date} to {end_date}...")
 
     target_dates = _get_backfill_dates(start_date=start_date, end_date=end_date)
-    previous_prices = prices.get_previous_asset_prices(target_dates)
+    previous_prices = prices.get_previous_asset_prices(db, target_dates)
 
     crud.store_historical_prices(db, previous_prices)
     logger.info("Done")
@@ -59,7 +59,7 @@ def fill_historical_positions(db: Session):
     logger.info("Done")
 
 
-def index_recent_trades():
+def index_recent_trades(db: Session):
     """
     Checks for any recent crypto or stock trades and saves them in the database
     """
