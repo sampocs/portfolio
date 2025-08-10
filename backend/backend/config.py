@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Any
+import logging
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
@@ -11,6 +12,10 @@ import yaml
 PROJECT_HOME = Path(__file__).parent.parent.parent
 ENV_FILE = ".env"
 ASSETS_FILE = "assets.yaml"
+
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("portfolio")
 
 
 class Category(Enum):

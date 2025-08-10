@@ -3,8 +3,7 @@ from decimal import Decimal
 from enum import Enum
 
 from sqlalchemy import DECIMAL, Date, DateTime, String, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Mapped, mapped_column, declarative_base
 
 Base = declarative_base()
 
@@ -46,6 +45,21 @@ class Position(Base):
     average_price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
     quantity: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
     cost: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+
+
+class HistoricalPosition(Base):
+    """Stores the historical position info for each date"""
+
+    __tablename__ = "historical_positions"
+
+    asset: Mapped[str] = mapped_column(String, primary_key=True)
+    date: Mapped[datetime.date] = mapped_column(Date, primary_key=True)
+    average_position_price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    daily_close_price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    cost: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    value: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    returns: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
 
 
 class HistoricalPrice(Base):
