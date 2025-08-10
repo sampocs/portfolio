@@ -10,9 +10,9 @@ def _get_previous_stock_price(asset: str, target_dates: list[str]) -> dict[str, 
     """
     Gets the previous close price(s) for a stock or ETH
     Returns a mapping of date -> price for the asset
+    For weekends and holidays, a price will not be found, and the returning dict will be missing
+    that price key
     """
-    current_date = datetime.date.today()
-
     params = {
         "function": "TIME_SERIES_DAILY",
         "symbol": asset,
@@ -23,9 +23,9 @@ def _get_previous_stock_price(asset: str, target_dates: list[str]) -> dict[str, 
     response = requests.get(config.alpha_prev_close_api, params=params)
     response_data: dict = response.json()
 
-    assert response_data["Meta Data"]["3. Last Refreshed"] == str(current_date), "Previous stock data not refreshed yet"
+    daily_prices = response_data["Time Series (Daily)"]
 
-    return {date: Decimal(response_data["Time Series (Daily)"][date]["4. close"]) for date in target_dates}
+    return {date: Decimal(daily_prices[date]["4. close"]) for date in target_dates if date in daily_prices}
 
 
 def _get_previous_crypto_price(asset: str, target_dates: list[str]) -> dict[str, Decimal]:
@@ -78,14 +78,23 @@ def _get_current_crypto_prices() -> dict[str, Decimal]:
     return {asset: Decimal(str(response_data[config.coingecko_ids[asset]]["usd"])) for asset in config.crypto_tokens}
 
 
-def get_previous_asset_prices(target_dates: list[str]) -> dict[str, dict[str, Decimal]]:
+def get_previous_asset_prices(db: Session, target_dates: list[str]) -> dict[str, dict[str, Decimal]]:
     """
     Gets the previous close prices for each stock
     Returns a mapping of asset -> date -> price
     """
     stock_prices = {asset: _get_previous_stock_price(asset, target_dates) for asset in config.stock_tickers}
     crypto_prices = {asset: _get_previous_crypto_price(asset, target_dates) for asset in config.crypto_tokens}
-    return {**stock_prices, **crypto_prices}
+    all_prices = {**stock_prices, **crypto_prices}
+
+    # Fill missing dates with previous prices from database
+    # This is relevant for stocks which don't have prices when the market is closed on weekends and holidays
+    for asset in all_prices.keys():
+        for date in target_dates:
+            if date not in all_prices[asset]:
+                all_prices[asset][date] = crud.get_latest_asset_price(db, asset=asset, date=date)
+
+    return all_prices
 
 
 def get_current_asset_prices() -> dict[str, Decimal]:

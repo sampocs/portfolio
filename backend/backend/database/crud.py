@@ -152,3 +152,17 @@ def store_historical_positions(db: Session, historical_positions: list[models.Hi
     """
     db.bulk_save_objects(historical_positions)
     db.commit()
+
+
+def get_latest_asset_price(db: Session, asset: str, date: str) -> Decimal:
+    """Retrieves the latest price for the given asset before the specified date"""
+    previous_price = (
+        db.query(models.HistoricalPrice.price)
+        .filter(models.HistoricalPrice.asset == asset)
+        .filter(models.HistoricalPrice.date < date)
+        .order_by(models.HistoricalPrice.date.desc())
+        .scalar()
+    )
+
+    assert previous_price, f"No previous price found for {asset} before {date}"
+    return previous_price
