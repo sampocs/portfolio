@@ -82,7 +82,7 @@ def populate_position(db: Session):
     end_date = db.query(func.max(models.Trade.date)).scalar()
     assert start_date and end_date, "Please load trades before populating position"
 
-    positions = crud.build_position_from_trades(db, start_date=start_date, end_date=end_date)
+    positions = crud.build_positions_from_trades(db, start_date=start_date, end_date=end_date)
     crud.store_positions(db, positions)
 
 

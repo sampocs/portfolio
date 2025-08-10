@@ -65,7 +65,7 @@ class HistoricalPosition(Base):
 class HistoricalPrice(Base):
     """Stores daily historical close price for each asset"""
 
-    __tablename__ = "prices_historical"
+    __tablename__ = "historical_prices"
 
     asset: Mapped[str] = mapped_column(String, primary_key=True)
     date: Mapped[datetime.date] = mapped_column(Date, primary_key=True)
