@@ -1,3 +1,4 @@
+import datetime
 from enum import Enum
 from typing import Any
 import logging
@@ -8,11 +9,18 @@ from ibind.oauth.oauth1a import OAuth1aConfig
 from dataclasses import dataclass
 from functools import cached_property
 import yaml
+from decimal import Decimal
 
 PROJECT_HOME = Path(__file__).parent.parent.parent
 ENV_FILE = ".env"
 ASSETS_FILE = "assets.yaml"
 
+VALID_DURATIONS = ["1W", "1M", "YTD", "1Y", "ALL"]
+DURATION_TO_TIMEDELTA = {
+    "1W": datetime.timedelta(days=7),
+    "1M": datetime.timedelta(days=30),
+    "1Y": datetime.timedelta(days=1),
+}
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("portfolio")
@@ -40,7 +48,7 @@ class PriceType(Enum):
 class Asset:
     asset: str
     description: str
-    target_allocation: int
+    target_allocation: Decimal
     category: Category
     platform: Platform
     price_type: PriceType
@@ -51,7 +59,7 @@ class Asset:
         return cls(
             asset=data["asset"],
             description=data["description"],
-            target_allocation=data["target_allocation"],
+            target_allocation=Decimal(data["target_allocation"]),
             category=Category(data["category"]),
             platform=Platform(data["platform"]),
             price_type=PriceType(data["price_type"]),
