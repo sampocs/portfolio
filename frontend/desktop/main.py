@@ -56,7 +56,19 @@ df = df.drop("category_priority", axis=1)
 
 
 df_display = df.copy()
-df_display["category"] = df_display["category"].mask(df_display["category"].duplicated(), "")
+# For proper category merging, we'll handle this differently
+category_groups = []
+current_category = None
+for idx, row in df_display.iterrows():
+    if current_category != row['category']:
+        current_category = row['category']
+        category_groups.append((idx, current_category))
+    else:
+        category_groups.append((idx, ''))
+
+# Apply the category grouping
+for i, (idx, cat) in enumerate(category_groups):
+    df_display.at[idx, 'category'] = cat
 
 
 # Price columns -  dollar sign with commas and 2 decimals
@@ -83,13 +95,13 @@ def color_cells(val):
     return f"background-color: {color}"
 
 def style_rows(s):
-    """Add alternating row colors"""
+    """Add alternating row colors with light blue"""
     styles = []
     
-    for idx, row in s.iterrows():
-        # Alternating row colors (light gray for even rows)
+    for idx, _ in s.iterrows():
+        # Alternating row colors (light blue for even rows)
         if idx % 2 == 0:
-            row_color = "background-color: #f8f9fa"
+            row_color = "background-color: #f0f8ff"
         else:
             row_color = "background-color: white"
         
@@ -120,10 +132,12 @@ st.markdown("""
     text-align: left !important;
 }
 
-/* Ensure container takes full width without horizontal scroll */
+/* Ensure container takes full width and height without scroll issues */
 .stDataFrame {
     width: 100% !important;
-    overflow-x: auto;
+    height: auto !important;
+    max-height: 80vh !important;
+    overflow: auto !important;
 }
 
 /* Category column styling for merged appearance */
@@ -132,10 +146,16 @@ st.markdown("""
     border-right: 2px solid #e0e0e0;
 }
 
-/* Better spacing for merged category cells */
-.stDataFrame tbody tr:first-child td:first-child,
+/* Better spacing and visual merging for category cells */
+.stDataFrame tbody tr td:first-child:empty {
+    border-top: none !important;
+    border-bottom: none !important;
+    position: relative;
+}
+
 .stDataFrame tbody tr td:first-child:not(:empty) {
-    border-top: 2px solid #d0d0d0;
+    border-bottom: 2px solid #d0d0d0;
+    vertical-align: top;
 }
 </style>
 """, unsafe_allow_html=True)
