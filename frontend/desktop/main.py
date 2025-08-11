@@ -166,4 +166,4 @@ st.markdown(
 
 # Display with full width
 height = int(35 * (len(df_display) + 1) + 3)
-st.dataframe(styled_df, hide_index=True, use_container_width=True, height=height)
+st.write(styled_df.to_html(index=False), unsafe_allow_html=True)
