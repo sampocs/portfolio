@@ -18,7 +18,7 @@ POSITIONS_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/p
 TRADES_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/trades"
 
 
-st.set_page_config(page_title="Portfolio Positions", layout="wide")
+st.set_page_config(page_title="Portfolio", layout="wide")
 
 
 def camel_to_title(s: str):
@@ -203,6 +203,56 @@ table tbody tr td:nth-child(2) {
 """,
     unsafe_allow_html=True,
 )
+
+# Calculate portfolio totals
+total_value = positions_df["value"].sum()
+total_cost = positions_df["cost"].sum()
+total_return_dollar = total_value - total_cost
+total_return_pct = ((total_value - total_cost) / total_cost) * 100 if total_cost != 0 else 0
+
+# Portfolio Summary Section
+st.markdown("## Summary")
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric(label="Portfolio Value", value=f"${float(total_value):,.2f}")
+
+with col2:
+    st.metric(label="Total Invested", value=f"${float(total_cost):,.2f}")
+
+with col3:
+    # Create a container for the metric and delta positioning
+    metric_container = st.container()
+    with metric_container:
+        st.metric(label="Returns", value=f"${float(total_return_dollar):,.2f}")
+        delta_color = "rgb(9, 171, 59)" if total_return_pct >= 0 else "rgb(255, 43, 43)"
+        delta_bg_color = "rgba(9, 171, 59, 0.1)" if total_return_pct >= 0 else "rgba(255, 43, 43, 0.1)"
+        delta_arrow = "↗" if total_return_pct >= 0 else "↘"
+        st.markdown(
+            f"""
+            <div style="
+                position: relative; 
+                margin-top: -50px; 
+                margin-left: 200px; 
+                z-index: 10;
+            ">
+                <span style="
+                    color: {delta_color}; 
+                    font-size: 14px; 
+                    font-weight: 500;
+                    background-color: {delta_bg_color};
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    white-space: nowrap;
+                ">
+                    {delta_arrow} {float(total_return_pct):.2f}%
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+st.divider()
 
 # Display with full width
 height = int(35 * (len(positions_df_display) + 1) + 3)
