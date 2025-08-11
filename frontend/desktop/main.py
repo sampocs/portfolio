@@ -27,11 +27,16 @@ dotenv.load_dotenv(env_file)
 API_SECRET = os.environ["FASTAPI_SECRET"]
 
 POSITIONS_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/positions"
+TRADES_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/trades"
 
 position_response = requests.get(POSITIONS_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"})
 position_data = position_response.json()
 
-df = pd.DataFrame(position_data)
+trades_response = requests.get(TRADES_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"})
+trades_data = trades_response.json()
+
+positions_df = pd.DataFrame(position_data)
+trades_df = pd.DataFrame(trades_data)
 
 
 for col in [
@@ -45,20 +50,24 @@ for col in [
     "target_allocation",
 ]:
     decimals = Decimal("0.01") if col != "quantity" else Decimal("0.000001")
-    df[col] = df[col].map(lambda i: Decimal(i).quantize(decimals, rounding=ROUND_DOWN))
+    positions_df[col] = positions_df[col].map(lambda i: Decimal(i).quantize(decimals, rounding=ROUND_DOWN))
 
 category_priority = {"Stock ETFs": 1, "Crypto Tokens": 2, "Crypto Stocks": 3, "Gold": 4, "Real Estate": 5}
 
-df["category_priority"] = df["category"].map(category_priority).fillna(999)  # Unknown categories go to end
-df = df.sort_values(by=["category_priority", "target_allocation"], ascending=[True, False]).reset_index(drop=True)
-df = df.drop("category_priority", axis=1)
+positions_df["category_priority"] = (
+    positions_df["category"].map(category_priority).fillna(999)
+)  # Unknown categories go to end
+positions_df = positions_df.sort_values(
+    by=["category_priority", "target_allocation"], ascending=[True, False]
+).reset_index(drop=True)
+positions_df = positions_df.drop("category_priority", axis=1)
 
 
-df_display = df.copy()
+positions_df_display = positions_df.copy()
 # For proper category merging, we'll handle this differently
 category_groups = []
 current_category = None
-for idx, row in df_display.iterrows():
+for idx, row in positions_df_display.iterrows():
     if current_category != row['category']:
         current_category = row['category']
         category_groups.append((idx, current_category))
@@ -67,20 +76,20 @@ for idx, row in df_display.iterrows():
 
 # Apply the category grouping
 for i, (idx, cat) in enumerate(category_groups):
-    df_display.at[idx, 'category'] = cat
+    positions_df_display.at[idx, 'category'] = cat
 
 
 # Price columns -  dollar sign with commas and 2 decimals
 for col in ["current_price", "average_price", "cost", "value"]:
-    if col in df_display.columns:
-        df_display[col] = df_display[col].apply(lambda i: f"${float(i):,.2f}")
+    if col in positions_df_display.columns:
+        positions_df_display[col] = positions_df_display[col].apply(lambda i: f"${float(i):,.2f}")
 
 # Allocation columns - percentage with 2 decimals
 for col in ["returns", "current_allocation"]:
-    if col in df_display.columns:
-        df_display[col] = df_display[col].apply(lambda i: f"{float(i):.2f}%")
+    if col in positions_df_display.columns:
+        positions_df_display[col] = positions_df_display[col].apply(lambda i: f"{float(i):.2f}%")
 
-df_display["target_allocation"] = df_display["target_allocation"].apply(lambda i: f"{i:.0f}%")
+positions_df_display["target_allocation"] = positions_df_display["target_allocation"].apply(lambda i: f"{i:.0f}%")
 
 
 def color_cells(val):
@@ -112,10 +121,10 @@ def style_rows(s):
     return pd.DataFrame(styles, index=s.index, columns=s.columns)
 
 
-df_display = df_display.rename(columns={c: camel_to_title(c) for c in df_display.columns})
+positions_df_display = positions_df_display.rename(columns={c: camel_to_title(c) for c in positions_df_display.columns})
 
 # Apply styling with alternating rows and return colors
-styled_df = df_display.style.apply(style_rows, axis=None).map(color_cells, subset=["Returns"])
+styled_df = positions_df_display.style.apply(style_rows, axis=None).map(color_cells, subset=["Returns"])
 
 # Custom CSS for better table appearance
 st.markdown(
@@ -170,5 +179,29 @@ table td:first-child {
 )
 
 # Display with full width
-height = int(35 * (len(df_display) + 1) + 3)
+height = int(35 * (len(positions_df_display) + 1) + 3)
 st.write(styled_df.to_html(index=False), unsafe_allow_html=True)
+
+st.markdown("## Trades")
+
+col1, col2, col3 = st.columns([1, 1, 6])
+
+all_assets = list(trades_df["asset"].unique())
+trade_types = ["Buy", "Sell"]
+
+with col1:
+    with st.popover("Assets", width=200):
+        st.write("Select one or more:")
+        selected_assets = {opt: st.checkbox(opt, value=(opt in set(all_assets)), key=opt) for opt in all_assets}
+with col2:
+    with st.popover("Trade Type", width=200):
+        st.write("Select one or more:")
+        selected_trades = {opt: st.checkbox(opt, value=(opt in set(trade_types)), key=opt) for opt in trade_types}
+
+trades_df = trades_df[trades_df.asset.isin(selected_assets)]
+trades_df = trades_df[trades_df.action.isin([t.upper() for t in trade_types])]
+
+trades_df = trades_df[["asset", "date", "action", "price", "quantity", "cost", "value", "fees"]]
+trades_df = trades_df.rename(columns={c: c.capitalize() for c in trades_df.columns})
+
+st.dataframe(trades_df, hide_index=True)
