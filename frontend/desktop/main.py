@@ -66,6 +66,8 @@ positions_df = positions_df.sort_values(
 ).reset_index(drop=True)
 positions_df = positions_df.drop("category_priority", axis=1)
 
+positions_df["unbalanced_by"] = positions_df["current_allocation"] - positions_df["target_allocation"]
+
 
 positions_df_display = positions_df.copy()
 # For proper category merging, we'll handle this differently
@@ -89,9 +91,9 @@ for col in ["current_price", "average_price", "cost", "value"]:
         positions_df_display[col] = positions_df_display[col].apply(lambda i: f"${float(i):,.2f}")
 
 # Allocation columns - percentage with 2 decimals
-for col in ["returns", "current_allocation"]:
+for col in ["returns", "current_allocation", "unbalanced_by"]:
     if col in positions_df_display.columns:
-        positions_df_display[col] = positions_df_display[col].apply(lambda i: f"{float(i):.2f}%")
+        positions_df_display[col] = positions_df_display[col].apply(lambda i: f"{float(i):.1f}%")
 
 positions_df_display["target_allocation"] = positions_df_display["target_allocation"].apply(lambda i: f"{i:.0f}%")
 
@@ -128,7 +130,9 @@ def style_rows(s):
 positions_df_display = positions_df_display.rename(columns={c: camel_to_title(c) for c in positions_df_display.columns})
 
 # Apply styling with alternating rows and return colors
-styled_df = positions_df_display.style.apply(style_rows, axis=None).map(color_cells, subset=["Returns"])
+styled_df = positions_df_display.style.apply(style_rows, axis=None).map(
+    color_cells, subset=["Returns", "Unbalanced By"]
+)
 
 # Custom CSS for better table appearance
 st.markdown(
