@@ -23,7 +23,7 @@ def build_positions_from_trades(db: Session, end_date: str) -> list[models.Posit
     Dates are inclusive on both ends
     Returns a list of Position objects, one for each asset
     """
-    trades = db.query(models.Trade).where(models.Trade.date <= end_date)
+    trades = db.query(models.Trade).where(models.Trade.date <= end_date).order_by(models.Trade.date)
 
     # Group trades by asset
     asset_trades = defaultdict(list)
@@ -32,27 +32,41 @@ def build_positions_from_trades(db: Session, end_date: str) -> list[models.Posit
             continue
         asset_trades[trade.asset].append(trade)
 
-    # Calculate position for each asset
+    # Build position for each asset
     positions = []
     for asset, trades_list in asset_trades.items():
-        total_quantity = Decimal(0)
-        total_cost = Decimal(0)
+        # Use buy logs to correctly calculate average price when there's a sell
+        buy_lots = []  # Each lot: {'quantity': Decimal, 'price': Decimal}
 
         for trade in trades_list:
             if trade.excluded:
                 continue
 
             if trade.action == models.TradeAction.BUY:
-                total_quantity += trade.quantity
-                total_cost += trade.cost
-            elif trade.action == models.TradeAction.SELL:
-                total_quantity -= trade.quantity
-                total_cost -= trade.cost
+                buy_lots.append({"quantity": trade.quantity, "price": trade.price})
 
-        # Only create position if we still hold the asset
+            elif trade.action == models.TradeAction.SELL:
+                remaining_to_sell = trade.quantity
+
+                # Sell from oldest lots first (FIFO)
+                while remaining_to_sell > 0 and buy_lots:
+                    lot = buy_lots[0]
+
+                    if lot["quantity"] <= remaining_to_sell:
+                        # Sell entire lot
+                        remaining_to_sell -= lot["quantity"]
+                        buy_lots.pop(0)
+                    else:
+                        # Partial sell of lot
+                        lot["quantity"] -= remaining_to_sell
+                        remaining_to_sell = Decimal(0)
+
+        # Calculate totals from remaining lots
+        total_quantity = sum(lot["quantity"] for lot in buy_lots)
         if total_quantity == 0:
             continue
 
+        total_cost = sum(lot["quantity"] * lot["price"] for lot in buy_lots)
         average_price = total_cost / total_quantity
 
         position = models.Position(
