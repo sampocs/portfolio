@@ -47,14 +47,14 @@ assets:
     category: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: images/
+    logo: images/COIN.svg
   - asset: HOOD
     description: "Robinhood"
     target_allocation: 5
     category: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: images/
+    logo: images/HOOD.svg
   - asset: AAAU
     description: "Gold"
     target_allocation: 5
@@ -68,7 +68,7 @@ assets:
     category: Real Estate
     platform: ibkr
     price_type: stocks
-    logo: images/VNG.svg
+    logo: images/VNQ.svg
   - asset: BTC
     description: Bitcoin
     target_allocation: 12
