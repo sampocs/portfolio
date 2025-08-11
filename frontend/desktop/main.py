@@ -13,12 +13,51 @@ env_file = project_home / ".env"
 
 dotenv.load_dotenv(env_file)
 API_SECRET = os.environ["FASTAPI_SECRET"]
+APP_PASSWORD = os.environ["DASHBOARD_PASSWORD"]
 
 POSITIONS_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/positions"
 TRADES_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/trades"
 
 
 st.set_page_config(page_title="Portfolio", layout="wide")
+
+
+# Password protection function
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == APP_PASSWORD:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the password
+        else:
+            st.session_state["password_correct"] = False
+
+    # Return True if password is validated
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Show input for password
+    st.title("🔒 Portfolio Access")
+    st.text_input(
+        "Password",
+        type="password",
+        on_change=password_entered,
+        key="password",
+        placeholder="Enter password to access portfolio",
+    )
+
+    if "password_correct" in st.session_state:
+        if not st.session_state["password_correct"]:
+            st.error("😕 Password incorrect")
+
+    return False
+
+
+# Check password before showing main content
+if not check_password():
+    st.stop()  # Do not continue if password is wrong
 
 
 def camel_to_title(s: str):
