@@ -10,6 +10,9 @@ install:
 start-api:
 	@(cd backend && $(PYTHON) -m uvicorn backend.main:app --host 0.0.0.0 --port 8000)
 
+start-streamlit:
+	@(cd frontend/desktop && python -m streamlit run main.py --server.headless true)
+
 bootstrap:
 	@(cd backend && $(PYTHON) -m backend.bootstrap.seed)
 
