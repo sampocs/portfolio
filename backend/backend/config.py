@@ -127,6 +127,12 @@ class Config(BaseSettings):
 
         return self
 
+    @model_validator(mode="after")
+    def load_assets(self) -> "Config":
+        """Access assets to trigger yaml read and error early if not configured properly"""
+        _ = self.assets
+        return self
+
     @property
     def ibind_oauth_config(self) -> OAuth1aConfig:
         """Get OAuth configuration. Should only be called when OAuth is enabled"""
