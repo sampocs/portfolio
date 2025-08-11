@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { theme } from '../styles/theme';
+import { createStyles, getTextStyle } from '../styles/utils';
 
 export default function PortfolioScreen() {
   return (
@@ -15,29 +17,28 @@ export default function PortfolioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createStyles({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: theme.colors.background,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#000000',
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.background,
     alignItems: 'center',
   },
   headerText: {
-    color: '#F5F5F5',
-    fontSize: 24,
-    fontWeight: 'bold',
+    color: theme.colors.foreground,
+    ...getTextStyle('xxl', 'bold'),
   },
   scrollContent: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: theme.spacing.xl,
   },
   placeholder: {
-    color: '#999999',
-    fontSize: 16,
+    color: theme.colors.muted,
+    ...getTextStyle('md'),
     textAlign: 'center',
     marginTop: 50,
   },

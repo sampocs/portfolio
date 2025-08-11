@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import PortfolioScreen from './src/screens/PortfolioScreen';
 import AllocationsScreen from './src/screens/AllocationsScreen';
+import { theme } from './src/styles/theme';
 
 const Tab = createBottomTabNavigator();
 
@@ -27,11 +28,11 @@ export default function App() {
 
             return <Ionicons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: '#F5F5F5',
-          tabBarInactiveTintColor: '#999999',
+          tabBarActiveTintColor: theme.colors.foreground,
+          tabBarInactiveTintColor: theme.colors.muted,
           tabBarStyle: {
-            backgroundColor: '#000000',
-            borderTopColor: '#171717',
+            backgroundColor: theme.colors.background,
+            borderTopColor: theme.colors.card,
           },
           headerShown: false,
         })}

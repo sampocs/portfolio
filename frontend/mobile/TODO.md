@@ -28,8 +28,8 @@ Building a React Native application to display investment portfolio information 
 
 ### 3. Design System
 
-- [ ] Define app styling and color scheme file
-  - [ ] Implement color scheme with standard naming:
+- [x] Define app styling and color scheme file
+  - [x] Implement color scheme with standard naming:
     - background: #000000 (primary screen background)
     - foreground: #F5F5F5 (primary text)
     - muted: #999999 (secondary text)
@@ -40,7 +40,7 @@ Building a React Native application to display investment portfolio information 
     - success: #34D86C (green for gains)
     - success-foreground: #00351D (green highlight background)
   - [ ] Install and configure Roobertpro font
-  - [ ] Create theme constants and styling utilities
+  - [x] Create theme constants and styling utilities
 
 ### 4. Data Layer
 
