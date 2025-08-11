@@ -238,6 +238,7 @@ selected_assets = [asset for asset, selected in asset_checkboxes.items() if sele
 selected_trades = [trade_type.upper() for trade_type, selected in trade_type_checkboxes.items() if selected]
 trades_df = trades_df[trades_df.asset.isin(selected_assets)]
 trades_df = trades_df[trades_df.action.isin(selected_trades)]
+trades_df = trades_df.reset_index()
 
 for col in ["price", "cost", "value", "fees"]:
     if col in trades_df.columns:
@@ -248,4 +249,19 @@ trades_df["quantity"] = trades_df["quantity"].apply(lambda i: f"{float(i):,.6f}"
 trades_df = trades_df[["asset", "date", "action", "price", "quantity", "cost", "value", "fees"]]
 trades_df = trades_df.rename(columns={c: c.capitalize() for c in trades_df.columns})
 
-st.dataframe(trades_df, hide_index=True)
+
+def style_trades_rows(s):
+    """Add alternating row colors"""
+    styles = []
+    for idx, _ in s.iterrows():
+        if idx % 2 == 0:
+            row_color = "background-color: #f8f9fa"
+        else:
+            row_color = "background-color: white"
+        row_styles = [row_color for col in s.columns]
+        styles.append(row_styles)
+    return pd.DataFrame(styles, index=s.index, columns=s.columns)
+
+
+styled_trades_df = trades_df.style.apply(style_trades_rows, axis=None)
+st.dataframe(styled_trades_df, hide_index=True)
