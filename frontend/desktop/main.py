@@ -7,18 +7,6 @@ from pathlib import Path
 import re
 from decimal import Decimal, ROUND_DOWN
 
-# Configure page layout for better table display
-st.set_page_config(page_title="Portfolio Positions", layout="wide")
-
-st.markdown("## Positions")
-
-
-def camel_to_title(s: str):
-    """Convert from camel case to title case"""
-    spaced = re.sub(r'([a-z])([A-Z])', r'\1 \2', s)
-    return spaced.title().replace("_", " ")
-
-
 current_file = Path(__file__).resolve()
 project_home = current_file.parent.parent.parent
 env_file = project_home / ".env"
@@ -29,11 +17,29 @@ API_SECRET = os.environ["FASTAPI_SECRET"]
 POSITIONS_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/positions"
 TRADES_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/trades"
 
-position_response = requests.get(POSITIONS_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"})
-position_data = position_response.json()
 
-trades_response = requests.get(TRADES_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"})
-trades_data = trades_response.json()
+st.set_page_config(page_title="Portfolio Positions", layout="wide")
+
+
+def camel_to_title(s: str):
+    """Convert from camel case to title case"""
+    spaced = re.sub(r'([a-z])([A-Z])', r'\1 \2', s)
+    return spaced.title().replace("_", " ")
+
+
+@st.cache_data(ttl=60)  # 1min cache
+def fetch_portfolio_data():
+    """Fetch positions and trades data from API with caching"""
+    position_response = requests.get(POSITIONS_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"})
+    trades_response = requests.get(TRADES_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"})
+
+    position_data = position_response.json()
+    trades_data = trades_response.json()
+
+    return position_data, trades_data
+
+
+position_data, trades_data = fetch_portfolio_data()
 
 positions_df = pd.DataFrame(position_data)
 trades_df = pd.DataFrame(trades_data)
@@ -180,6 +186,7 @@ table td:first-child {
 
 # Display with full width
 height = int(35 * (len(positions_df_display) + 1) + 3)
+st.markdown("## Positions")
 st.write(styled_df.to_html(index=False), unsafe_allow_html=True)
 
 st.markdown("## Trades")
