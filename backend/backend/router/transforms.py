@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.database import crud, models
@@ -9,47 +10,42 @@ from backend.config import config, DURATION_TO_TIMEDELTA
 
 def get_enriched_positions(db: Session) -> list[schemas.Position]:
     """
-    Enriches a DB position with price data and downstream calculated fields
+    Enriches a DB position with metadata, price data, and downstream calculated fields
     """
     positions = crud.get_all_positions(db)
     live_prices = prices.get_cached_asset_prices(db)
 
+    # Enrich each position with the current price, value, and returns
     enriched_positions = []
     for position in positions:
         current_price = live_prices[position.asset]
         value = current_price * position.quantity
         returns = ((value - position.cost) / position.cost) * 100
 
+        asset_config = config.assets[position.asset]
+
         enriched_positions.append(
             schemas.Position(
                 asset=position.asset,
+                category=asset_config.category.value,
+                description=asset_config.description,
                 current_price=current_price,
                 average_price=position.average_price,
                 quantity=position.quantity,
                 cost=position.cost,
                 value=current_price * position.quantity,
                 returns=returns,
+                current_allocation=Decimal(0),  # temporary - will get updated below
+                target_allocation=asset_config.target_allocation,
             )
         )
 
+    # Get the total value and then calculate the current allocations
+    total_value = sum(position.value for position in enriched_positions)
+    for position in enriched_positions:
+        position.current_allocation = (position.value / total_value) * 100
+
     return enriched_positions
-
-
-def get_allocations(db: Session) -> list[schemas.Allocation]:
-    """
-    Returns the current and target allocations for each asset
-    """
-    positions = get_enriched_positions(db)
-    total_value = sum(position.value for position in positions)
-
-    return [
-        schemas.Allocation(
-            asset=position.asset,
-            target_allocation=config.assets[position.asset].target_allocation,
-            current_allocation=(position.value / total_value) * 100,
-        )
-        for position in positions
-    ]
 
 
 def get_performance(db: Session, duration: str) -> list[schemas.Performance]:

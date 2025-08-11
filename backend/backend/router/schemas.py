@@ -6,22 +6,18 @@ class Position(BaseModel):
     """Defines the schema for the /positions API response"""
 
     asset: str
+    category: str
+    description: str
     current_price: Decimal
     average_price: Decimal
     quantity: Decimal
     cost: Decimal
     value: Decimal
     returns: Decimal
+    current_allocation: Decimal
+    target_allocation: Decimal
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class Allocation(BaseModel):
-    """Defines the schema for the /allocation API response"""
-
-    asset: str
-    target_allocation: Decimal
-    current_allocation: Decimal
 
 
 class Performance(BaseModel):

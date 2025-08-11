@@ -42,14 +42,6 @@ async def get_positions(
     return transforms.get_enriched_positions(db)
 
 
-@router.get("/allocations")
-async def allocations(
-    _: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)
-):
-    """Returns the current and target allocations for each asset"""
-    return transforms.get_allocations(db)
-
-
 @router.get("/performance/{duration}")
 async def get_performance(
     duration: str, _: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)
