@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import requests
 import dotenv
 import os
@@ -158,6 +157,12 @@ st.markdown(
 .stDataFrame tbody tr td:first-child:not(:empty) {
     border-bottom: 2px solid #d0d0d0;
     vertical-align: top;
+}
+
+/* Hide index column when using to_html */
+table th:first-child,
+table td:first-child {
+    display: none;
 }
 </style>
 """,
