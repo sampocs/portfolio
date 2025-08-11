@@ -94,21 +94,22 @@ def color_cells(val):
         color = "white"
     return f"background-color: {color}"
 
+
 def style_rows(s):
     """Add alternating row colors with light blue"""
     styles = []
-    
+
     for idx, _ in s.iterrows():
         # Alternating row colors (light blue for even rows)
         if idx % 2 == 0:
             row_color = "background-color: #f0f8ff"
         else:
             row_color = "background-color: white"
-        
+
         # Apply row color to all columns except Returns which has specific coloring
         row_styles = [row_color if col != 'Returns' else '' for col in s.columns]
         styles.append(row_styles)
-    
+
     return pd.DataFrame(styles, index=s.index, columns=s.columns)
 
 
@@ -118,7 +119,8 @@ df_display = df_display.rename(columns={c: camel_to_title(c) for c in df_display
 styled_df = df_display.style.apply(style_rows, axis=None).map(color_cells, subset=["Returns"])
 
 # Custom CSS for better table appearance
-st.markdown("""
+st.markdown(
+    """
 <style>
 /* Make table cells auto-size to content and prevent cutoff */
 .stDataFrame table {
@@ -158,7 +160,10 @@ st.markdown("""
     vertical-align: top;
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # Display with full width
-st.dataframe(styled_df, hide_index=True, use_container_width=True)
+height = int(35 * (len(df_display) + 1) + 3)
+st.dataframe(styled_df, hide_index=True, use_container_width=True, height=height)
