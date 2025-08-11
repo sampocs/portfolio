@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r frontend/desktop/requirements.txt"
+
+[deploy]
+startCommand = "cd frontend/desktop && python -m streamlit run main.py --server.headless true --server.port $PORT"
+restartPolicyType = "ALWAYS"
+restartPolicyMaxRetries = 10
