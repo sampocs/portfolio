@@ -6,19 +6,13 @@ from backend.config import config
 from backend.database import models, crud
 
 
-def _get_current_stock_price(asset: str) -> Decimal:
-    """Gets the current market price for a stock or ETF"""
-    params = {"symbol": asset, "token": config.finhub_api_token}
-    response = requests.get(config.finhub_live_price_api, params=params)
-    response_data: dict = response.json()
-    return Decimal(str(response_data["c"]))
-
-
-def _get_previous_stock_price(asset: str, days: int = 1) -> dict[str, Decimal]:
-    """Gets the previous close price(s) for a stock or ETH"""
-    current_date = datetime.date.today()
-    target_dates = [str(current_date - datetime.timedelta(days=i)) for i in range(1, 1 + days)]
-
+def _get_previous_stock_price(asset: str, target_dates: list[str]) -> dict[str, Decimal]:
+    """
+    Gets the previous close price(s) for a stock or ETH
+    Returns a mapping of date -> price for the asset
+    For weekends and holidays, a price will not be found, and the returning dict will be missing
+    that price key
+    """
     params = {
         "function": "TIME_SERIES_DAILY",
         "symbol": asset,
@@ -29,45 +23,52 @@ def _get_previous_stock_price(asset: str, days: int = 1) -> dict[str, Decimal]:
     response = requests.get(config.alpha_prev_close_api, params=params)
     response_data: dict = response.json()
 
-    assert response_data["Meta Data"]["3. Last Refreshed"] == str(current_date), "Previous stock data not refreshed yet"
+    daily_prices = response_data["Time Series (Daily)"]
 
-    return {date: Decimal(response_data["Time Series (Daily)"][date]["4. close"]) for date in target_dates}
+    return {date: Decimal(daily_prices[date]["4. close"]) for date in target_dates if date in daily_prices}
 
 
-def _get_previous_crypto_price(asset: str, days: int = 1) -> dict[str, Decimal]:
-    """Gets the previous close price(s) for a crypto token"""
-    current_date = datetime.date.today()
-    target_dates = [current_date - datetime.timedelta(days=i) for i in range(1, 1 + days)]
+def _get_previous_crypto_price(asset: str, target_dates: list[str]) -> dict[str, Decimal]:
+    """
+    Gets the previous close price(s) for a crypto token
+    Returns a mapping of date -> price for the asset
+    """
 
-    def _close_date_to_unix(date: datetime.date) -> int:
+    def _close_date_to_unix(date: str) -> int:
         """The unix time for the close of June 1st is technically on June 2nd (at 00:00)"""
-        start_of_target_date = datetime.datetime.combine(date, midnight, utc_tz)
+        start_of_target_date = datetime.datetime.combine(datetime.date.fromisoformat(date), midnight, utc_tz)
         end_of_target_date = start_of_target_date + datetime.timedelta(days=1)
         return int(end_of_target_date.timestamp()) * 1000  # to milliseconds
 
     midnight = datetime.time.min
     utc_tz = datetime.timezone.utc
-    date_to_unix = {str(date): _close_date_to_unix(date) for date in target_dates}
+    date_to_unix = {date: _close_date_to_unix(date) for date in target_dates}
 
-    params = {"vs_currency": "usd", "days": days, "interval": "daily"}
+    params = {"vs_currency": "usd", "days": len(target_dates) + 1, "interval": "daily"}
     coingecko_id = config.coingecko_ids[asset]
     response = requests.get(config.coingecko_prev_close_api.format(coingecko_id), params=params)
     response_data: dict = response.json()
 
     price_data = response_data["prices"]
-    price_date_by_unix = {time_unix: price for time_unix, price in price_data}
-    print(price_date_by_unix)
-    print(date_to_unix)
+    price_by_unix_date = {time_unix: str(price) for (time_unix, price) in price_data}
 
-    return {str(date): Decimal(str(price_date_by_unix[date_to_unix[str(date)]])) for date in target_dates}
+    return {date: Decimal(price_by_unix_date[date_to_unix[date]]) for date in target_dates}
 
 
-def get_current_stock_prices() -> dict[str, Decimal]:
+def _get_current_stock_price(asset: str) -> Decimal:
+    """Gets the current market price for a stock or ETF"""
+    params = {"symbol": asset, "token": config.finhub_api_token}
+    response = requests.get(config.finhub_live_price_api, params=params)
+    response_data: dict = response.json()
+    return Decimal(str(response_data["c"]))
+
+
+def _get_current_stock_prices() -> dict[str, Decimal]:
     """Gets the current market price for each stock or ETF"""
     return {asset: _get_current_stock_price(asset) for asset in config.stock_tickers}
 
 
-def get_current_crypto_prices() -> dict[str, Decimal]:
+def _get_current_crypto_prices() -> dict[str, Decimal]:
     """Gets the current market price for each crypt token"""
     params = {"ids": ",".join(config.coingecko_ids.values()), "vs_currencies": "usd"}
 
@@ -77,19 +78,27 @@ def get_current_crypto_prices() -> dict[str, Decimal]:
     return {asset: Decimal(str(response_data[config.coingecko_ids[asset]]["usd"])) for asset in config.crypto_tokens}
 
 
-def get_previous_stock_prices() -> dict[str, dict[str, Decimal]]:
-    """Gets the previous close prices for each stock"""
-    return {asset: _get_previous_stock_price(asset) for asset in config.stock_tickers}
+def get_previous_asset_prices(db: Session, target_dates: list[str]) -> dict[str, dict[str, Decimal]]:
+    """
+    Gets the previous close prices for each stock
+    Returns a mapping of asset -> date -> price
+    """
+    stock_prices = {asset: _get_previous_stock_price(asset, target_dates) for asset in config.stock_tickers}
+    crypto_prices = {asset: _get_previous_crypto_price(asset, target_dates) for asset in config.crypto_tokens}
+    all_prices = {**stock_prices, **crypto_prices}
+
+    # Fill missing dates with previous prices from database
+    # This is relevant for stocks which don't have prices when the market is closed on weekends and holidays
+    for asset in all_prices.keys():
+        for date in target_dates:
+            if date not in all_prices[asset]:
+                all_prices[asset][date] = crud.get_latest_asset_price(db, asset=asset, date=date)
+    return all_prices
 
 
-def get_previous_crypto_prices() -> dict[str, dict[str, Decimal]]:
-    """Gets the previous close price for each crypto token"""
-    return {asset: _get_previous_crypto_price(asset) for asset in config.crypto_tokens}
-
-
-def get_all_current_asset_prices() -> dict[str, Decimal]:
+def get_current_asset_prices() -> dict[str, Decimal]:
     """Returns the price of each asset (crypto and stocks)"""
-    return {**get_current_stock_prices(), **get_current_crypto_prices()}
+    return {**_get_current_stock_prices(), **_get_current_crypto_prices()}
 
 
 def get_cached_asset_prices(db: Session) -> dict[str, Decimal]:
@@ -108,7 +117,7 @@ def get_cached_asset_prices(db: Session) -> dict[str, Decimal]:
         return {price_data.asset: price_data.price for price_data in all_price_data}
 
     # Otherwise fetch new prices, cache them and then return them
-    price_data_dict = get_all_current_asset_prices()
+    price_data_dict = get_current_asset_prices()
     crud.store_live_prices(db, price_data_dict)
 
     return price_data_dict

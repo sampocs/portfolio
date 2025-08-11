@@ -10,3 +10,5 @@ SQLAlchemy==2.0.42
 psycopg2-binary==2.9.10
 pycryptodome==3.23.0
 pyyaml==6.0.2
+tqdm==4.67.1
+apscheduler==3.11.0
