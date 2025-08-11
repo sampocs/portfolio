@@ -60,9 +60,7 @@ for col in [
 
 category_priority = {"Stock ETFs": 1, "Crypto Tokens": 2, "Crypto Stocks": 3, "Gold": 4, "Real Estate": 5}
 
-positions_df["category_priority"] = (
-    positions_df["category"].map(category_priority).fillna(999)
-)  # Unknown categories go to end
+positions_df["category_priority"] = positions_df["category"].map(category_priority).fillna(999)
 positions_df = positions_df.sort_values(
     by=["category_priority", "target_allocation"], ascending=[True, False]
 ).reset_index(drop=True)
@@ -179,6 +177,11 @@ table th:first-child,
 table td:first-child {
     display: none;
 }
+
+/* Bold asset column in positions table */
+table tbody tr td:nth-child(2) {
+    font-weight: bold;
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -189,6 +192,7 @@ height = int(35 * (len(positions_df_display) + 1) + 3)
 st.markdown("## Positions")
 st.write(styled_df.to_html(index=False), unsafe_allow_html=True)
 
+st.divider()
 st.markdown("## Trades")
 
 col1, col2, col3 = st.columns([1, 1, 6])
@@ -199,14 +203,30 @@ trade_types = ["Buy", "Sell"]
 with col1:
     with st.popover("Assets", width=200):
         st.write("Select one or more:")
-        selected_assets = {opt: st.checkbox(opt, value=(opt in set(all_assets)), key=opt) for opt in all_assets}
+
+        if st.button("Toggle All", key="toggle_all"):
+            all_enabled = all(st.session_state[asset] for asset in all_assets)
+            new_state = False if all_enabled else True
+            for asset in all_assets:
+                st.session_state[asset] = new_state
+
+        st.divider()
+        asset_checkboxes = {opt: st.checkbox(opt, value=(opt in set(all_assets)), key=opt) for opt in all_assets}
 with col2:
     with st.popover("Trade Type", width=200):
         st.write("Select one or more:")
-        selected_trades = {opt: st.checkbox(opt, value=(opt in set(trade_types)), key=opt) for opt in trade_types}
+        trade_type_checkboxes = {opt: st.checkbox(opt, value=(opt in set(trade_types)), key=opt) for opt in trade_types}
 
+selected_assets = [asset for asset, selected in asset_checkboxes.items() if selected]
+selected_trades = [trade_type.upper() for trade_type, selected in trade_type_checkboxes.items() if selected]
 trades_df = trades_df[trades_df.asset.isin(selected_assets)]
-trades_df = trades_df[trades_df.action.isin([t.upper() for t in trade_types])]
+trades_df = trades_df[trades_df.action.isin(selected_trades)]
+
+for col in ["price", "cost", "value", "fees"]:
+    if col in trades_df.columns:
+        trades_df[col] = trades_df[col].apply(lambda i: f"${float(i):,.2f}")
+
+trades_df["quantity"] = trades_df["quantity"].apply(lambda i: f"{float(i):,.6f}")
 
 trades_df = trades_df[["asset", "date", "action", "price", "quantity", "cost", "value", "fees"]]
 trades_df = trades_df.rename(columns={c: c.capitalize() for c in trades_df.columns})
