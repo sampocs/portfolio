@@ -8,6 +8,9 @@ from pathlib import Path
 import re
 from decimal import Decimal, ROUND_DOWN
 
+# Configure page layout for better table display
+st.set_page_config(page_title="Portfolio Positions", layout="wide")
+
 st.markdown("## Positions")
 
 
@@ -79,10 +82,63 @@ def color_cells(val):
         color = "white"
     return f"background-color: {color}"
 
+def style_rows(s):
+    """Add alternating row colors"""
+    styles = []
+    
+    for idx, row in s.iterrows():
+        # Alternating row colors (light gray for even rows)
+        if idx % 2 == 0:
+            row_color = "background-color: #f8f9fa"
+        else:
+            row_color = "background-color: white"
+        
+        # Apply row color to all columns except Returns which has specific coloring
+        row_styles = [row_color if col != 'Returns' else '' for col in s.columns]
+        styles.append(row_styles)
+    
+    return pd.DataFrame(styles, index=s.index, columns=s.columns)
+
 
 df_display = df_display.rename(columns={c: camel_to_title(c) for c in df_display.columns})
 
-df_display = df_display.style.map(color_cells, subset=["Returns"])
-st.dataframe(df_display, hide_index=True, use_container_width=True)
+# Apply styling with alternating rows and return colors
+styled_df = df_display.style.apply(style_rows, axis=None).map(color_cells, subset=["Returns"])
 
-st.markdown("## Trades")
+# Custom CSS for better table appearance
+st.markdown("""
+<style>
+/* Make table cells auto-size to content and prevent cutoff */
+.stDataFrame table {
+    table-layout: auto !important;
+    width: 100% !important;
+}
+
+.stDataFrame td, .stDataFrame th {
+    white-space: nowrap !important;
+    padding: 8px 12px !important;
+    text-align: left !important;
+}
+
+/* Ensure container takes full width without horizontal scroll */
+.stDataFrame {
+    width: 100% !important;
+    overflow-x: auto;
+}
+
+/* Category column styling for merged appearance */
+.stDataFrame td:first-child {
+    font-weight: 600;
+    border-right: 2px solid #e0e0e0;
+}
+
+/* Better spacing for merged category cells */
+.stDataFrame tbody tr:first-child td:first-child,
+.stDataFrame tbody tr td:first-child:not(:empty) {
+    border-top: 2px solid #d0d0d0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Display with full width
+st.dataframe(styled_df, hide_index=True, use_container_width=True)
