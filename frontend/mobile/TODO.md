@@ -8,23 +8,23 @@ Building a React Native application to display investment portfolio information 
 
 ### 1. Project Setup
 
-- [ ] Scaffold the React Native application inside `/frontend/mobile`
-  - [ ] Initialize React Native project in existing monorepo structure
-  - [ ] Ensure all packages are up to date
-  - [ ] Configure project for iOS development
-  - [ ] Install and configure necessary dependencies
-  - [ ] Start with expo, but ensure we can export it later since this will eventually be deployed to the app store.
-  - [ ] Ensure the main react project starts in /frontend/mobile (rather than being under a separate nested directory). You can call the app "Portfolio"
+- [x] Scaffold the React Native application inside `/frontend/mobile`
+  - [x] Initialize React Native project in existing monorepo structure
+  - [x] Ensure all packages are up to date
+  - [x] Configure project for iOS development
+  - [x] Install and configure necessary dependencies
+  - [x] Start with expo, but ensure we can export it later since this will eventually be deployed to the app store.
+  - [x] Ensure the main react project starts in /frontend/mobile (rather than being under a separate nested directory). You can call the app "Portfolio"
 
 ### 2. Navigation & Screens
 
-- [ ] Create the two tabs: "Portfolio" and "Allocations"
-  - [ ] Portfolio tab with line/pie chart icon
-  - [ ] Allocations tab with bar chart icon
-  - [ ] Create PortfolioScreen component
-  - [ ] Create AllocationsScreen component
-  - [ ] Add pinned header component for each screen showing tab name
-  - [ ] Implement ScrollView for main content below header
+- [x] Create the two tabs: "Portfolio" and "Allocations"
+  - [x] Portfolio tab with line/pie chart icon
+  - [x] Allocations tab with bar chart icon
+  - [x] Create PortfolioScreen component
+  - [x] Create AllocationsScreen component
+  - [x] Add pinned header component for each screen showing tab name
+  - [x] Implement ScrollView for main content below header
 
 ### 3. Design System
 
