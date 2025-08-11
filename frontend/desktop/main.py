@@ -150,6 +150,19 @@ st.markdown(
     text-align: left !important;
 }
 
+/* Reduce font size for positions table */
+table {
+    font-size: 14px !important;
+}
+
+table th {
+    font-size: 14px !important;
+}
+
+table td {
+    font-size: 14px !important;
+}
+
 /* Ensure container takes full width and height without scroll issues */
 .stDataFrame {
     width: 100% !important;
