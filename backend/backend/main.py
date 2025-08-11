@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     """Controls the app startup and shutdown with scheduled jobs"""
     scheduler = schedules.get_scheduler()
+    scheduler.start()
     yield  # main app flow
     scheduler.shutdown()
 

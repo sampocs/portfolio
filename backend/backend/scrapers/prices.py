@@ -44,15 +44,15 @@ def _get_previous_crypto_price(asset: str, target_dates: list[str]) -> dict[str,
     utc_tz = datetime.timezone.utc
     date_to_unix = {date: _close_date_to_unix(date) for date in target_dates}
 
-    params = {"vs_currency": "usd", "days": len(target_dates), "interval": "daily"}
+    params = {"vs_currency": "usd", "days": len(target_dates) + 1, "interval": "daily"}
     coingecko_id = config.coingecko_ids[asset]
     response = requests.get(config.coingecko_prev_close_api.format(coingecko_id), params=params)
     response_data: dict = response.json()
 
     price_data = response_data["prices"]
-    price_date_by_unix = {time_unix: price for time_unix, price in price_data}
+    price_by_unix_date = {time_unix: str(price) for (time_unix, price) in price_data}
 
-    return {date: Decimal(str(price_date_by_unix[date_to_unix[date]])) for date in target_dates}
+    return {date: Decimal(price_by_unix_date[date_to_unix[date]]) for date in target_dates}
 
 
 def _get_current_stock_price(asset: str) -> Decimal:
@@ -93,7 +93,6 @@ def get_previous_asset_prices(db: Session, target_dates: list[str]) -> dict[str,
         for date in target_dates:
             if date not in all_prices[asset]:
                 all_prices[asset][date] = crud.get_latest_asset_price(db, asset=asset, date=date)
-
     return all_prices
 
 

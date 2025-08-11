@@ -17,13 +17,13 @@ def get_all_positions(db: Session):
     return db.query(models.Position).all()
 
 
-def build_positions_from_trades(db: Session, start_date: str, end_date: str) -> list[models.Position]:
+def build_positions_from_trades(db: Session, end_date: str) -> list[models.Position]:
     """
     Builds the current portfolio positions from the trade history on the specified dates
     Dates are inclusive on both ends
     Returns a list of Position objects, one for each asset
     """
-    trades = db.query(models.Trade).where(models.Trade.date <= end_date).where(models.Trade.date >= start_date)
+    trades = db.query(models.Trade).where(models.Trade.date <= end_date)
 
     # Group trades by asset
     asset_trades = defaultdict(list)
@@ -99,12 +99,9 @@ def build_historical_positions(
     """
     Build the historical positions table for each of the specified dates
     """
-    start_date = target_dates[0]
-    end_date = target_dates[-1]
-
     historical_positions = []
     for end_date in tqdm(target_dates, desc="Building historical positions") if log_progress else target_dates:
-        positions_raw = build_positions_from_trades(db, start_date=start_date, end_date=end_date)
+        positions_raw = build_positions_from_trades(db, end_date=end_date)
         historical_positions += [enrich_historical_position(db, end_date, position) for position in positions_raw]
 
     return historical_positions
@@ -161,8 +158,8 @@ def get_latest_asset_price(db: Session, asset: str, date: str) -> Decimal:
         .filter(models.HistoricalPrice.asset == asset)
         .filter(models.HistoricalPrice.date < date)
         .order_by(models.HistoricalPrice.date.desc())
-        .scalar()
+        .first()
     )
 
     assert previous_price, f"No previous price found for {asset} before {date}"
-    return previous_price
+    return previous_price[0]

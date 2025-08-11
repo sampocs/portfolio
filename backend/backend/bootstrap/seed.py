@@ -17,7 +17,7 @@ def forward_fill_missing_prices(trades_df: pd.DataFrame) -> pd.DataFrame:
         asset_df = trades_df[trades_df["asset"] == asset].copy()
 
         # Create complete dateframe with all dates from min to max date for this asset
-        date_range = pd.date_range(start=asset_df["date"].min(), end=asset_df["date"].max(), freq="D")
+        date_range = pd.date_range(start=asset_df["date"].min(), end=trades_df["date"].max(), freq="D")
         complete_df = pd.DataFrame({"asset": asset, "date": date_range.date})
 
         # Merge with existing data and forward fill prices
@@ -78,11 +78,10 @@ def populate_live_prices(db: Session):
 def populate_position(db: Session):
     """Populates the current position"""
     logger.info("Populating current positions...")
-    start_date = db.query(func.min(models.Trade.date)).scalar()
     end_date = db.query(func.max(models.Trade.date)).scalar()
-    assert start_date and end_date, "Please load trades before populating position"
+    assert end_date, "Please load trades before populating position"
 
-    positions = crud.build_positions_from_trades(db, start_date=start_date, end_date=end_date)
+    positions = crud.build_positions_from_trades(db, end_date=end_date)
     crud.store_positions(db, positions)
 
 
