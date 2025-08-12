@@ -200,7 +200,6 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
                 y2={50}
                 stroke={theme.colors.muted}
                 strokeWidth={0.5}
-                strokeDasharray="2,4"
                 opacity={0.6}
               />
               
@@ -212,7 +211,6 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
                 y2={chartHeight - 50}
                 stroke={theme.colors.muted}
                 strokeWidth={0.5}
-                strokeDasharray="2,4"
                 opacity={0.6}
               />
 
