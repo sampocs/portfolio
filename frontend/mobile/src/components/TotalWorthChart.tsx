@@ -332,18 +332,22 @@ const styles = createStyles({
   },
   maxLabel: {
     position: 'absolute',
-    top: -10, // Move up a tad more above the top line
+    top: -8, // Move down a touch from -10
     right: theme.spacing.sm, // Right aligned instead of left
     color: theme.colors.muted,
-    ...getTextStyle('sm'),
+    fontSize: 13, // Custom 13px size
+    fontFamily: theme.typography.fontFamily,
+    fontWeight: theme.typography.weights.normal,
     zIndex: 1,
   },
   minLabel: {
     position: 'absolute',
-    bottom: -12, // Move up a bit more
+    bottom: -8, // Move up a touch bit more from -10
     right: theme.spacing.sm, // Right aligned instead of left
     color: theme.colors.muted,
-    ...getTextStyle('sm'),
+    fontSize: 13, // Custom 13px size
+    fontFamily: theme.typography.fontFamily,
+    fontWeight: theme.typography.weights.normal,
     zIndex: 1,
   },
   durationContainer: {
