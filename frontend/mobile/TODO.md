@@ -69,13 +69,7 @@ Building a React Native application to display investment portfolio information 
 
 #### 5.3 Total Worth Chart Component
 
-- [ ] Implement smooth line chart with no grid/axes
-- [ ] Add min/max value labels with horizontal lines
-- [ ] Color line based on positive/negative returns (success/destructive)
-- [ ] Implement interactive pan/touch functionality
-- [ ] Add vertical line snapping to data points
-- [ ] Update summary values on chart interaction
-- [ ] Show date when point is selected
+- [ ] Implement chart - see CHART.md#spec for detailed spec
 - [ ] Add duration selector buttons (1W, 1M, YTD, 1Y, ALL)
 - [ ] Implement duration button styling and selection
 

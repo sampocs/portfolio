@@ -5,8 +5,10 @@ import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import CategorySelector from '../components/CategorySelector';
 import Summary from '../components/Summary';
-import { mockPositions } from '../data/mockData';
+import TotalWorthChart from '../components/TotalWorthChart';
+import { mockPositions, mockPerformanceData } from '../data/mockData';
 import { calculatePortfolioSummary } from '../data/utils';
+import { PerformanceData } from '../data/types';
 
 export default function PortfolioScreen() {
   const [selectedCategories, setSelectedCategories] = useState({
@@ -14,11 +16,18 @@ export default function PortfolioScreen() {
     crypto: false,
   });
 
+  // State for chart interaction
+  const [selectedDataPoint, setSelectedDataPoint] = useState<PerformanceData | null>(null);
+
   const handleCategoryToggle = (category: 'stocks' | 'crypto') => {
     setSelectedCategories(prev => ({
       ...prev,
       [category]: !prev[category],
     }));
+  };
+
+  const handleDataPointSelected = (dataPoint: PerformanceData | null) => {
+    setSelectedDataPoint(dataPoint);
   };
 
   const getDisplayText = () => {
@@ -36,6 +45,19 @@ export default function PortfolioScreen() {
   // Calculate portfolio summary from mock data
   const portfolioSummary = calculatePortfolioSummary(mockPositions);
 
+  // Get summary data - use selected data point if available, otherwise use current totals
+  const summaryData = selectedDataPoint ? {
+    totalValue: parseFloat(selectedDataPoint.value),
+    totalReturn: parseFloat(selectedDataPoint.value) - parseFloat(selectedDataPoint.cost),
+    totalReturnPercent: parseFloat(selectedDataPoint.returns),
+    selectedDate: selectedDataPoint.date,
+  } : {
+    totalValue: portfolioSummary.totalValue,
+    totalReturn: portfolioSummary.totalReturn,
+    totalReturnPercent: portfolioSummary.totalReturnPercent,
+    selectedDate: undefined,
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -47,9 +69,14 @@ export default function PortfolioScreen() {
           onCategoryToggle={handleCategoryToggle}
         />
         <Summary
-          totalValue={portfolioSummary.totalValue}
-          totalReturn={portfolioSummary.totalReturn}
-          totalReturnPercent={portfolioSummary.totalReturnPercent}
+          totalValue={summaryData.totalValue}
+          totalReturn={summaryData.totalReturn}
+          totalReturnPercent={summaryData.totalReturnPercent}
+          selectedDate={summaryData.selectedDate}
+        />
+        <TotalWorthChart
+          data={mockPerformanceData}
+          onDataPointSelected={handleDataPointSelected}
         />
         <Text style={styles.placeholder}>
           {getDisplayText()} - other components will go here
