@@ -3,15 +3,12 @@ import { View, Text, Dimensions } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  withRepeat, 
-  withTiming, 
-  Easing,
-  interpolate
+  withTiming
 } from 'react-native-reanimated';
 import { CartesianChart, Line, useChartTransformState, useChartPressState } from 'victory-native';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import { Svg, Line as SvgLine, Circle } from 'react-native-svg';
-import { Canvas, Path, LinearGradient as SkiaLinearGradient, vec, Skia, LinearGradient } from '@shopify/react-native-skia';
+import { Canvas, Path, LinearGradient as SkiaLinearGradient, vec, Skia } from '@shopify/react-native-skia';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
 import { PerformanceData } from '../data/types';
@@ -28,161 +25,6 @@ type Duration = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
 const durations: Duration[] = ['1W', '1M', 'YTD', '1Y', 'ALL'];
 
 
-// Loading animation component
-const ChartLoadingAnimation = ({ width, height }: { width: number; height: number }) => {
-  const shimmerTranslate = useSharedValue(-width);
-  const waveOffset = useSharedValue(0);
-  const advancedAnimationsOpacity = useSharedValue(0);
-
-  React.useEffect(() => {
-    // Start shimmer and dots after 1 second delay
-    setTimeout(() => {
-      // Fade in advanced animations
-      advancedAnimationsOpacity.value = withTiming(1, { duration: 300 });
-      
-      // Shimmer effect
-      shimmerTranslate.value = withRepeat(
-        withTiming(width, { duration: 1500, easing: Easing.ease }),
-        -1,
-        false
-      );
-      
-      // Wave animation
-      waveOffset.value = withRepeat(
-        withTiming(2 * Math.PI, { duration: 2000, easing: Easing.linear }),
-        -1,
-        false
-      );
-    }, 1000);
-  }, []);
-
-  const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shimmerTranslate.value }],
-    opacity: advancedAnimationsOpacity.value,
-  }));
-
-  // Create wavy path points
-  const createWavePath = () => {
-    const path = Skia.Path.Make();
-    const points: { x: number; y: number }[] = [];
-    const numPoints = 50;
-    
-    for (let i = 0; i < numPoints; i++) {
-      const x = (i / (numPoints - 1)) * width;
-      const baseY = height * 0.6; // Center the wave
-      const waveAmplitude = height * 0.15; // Wave height
-      const y = baseY + Math.sin((i / numPoints) * Math.PI * 3) * waveAmplitude;
-      points.push({ x, y });
-    }
-    
-    if (points.length > 0) {
-      path.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < points.length; i++) {
-        path.lineTo(points[i].x, points[i].y);
-      }
-    }
-    
-    return path;
-  };
-
-  const wavePath = createWavePath();
-
-  return (
-    <View style={{ width, height, position: 'relative' }}>
-      {/* Background skeleton */}
-      <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: theme.colors.muted + '10',
-        borderRadius: 8,
-      }} />
-      
-      {/* Animated wave */}
-      <Canvas style={{ width, height }}>
-        <Path
-          path={wavePath}
-          style="stroke"
-          strokeWidth={2.5}
-          color={theme.colors.accent + '60'}
-        />
-      </Canvas>
-      
-      {/* Shimmer overlay */}
-      <Animated.View
-        style={[
-          shimmerStyle,
-          {
-            position: 'absolute',
-            top: 0,
-            width: width * 0.3,
-            height: height,
-            backgroundColor: 'transparent',
-          }
-        ]}
-      >
-        <Canvas style={{ width: width * 0.3, height }}>
-          <LinearGradient
-            start={vec(0, 0)}
-            end={vec(width * 0.3, 0)}
-            colors={[
-              'transparent',
-              theme.colors.foreground + '20',
-              theme.colors.foreground + '10',
-              'transparent'
-            ]}
-          />
-        </Canvas>
-      </Animated.View>
-      
-      {/* Animated dots */}
-      {[...Array(3)].map((_, i) => {
-        const dotAnimation = useSharedValue(0);
-        
-        React.useEffect(() => {
-          // Start dot animations after 1 second delay
-          setTimeout(() => {
-            dotAnimation.value = withRepeat(
-              withTiming(1, { 
-                duration: 2000 + i * 200, 
-                easing: Easing.inOut(Easing.ease) 
-              }),
-              -1,
-              true
-            );
-          }, 1000);
-        }, []);
-        
-        const dotStyle = useAnimatedStyle(() => {
-          const x = interpolate(dotAnimation.value, [0, 1], [width * 0.1, width * 0.9]);
-          const y = interpolate(
-            Math.sin(dotAnimation.value * Math.PI * 2), 
-            [-1, 1], 
-            [height * 0.3, height * 0.7]
-          );
-          
-          const baseDotOpacity = interpolate(dotAnimation.value, [0, 0.5, 1], [0.3, 1, 0.3]);
-          const finalOpacity = baseDotOpacity * advancedAnimationsOpacity.value;
-          
-          return {
-            position: 'absolute',
-            left: x - 3,
-            top: y - 3,
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: theme.colors.accent,
-            opacity: finalOpacity,
-          };
-        });
-        
-        return <Animated.View key={i} style={dotStyle} />;
-      })}
-    </View>
-  );
-};
 
 function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoading = false }: TotalWorthChartProps) {
   const [selectedDuration, setSelectedDuration] = useState<Duration>('ALL');
@@ -195,7 +37,6 @@ function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoa
   const loadingOpacity = useSharedValue(0);
   const referenceLinesOpacity = useSharedValue(1);
   const overlayOpacity = useSharedValue(0); // Simple overlay to hide chart during transitions
-  const [showLoadingAnimation, setShowLoadingAnimation] = useState(false);
 
   // Transform data for chart (needs numeric values and date objects)
   const chartData = useMemo(() => {
@@ -265,44 +106,18 @@ function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoa
 
   // Handle smooth transitions between loading and chart states
   React.useEffect(() => {
-    let loadingAnimationTimeout: NodeJS.Timeout | undefined;
-    
     if (isLoading) {
-      // Show opaque overlay instantly to hide any chart glitches
-      overlayOpacity.value = withTiming(1, { duration: 50 });
-      
-      // Start loading overlay after overlay is opaque
-      setTimeout(() => {
-        loadingOpacity.value = withTiming(1, { duration: 300 });
-      }, 100);
-      
-      setShowLoadingAnimation(false);
-      
-      // If we're still loading after 500ms, show the animation
-      loadingAnimationTimeout = setTimeout(() => {
-        setShowLoadingAnimation(true);
-      }, 500);
+      // Show overlay quickly to hide chart glitches
+      overlayOpacity.value = withTiming(1, { duration: 30 });
+      // Start loading overlay immediately
+      loadingOpacity.value = withTiming(1, { duration: 150 });
     } else {
-      // Clear the timeout if we finish loading quickly
-      if (loadingAnimationTimeout) {
-        clearTimeout(loadingAnimationTimeout);
-      }
-      
-      // Hide loading animation
-      setShowLoadingAnimation(false);
-      loadingOpacity.value = withTiming(0, { duration: 200 });
-      
-      // Wait longer for new chart to fully stabilize, then hide overlay
+      // Hide loading overlay and start overlay fade-out with slight overlap
+      loadingOpacity.value = withTiming(0, { duration: 100 });
       setTimeout(() => {
-        overlayOpacity.value = withTiming(0, { duration: 500 });
-      }, 400);
+        overlayOpacity.value = withTiming(0, { duration: 200 });
+      }, 50);
     }
-
-    return () => {
-      if (loadingAnimationTimeout) {
-        clearTimeout(loadingAnimationTimeout);
-      }
-    };
   }, [isLoading]);
 
   // Function to find closest point (this runs on JS thread)
@@ -477,12 +292,7 @@ function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoa
         ]}>
           <View style={[styles.chartWrapper, styles.loadingContainer, { height: chartHeight }]}>
             {isLoading ? (
-              showLoadingAnimation ? (
-                <ChartLoadingAnimation width={chartWidth} height={chartHeight} />
-              ) : (
-                // Simple fade placeholder for first 500ms
-                <View style={{ width: chartWidth, height: chartHeight, backgroundColor: theme.colors.muted + '10', borderRadius: 8 }} />
-              )
+              <View style={{ width: chartWidth, height: chartHeight, backgroundColor: theme.colors.muted + '10', borderRadius: 8 }} />
             ) : (
               <Text style={[{ color: theme.colors.muted }, getTextStyle('md')]}>
                 No data available
