@@ -6,6 +6,8 @@ import { Asset } from '../data/types';
 
 interface AssetRowProps {
   asset: Asset;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 // Asset image mapping
@@ -25,7 +27,7 @@ const assetImages: { [key: string]: any } = {
   'SOL': require('../../assets/images/SOL.png'),
 };
 
-export default function AssetRow({ asset }: AssetRowProps) {
+export default function AssetRow({ asset, isFirst = false, isLast = false }: AssetRowProps) {
   // Get image source from mapping
   const imageSource = assetImages[asset.asset];
   
@@ -68,8 +70,16 @@ export default function AssetRow({ asset }: AssetRowProps) {
     return value.toFixed(2);
   };
 
+  // Dynamic container style based on position
+  const containerStyle = [
+    styles.container,
+    isFirst && styles.firstContainer,
+    isLast && styles.lastContainer,
+    !isLast && styles.separatorContainer,
+  ];
+
   return (
-    <View style={styles.container}>
+    <View style={containerStyle}>
       <View style={styles.leftSection}>
         {imageSource ? (
           <Image 
@@ -116,11 +126,23 @@ const styles = createStyles({
   container: {
     backgroundColor: theme.colors.card,
     padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: 2,
+    borderRadius: 0,
+    marginBottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  firstContainer: {
+    borderTopLeftRadius: theme.borderRadius.md,
+    borderTopRightRadius: theme.borderRadius.md,
+  },
+  lastContainer: {
+    borderBottomLeftRadius: theme.borderRadius.md,
+    borderBottomRightRadius: theme.borderRadius.md,
+  },
+  separatorContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   leftSection: {
     flexDirection: 'row',

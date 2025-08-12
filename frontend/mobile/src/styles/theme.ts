@@ -4,6 +4,7 @@ export const colors = {
   muted: '#999999',
   card: '#171717',
   accent: '#242424',
+  border: '#333333',
   destructive: '#FF3249',
   destructiveBackground: '#48070F',
   success: '#34D86C',

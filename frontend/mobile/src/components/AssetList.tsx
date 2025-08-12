@@ -85,8 +85,13 @@ export default function AssetList({ assets, selectedCategories }: AssetListProps
       </View>
       
       <View style={styles.assetsList}>
-        {sortedAssets.map((asset) => (
-          <AssetRow key={asset.asset} asset={asset} />
+        {sortedAssets.map((asset, index) => (
+          <AssetRow 
+            key={asset.asset} 
+            asset={asset} 
+            isFirst={index === 0}
+            isLast={index === sortedAssets.length - 1}
+          />
         ))}
       </View>
     </View>
