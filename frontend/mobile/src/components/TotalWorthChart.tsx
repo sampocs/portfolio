@@ -3,7 +3,8 @@ import { View, Text, Dimensions } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  withTiming
+  withTiming,
+  Easing
 } from 'react-native-reanimated';
 import { CartesianChart, Line, useChartTransformState, useChartPressState } from 'victory-native';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
@@ -172,16 +173,29 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false }: Total
   // Handle smooth transitions between loading and chart states
   React.useEffect(() => {
     if (isLoading) {
-      // Show overlay quickly to hide chart glitches
-      overlayOpacity.value = withTiming(1, { duration: 30 });
-      // Start loading overlay immediately
-      loadingOpacity.value = withTiming(1, { duration: 150 });
+      // Show overlay with slower, smoother fade to avoid harsh transition
+      overlayOpacity.value = withTiming(0.95, { 
+        duration: 120,
+        easing: Easing.out(Easing.quad)
+      });
+      // Start loading overlay with ease-in
+      loadingOpacity.value = withTiming(1, { 
+        duration: 100, 
+        easing: Easing.out(Easing.quad) 
+      });
     } else {
-      // Hide loading overlay and start overlay fade-out with slight overlap
-      loadingOpacity.value = withTiming(0, { duration: 100 });
+      // Start fade-out immediately with more overlap for crossfade effect
+      loadingOpacity.value = withTiming(0, { 
+        duration: 100,
+        easing: Easing.in(Easing.quad)
+      });
+      // Begin overlay fade-out almost immediately for crossfade
       setTimeout(() => {
-        overlayOpacity.value = withTiming(0, { duration: 200 });
-      }, 50);
+        overlayOpacity.value = withTiming(0, { 
+          duration: 150,
+          easing: Easing.out(Easing.quad) 
+        });
+      }, 20);
     }
   }, [isLoading]);
 
@@ -357,7 +371,7 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false }: Total
         ]}>
           <View style={[styles.chartWrapper, styles.loadingContainer, { height: chartHeight }]}>
             {isLoading ? (
-              <View style={{ width: chartWidth, height: chartHeight, backgroundColor: theme.colors.muted + '10', borderRadius: 8 }} />
+              <View style={{ width: chartWidth, height: chartHeight, backgroundColor: theme.colors.background }} />
             ) : (
               <Text style={[{ color: theme.colors.muted }, getTextStyle('md')]}>
                 No data available
