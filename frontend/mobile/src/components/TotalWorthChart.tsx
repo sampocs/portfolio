@@ -354,10 +354,11 @@ const styles = createStyles({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.sm,
+    marginTop: theme.spacing.lg, // Add more spacing above the selectors
   },
   durationButton: {
     flex: 1,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 6, // Custom 6px vertical padding for precise height
     paddingHorizontal: theme.spacing.xs,
     marginHorizontal: theme.spacing.xs,
     borderRadius: 20, // Large enough to make sides semi-circular
