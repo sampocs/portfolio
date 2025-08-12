@@ -6,6 +6,7 @@ import { createStyles, getTextStyle } from '../styles/utils';
 import CategorySelector from '../components/CategorySelector';
 import Summary from '../components/Summary';
 import TotalWorthChart from '../components/TotalWorthChart';
+import AssetList from '../components/AssetList';
 import { mockPositions, mockPerformanceData } from '../data/mockData';
 import { calculatePortfolioSummary } from '../data/utils';
 import { PerformanceData } from '../data/types';
@@ -88,9 +89,10 @@ export default function PortfolioScreen() {
           data={mockPerformanceData}
           onDataPointSelected={handleDataPointSelected}
         />
-        <Text style={styles.placeholder}>
-          {getDisplayText()} - other components will go here
-        </Text>
+        <AssetList
+          assets={mockPositions}
+          selectedCategories={selectedCategories}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -114,11 +116,5 @@ const styles = createStyles({
   scrollContent: {
     flex: 1,
     paddingHorizontal: theme.spacing.xl,
-  },
-  placeholder: {
-    color: theme.colors.muted,
-    ...getTextStyle('md'),
-    textAlign: 'center',
-    marginTop: 50,
   },
 });

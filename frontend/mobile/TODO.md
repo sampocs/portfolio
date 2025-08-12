@@ -69,9 +69,9 @@ Building a React Native application to display investment portfolio information 
 
 #### 5.3 Total Worth Chart Component
 
-- [ ] Implement chart - see CHART.md#spec for detailed spec
-- [ ] Add duration selector buttons (1W, 1M, YTD, 1Y, ALL)
-- [ ] Implement duration button styling and selection
+- [x] Implement chart - see CHART.md#spec for detailed spec
+- [x] Add duration selector buttons (1W, 1M, YTD, 1Y, ALL)
+- [x] Implement duration button styling and selection
 
 #### 5.4 Asset List Component
 
