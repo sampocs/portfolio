@@ -53,6 +53,21 @@ export default function AssetRow({ asset }: AssetRowProps) {
     return `${sign}${value.toFixed(2)}%`;
   };
 
+  const formatQuantity = (value: number): string => {
+    // Format with 4 decimal places, then remove trailing zeros
+    return value.toFixed(4).replace(/\.?0+$/, '');
+  };
+
+  const formatPrice = (value: number): string => {
+    if (value >= 1000) {
+      return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value);
+    }
+    return value.toFixed(2);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.leftSection}>
@@ -70,7 +85,7 @@ export default function AssetRow({ asset }: AssetRowProps) {
         <View style={styles.assetInfo}>
           <Text style={styles.ticker}>{asset.asset}</Text>
           <Text style={styles.details}>
-            {parseFloat(asset.quantity).toFixed(2)} | ${parseFloat(asset.current_price).toFixed(2)}
+            {formatQuantity(parseFloat(asset.quantity))} | ${formatPrice(parseFloat(asset.current_price))}
           </Text>
         </View>
       </View>
