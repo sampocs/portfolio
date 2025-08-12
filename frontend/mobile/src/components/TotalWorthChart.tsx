@@ -193,6 +193,7 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
   const chartOpacity = useSharedValue(1);
   const loadingOpacity = useSharedValue(0);
   const referenceLinesOpacity = useSharedValue(1);
+  const overlayOpacity = useSharedValue(0); // Simple overlay to hide chart during transitions
   const [showLoadingAnimation, setShowLoadingAnimation] = useState(false);
 
   // Transform data for chart (needs numeric values and date objects)
@@ -266,14 +267,11 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
     let loadingAnimationTimeout: NodeJS.Timeout | undefined;
     
     if (isLoading) {
-      // Fade out reference lines immediately (fastest)
-      referenceLinesOpacity.value = withTiming(0, { duration: 100 });
-      
-      // Fade out chart
-      chartOpacity.value = withTiming(0, { duration: 500 });
+      // Immediately show opaque overlay to hide any chart glitches
+      overlayOpacity.value = withTiming(1, { duration: 150 });
       
       // Start loading overlay (but without animation initially)
-      loadingOpacity.value = withTiming(1, { duration: 500 });
+      loadingOpacity.value = withTiming(1, { duration: 300 });
       setShowLoadingAnimation(false);
       
       // If we're still loading after 500ms, show the animation
@@ -286,15 +284,14 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
         clearTimeout(loadingAnimationTimeout);
       }
       
-      // Hide loading animation and fade in chart
+      // Hide loading animation
       setShowLoadingAnimation(false);
-      loadingOpacity.value = withTiming(0, { duration: 500 });
-      chartOpacity.value = withTiming(1, { duration: 500 });
+      loadingOpacity.value = withTiming(0, { duration: 300 });
       
-      // Fade in reference lines after chart is ready
+      // Wait a bit for new chart to render, then hide overlay
       setTimeout(() => {
-        referenceLinesOpacity.value = withTiming(1, { duration: 200 });
-      }, 300);
+        overlayOpacity.value = withTiming(0, { duration: 400 });
+      }, 200);
     }
 
     return () => {
@@ -458,6 +455,10 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
     opacity: referenceLinesOpacity.value,
   }));
 
+  const overlayAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
+
   // Show empty state if no data and not loading
   const showEmptyState = !isLoading && (!data || data.length === 0);
 
@@ -488,9 +489,8 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
       )}
 
       {/* Main chart content */}
-      <Animated.View style={chartAnimatedStyle}>
-        <View style={styles.chartContainer}>
-          <Text style={styles.maxLabel}>{formatCurrency(maxValue)}</Text>
+      <View style={styles.chartContainer}>
+        <Text style={styles.maxLabel}>{formatCurrency(maxValue)}</Text>
           
           {/* Chart and Overlays */}
           <View style={styles.chartWrapper}>
@@ -630,9 +630,23 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
           </View>
         </View>
 
-          <Text style={styles.minLabel}>{formatCurrency(minValue)}</Text>
-        </View>
-      </Animated.View>
+        <Text style={styles.minLabel}>{formatCurrency(minValue)}</Text>
+        
+        {/* Simple overlay to hide chart glitches during transitions */}
+        <Animated.View style={[
+          overlayAnimatedStyle,
+          {
+            position: 'absolute',
+            top: -15, // Extend up to cover max label
+            left: 0,
+            right: 0,
+            bottom: -15, // Extend down to cover min label
+            backgroundColor: theme.colors.background,
+            zIndex: 20,
+            pointerEvents: 'none',
+          }
+        ]} />
+      </View>
 
       {/* Duration Selector */}
       <View style={styles.durationContainer}>
