@@ -5,88 +5,88 @@ assets:
     category: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: images/VT.svg
+    logo: VT.svg
   - asset: VOO
     description: Large Cap
     target_allocation: 13
     category: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: images/VOO.svg
+    logo: VOO.svg
   - asset: VO
     description: Mid Cap
     target_allocation: 6
     category: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: images/VO.svg
+    logo: VO.svg
   - asset: VB
     description: "Small Cap"
     target_allocation: 10
     category: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: images/VB.svg
+    logo: VB.svg
   - asset: VXUS
     description: International
     target_allocation: 2
     category: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: images/VXUS.svg
+    logo: VXUS.svg
   - asset: VWO
     description: "Emerging"
     target_allocation: 2
     category: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: images/VWO.svg
+    logo: VWO.svg
   - asset: COIN
     description: "Coinbase"
     target_allocation: 5
     category: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: images/
+    logo: COIN.svg
   - asset: HOOD
     description: "Robinhood"
     target_allocation: 5
     category: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: images/
+    logo: HOOD.svg
   - asset: AAAU
     description: "Gold"
     target_allocation: 5
     category: Gold
     platform: ibkr
     price_type: stocks
-    logo: images/AAAU.svg
+    logo: AAAU.svg
   - asset: VNQ
     description: "Real Estate"
     target_allocation: 2
     category: Real Estate
     platform: ibkr
     price_type: stocks
-    logo: images/VNG.svg
+    logo: VNQ.svg
   - asset: BTC
     description: Bitcoin
     target_allocation: 12
     category: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: images/BTC.svg
+    logo: BTC.svg
   - asset: ETH
     description: Ethereum
     target_allocation: 3
     category: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: images/ETH.svg
+    logo: ETH.svg
   - asset: SOL
     description: Solana
     target_allocation: 3
     category: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: images/SOL.png
+    logo: SOL.png
