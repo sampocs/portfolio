@@ -150,7 +150,7 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     return { maxY, minY };
   }, [chartBounds, maxValue, minValue, chartHeight]);
 
-  // Create Skia path using Victory Native's exact points
+  // Create Skia path using Victory Native's exact points with smooth curves
   const createGradientPathFromPoints = useCallback((points: any[], bounds: {top: number, bottom: number, left: number, right: number}) => {
     if (!points?.length || !bounds) return null;
 
@@ -163,15 +163,44 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     // Start at bottom-left corner
     path.moveTo(bounds.left, bounds.bottom);
     
-    // Use Victory Native's exact point coordinates
-    points.forEach((point, index) => {
-      if (point && typeof point.x === 'number' && typeof point.y === 'number') {
-        if (index < 3) {
-          console.log(`Victory point ${index}: (${point.x}, ${point.y})`);
+    // Connect to first point
+    if (points[0] && typeof points[0].x === 'number' && typeof points[0].y === 'number') {
+      path.lineTo(points[0].x, points[0].y);
+    }
+    
+    // Create smooth curve through all points using cubic bezier curves
+    for (let i = 1; i < points.length; i++) {
+      const current = points[i];
+      const prev = points[i - 1];
+      
+      if (current && prev && 
+          typeof current.x === 'number' && typeof current.y === 'number' &&
+          typeof prev.x === 'number' && typeof prev.y === 'number') {
+        
+        // Simple smoothing - use control points based on neighboring points
+        const next = points[i + 1];
+        const prevPrev = points[i - 2];
+        
+        // Calculate control points for smooth curve (adjusted tension to match Victory Native's "natural" curve)
+        const tension = 0.25; // Reduced tension to match Victory Native better
+        
+        let cp1x = prev.x, cp1y = prev.y;
+        let cp2x = current.x, cp2y = current.y;
+        
+        if (prevPrev && typeof prevPrev.x === 'number' && typeof prevPrev.y === 'number') {
+          cp1x = prev.x + tension * (current.x - prevPrev.x);
+          cp1y = prev.y + tension * (current.y - prevPrev.y);
         }
-        path.lineTo(point.x, point.y);
+        
+        if (next && typeof next.x === 'number' && typeof next.y === 'number') {
+          cp2x = current.x - tension * (next.x - prev.x);
+          cp2y = current.y - tension * (next.y - prev.y);
+        }
+        
+        // Draw cubic bezier curve
+        path.cubicTo(cp1x, cp1y, cp2x, cp2y, current.x, current.y);
       }
-    });
+    }
 
     // Close the path
     path.lineTo(bounds.right, bounds.bottom);
