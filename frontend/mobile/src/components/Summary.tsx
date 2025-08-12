@@ -43,9 +43,11 @@ export default function Summary({ totalValue, totalReturn, totalReturnPercent, s
         </View>
       </View>
       
-      {selectedDate && (
-        <Text style={styles.selectedDate}>{selectedDate}</Text>
-      )}
+      <View style={styles.dateContainer}>
+        <Text style={styles.selectedDate}>
+          {selectedDate || ' '}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -93,9 +95,12 @@ const styles = createStyles({
   returnPercent: {
     ...getTextStyle('md', 'bold'),
   },
+  dateContainer: {
+    marginTop: theme.spacing.xs,
+    minHeight: 16, // Reserve space for the date text (based on small text line height)
+  },
   selectedDate: {
     color: theme.colors.muted,
     ...getTextStyle('sm'),
-    marginTop: theme.spacing.xs,
   },
 });

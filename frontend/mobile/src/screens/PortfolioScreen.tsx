@@ -10,6 +10,16 @@ import { mockPositions, mockPerformanceData } from '../data/mockData';
 import { calculatePortfolioSummary } from '../data/utils';
 import { PerformanceData } from '../data/types';
 
+// Format date from YYYY-MM-DD to "Aug 7, 2025"
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+};
+
 export default function PortfolioScreen() {
   const [selectedCategories, setSelectedCategories] = useState({
     stocks: true,
@@ -50,7 +60,7 @@ export default function PortfolioScreen() {
     totalValue: parseFloat(selectedDataPoint.value),
     totalReturn: parseFloat(selectedDataPoint.value) - parseFloat(selectedDataPoint.cost),
     totalReturnPercent: parseFloat(selectedDataPoint.returns),
-    selectedDate: selectedDataPoint.date,
+    selectedDate: formatDate(selectedDataPoint.date),
   } : {
     totalValue: portfolioSummary.totalValue,
     totalReturn: portfolioSummary.totalReturn,
