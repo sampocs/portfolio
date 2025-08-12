@@ -60,12 +60,12 @@ Building a React Native application to display investment portfolio information 
 
 #### 5.2 Summary Component
 
-- [ ] Display "Total Worth" label in muted color
-- [ ] Show total portfolio value (large, bold, formatted)
-- [ ] Add "USD" text with proper alignment and sizing
-- [ ] Calculate and display gains/losses in dollars
-- [ ] Show percentage gains/losses with colored highlights
-- [ ] Implement proper number formatting with commas and decimals
+- [x] Display "Total Worth" label in muted color
+- [x] Show total portfolio value (large, bold, formatted)
+- [x] Add "USD" text with proper alignment and sizing
+- [x] Calculate and display gains/losses in dollars
+- [x] Show percentage gains/losses with colored highlights
+- [x] Implement proper number formatting with commas and decimals
 
 #### 5.3 Total Worth Chart Component
 

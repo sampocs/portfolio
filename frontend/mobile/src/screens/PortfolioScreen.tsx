@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import CategorySelector from '../components/CategorySelector';
+import Summary from '../components/Summary';
+import { mockPositions } from '../data/mockData';
+import { calculatePortfolioSummary } from '../data/utils';
 
 export default function PortfolioScreen() {
   const [selectedCategories, setSelectedCategories] = useState({
@@ -30,6 +33,9 @@ export default function PortfolioScreen() {
     }
   };
 
+  // Calculate portfolio summary from mock data
+  const portfolioSummary = calculatePortfolioSummary(mockPositions);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -39,6 +45,11 @@ export default function PortfolioScreen() {
         <CategorySelector
           selectedCategories={selectedCategories}
           onCategoryToggle={handleCategoryToggle}
+        />
+        <Summary
+          totalValue={portfolioSummary.totalValue}
+          totalReturn={portfolioSummary.totalReturn}
+          totalReturnPercent={portfolioSummary.totalReturnPercent}
         />
         <Text style={styles.placeholder}>
           {getDisplayText()} - other components will go here
