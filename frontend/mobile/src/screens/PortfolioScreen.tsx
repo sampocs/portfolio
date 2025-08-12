@@ -235,6 +235,7 @@ export default function PortfolioScreen() {
           selectedDate={summaryData.selectedDate}
         />
         <TotalWorthChart
+          key={`${selectedGranularity}-${selectedCategories.stocks}-${selectedCategories.crypto}`}
           data={performanceData}
           onDataPointSelected={handleDataPointSelected}
           onGranularityChange={handleGranularityChange}

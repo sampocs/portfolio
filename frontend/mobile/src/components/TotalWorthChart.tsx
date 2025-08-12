@@ -89,6 +89,13 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
   // State to store Victory Native's exact points for gradient
   const [victoryPoints, setVictoryPoints] = useState<any[] | null>(null);
 
+  // Reset gradient state when data changes
+  React.useEffect(() => {
+    setChartBounds(null);
+    setVictoryPoints(null);
+    setSelectedDataPoint(null);
+  }, [data]);
+
   // Function to find closest point (this runs on JS thread)
   const findClosestPoint = useCallback((xValue: number) => {
     if (chartData.length === 0) return null;
