@@ -332,16 +332,16 @@ const styles = createStyles({
   },
   maxLabel: {
     position: 'absolute',
-    top: 0,
-    left: theme.spacing.sm,
+    top: -10, // Move up a tad more above the top line
+    right: theme.spacing.sm, // Right aligned instead of left
     color: theme.colors.muted,
     ...getTextStyle('sm'),
     zIndex: 1,
   },
   minLabel: {
     position: 'absolute',
-    bottom: theme.spacing.xl,
-    left: theme.spacing.sm,
+    bottom: -12, // Move up a bit more
+    right: theme.spacing.sm, // Right aligned instead of left
     color: theme.colors.muted,
     ...getTextStyle('sm'),
     zIndex: 1,
