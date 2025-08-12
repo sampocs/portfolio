@@ -324,7 +324,7 @@ const styles = createStyles({
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.xs,
     marginHorizontal: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 20, // Large enough to make sides semi-circular
     backgroundColor: theme.colors.background,
     alignItems: 'center',
   },
