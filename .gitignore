@@ -3,3 +3,4 @@ __pycache__
 auth
 scratch.py
 data
+.DS_Store
