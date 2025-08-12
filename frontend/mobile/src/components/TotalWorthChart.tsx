@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, Dimensions } from 'react-native';
 import { CartesianChart, Line, Area, useChartTransformState, useChartPressState } from 'victory-native';
+import { useDerivedValue, useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import { Defs, LinearGradient, Stop, Svg, Line as SvgLine, Circle } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
@@ -81,16 +82,49 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     }
   }, [data, onDataPointSelected]);
 
-  // Find the selected data point based on press state
-  const selectedDataPoint = useMemo(() => {
-    if (pressActive && pressState?.x?.position !== undefined) {
-      // Use the x position directly as it should correspond to our data index
-      const xIndex = Math.round(pressState.x.position.value);
-      const clampedIndex = Math.max(0, Math.min(chartData.length - 1, xIndex));
-      return chartData[clampedIndex];
+  // State to track the currently selected data point
+  const [selectedDataPoint, setSelectedDataPoint] = useState<typeof chartData[0] | null>(null);
+
+  // Function to find closest point (this runs on JS thread)
+  const findClosestPoint = useCallback((xValue: number) => {
+    if (chartData.length === 0) return null;
+    
+    console.log('Finding closest point - Press X:', xValue, 'Chart Width:', chartWidth);
+    
+    // Map screen coordinate to data index
+    // Victory Native XL gives us screen coordinates, so we need to normalize
+    const normalizedX = Math.max(0, Math.min(1, xValue / chartWidth));
+    const dataIndex = Math.round(normalizedX * (chartData.length - 1));
+    const clampedIndex = Math.max(0, Math.min(chartData.length - 1, dataIndex));
+    
+    console.log('Normalized X:', normalizedX, 'Data Index:', clampedIndex, 'Date:', chartData[clampedIndex]?.date);
+    
+    return chartData[clampedIndex];
+  }, [chartData, chartWidth]);
+
+  // Wrapper function to find and set the closest point (for runOnJS)
+  const updateSelectedPoint = useCallback((xValue: number) => {
+    const closestPoint = findClosestPoint(xValue);
+    setSelectedDataPoint(closestPoint);
+  }, [findClosestPoint]);
+
+  // Use useAnimatedReaction to listen to press state changes and update data point
+  useAnimatedReaction(
+    () => {
+      return {
+        isActive: pressActive,
+        xPosition: pressState?.x?.position?.value || 0
+      };
+    },
+    (current) => {
+      if (current.isActive && pressState?.x?.position) {
+        // Update the selected point on JS thread
+        runOnJS(updateSelectedPoint)(current.xPosition);
+      } else {
+        runOnJS(setSelectedDataPoint)(null);
+      }
     }
-    return null;
-  }, [pressActive, pressState, chartData]);
+  );
 
   // Notify parent component of selection changes
   React.useEffect(() => {
@@ -110,7 +144,7 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
               data={chartData}
               xKey="x"
               yKeys={['y']}
-              chartTransformState={transformState}
+              transformState={transformState}
               chartPressState={pressState}
             >
               {({ points, chartBounds }) => (
