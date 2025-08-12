@@ -29,6 +29,7 @@ export default function PortfolioScreen() {
 
   // State for chart interaction
   const [selectedDataPoint, setSelectedDataPoint] = useState<PerformanceData | null>(null);
+  const [isRecentlyInteracted, setIsRecentlyInteracted] = useState(false);
 
   // API data state
   const [positions, setPositions] = useState<Asset[]>([]);
@@ -81,6 +82,16 @@ export default function PortfolioScreen() {
 
   const handleDataPointSelected = (dataPoint: PerformanceData | null) => {
     setSelectedDataPoint(dataPoint);
+    
+    if (dataPoint) {
+      // User is interacting with chart
+      setIsRecentlyInteracted(true);
+    } else {
+      // User stopped interacting, keep animation disabled briefly for reset transition
+      setTimeout(() => {
+        setIsRecentlyInteracted(false);
+      }, 200); // 200ms delay to cover the reset transition
+    }
   };
 
   // Get filtered asset symbols based on selected categories
@@ -242,6 +253,7 @@ export default function PortfolioScreen() {
           totalReturn={summaryData.totalReturn}
           totalReturnPercent={summaryData.totalReturnPercent}
           selectedDate={summaryData.selectedDate}
+          disableValueAnimation={!!selectedDataPoint || isRecentlyInteracted} // Disable animation during and briefly after chart interaction
         />
         <TotalWorthChart
           data={performanceData}
