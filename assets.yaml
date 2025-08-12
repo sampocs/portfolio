@@ -58,14 +58,14 @@ assets:
   - asset: AAAU
     description: "Gold"
     target_allocation: 5
-    category: Gold
+    category: Alternatives
     platform: ibkr
     price_type: stocks
     logo: AAAU.svg
   - asset: VNQ
     description: "Real Estate"
     target_allocation: 2
-    category: Real Estate
+    category: Alternatives
     platform: ibkr
     price_type: stocks
     logo: VNQ.svg
