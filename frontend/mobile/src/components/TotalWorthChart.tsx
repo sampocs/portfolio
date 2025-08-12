@@ -140,8 +140,13 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false }: Total
   // Initialize press state with proper structure for single y key
   const INIT_PRESS_STATE = { x: 0, y: { y: 0 } };
   
-  // Transform and press state for gestures
-  const { state: transformState } = useChartTransformState();
+  // Transform state with restricted pan (prevent line dragging)
+  const { state: transformState } = useChartTransformState({
+    panXBounds: { min: 0, max: 0 }, // Disable X-axis panning
+    panYBounds: { min: 0, max: 0 }, // Disable Y-axis panning
+    zoomXBounds: { min: 1, max: 1 }, // Disable X-axis zoom
+    zoomYBounds: { min: 1, max: 1 }, // Disable Y-axis zoom
+  });
   const { state: pressState, isActive: pressActive } = useChartPressState(INIT_PRESS_STATE);
 
   // Handle data point selection
