@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, Dimensions } from 'react-native';
-import { CartesianChart, Line, Area, useChartTransformState, useChartPressState } from 'victory-native';
-import { useDerivedValue, useAnimatedReaction, runOnJS } from 'react-native-reanimated';
-import { Defs, LinearGradient, Stop, Svg, Line as SvgLine, Circle } from 'react-native-svg';
+import { CartesianChart, Line, useChartTransformState, useChartPressState } from 'victory-native';
+import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
+import { Svg, Line as SvgLine, Circle } from 'react-native-svg';
+import { Canvas, Path, LinearGradient as SkiaLinearGradient, vec, Skia } from '@shopify/react-native-skia';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
 import { PerformanceData } from '../data/types';
@@ -133,10 +134,6 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
   const getHorizontalLinePositions = useMemo(() => {
     if (!chartBounds) return { maxY: 50, minY: chartHeight - 50 }; // Fallback to old positions
     
-    // Map data values to screen Y coordinates
-    const dataRange = maxValue - minValue;
-    const chartRange = chartBounds.bottom - chartBounds.top;
-    
     // Calculate Y position for max value (top of chart area)
     // Adjust by ~9px to account for label space and internal padding
     const maxY = chartBounds.top + 9;
@@ -149,6 +146,43 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     
     return { maxY, minY };
   }, [chartBounds, maxValue, minValue, chartHeight]);
+
+  // Create Skia path for gradient area
+  const createGradientPath = useCallback((bounds: {top: number, bottom: number, left: number, right: number}) => {
+    if (!chartData.length || !bounds) return null;
+
+    console.log('Creating gradient path with bounds:', bounds);
+    console.log('Chart data length:', chartData.length);
+    console.log('Value range:', minValue, 'to', maxValue);
+
+    const path = Skia.Path.Make();
+    const chartRange = bounds.right - bounds.left;
+    const valueRange = maxValue - minValue;
+    const heightRange = bounds.bottom - bounds.top;
+
+    // Start at bottom-left corner of the chart area
+    path.moveTo(bounds.left, bounds.bottom);
+
+    // Create points following the data line
+    chartData.forEach((dataPoint, index) => {
+      const x = bounds.left + (index / (chartData.length - 1)) * chartRange;
+      const normalizedValue = valueRange > 0 ? (dataPoint.y - minValue) / valueRange : 0.5;
+      const y = bounds.bottom - normalizedValue * heightRange;
+      
+      if (index < 3) {
+        console.log(`Point ${index}: (${x}, ${y}) - value: ${dataPoint.y}`);
+      }
+      
+      path.lineTo(x, y);
+    });
+
+    // Close the path by going to bottom-right corner and back to start
+    path.lineTo(bounds.right, bounds.bottom);
+    path.lineTo(bounds.left, bounds.bottom);
+    path.close();
+
+    return path;
+  }, [chartData, maxValue, minValue]);
 
   // Notify parent component of selection changes
   React.useEffect(() => {
@@ -164,13 +198,35 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
         {/* Chart and Overlays */}
         <View style={styles.chartWrapper}>
           <View style={[{ width: chartWidth, height: chartHeight }]}>
-            <CartesianChart
-              data={chartData}
-              xKey="x"
-              yKeys={['y']}
-              transformState={transformState}
-              chartPressState={pressState}
-            >
+            {/* Skia gradient background */}
+            {chartBounds && (() => {
+              const gradientPath = createGradientPath({
+                top: 0,
+                bottom: chartHeight,
+                left: 0,
+                right: chartWidth
+              });
+              return gradientPath ? (
+                <Canvas style={styles.gradientCanvas}>
+                  <Path path={gradientPath}>
+                    <SkiaLinearGradient
+                      start={vec(0, 0)}
+                      end={vec(0, chartHeight)}
+                      colors={[lineColor + '66', lineColor + '00']} // 40% to 0% opacity
+                    />
+                  </Path>
+                </Canvas>
+              ) : null;
+            })()}
+            
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2 }}>
+              <CartesianChart
+                data={chartData}
+                xKey="x"
+                yKeys={['y']}
+                transformState={transformState}
+                chartPressState={pressState}
+              >
               {({ points, chartBounds: victoryChartBounds }) => {
                 // Update chart bounds using a ref callback instead of useEffect
                 if (victoryChartBounds && (!chartBounds || 
@@ -182,30 +238,6 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
 
                 return (
                   <>
-                    {/* Gradient Definition */}
-                    <Defs>
-                      <LinearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <Stop
-                          offset="0%"
-                          stopColor={lineColor}
-                          stopOpacity="0.4"
-                        />
-                        <Stop
-                          offset="100%"
-                          stopColor={lineColor}
-                          stopOpacity="0.0"
-                        />
-                      </LinearGradient>
-                    </Defs>
-
-                    {/* Area with gradient fill */}
-                    <Area
-                      points={points.y}
-                      y0={victoryChartBounds.bottom}
-                      curveType="natural"
-                      color="url(#areaGradient)"
-                    />
-
                     {/* Main line */}
                     <Line
                       points={points.y}
@@ -217,6 +249,7 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
                 );
               }}
             </CartesianChart>
+            </View>
           </View>
           
           {/* Horizontal reference lines and crosshair overlay */}
@@ -317,6 +350,14 @@ const styles = createStyles({
   chartWrapper: {
     position: 'relative',
   },
+  gradientCanvas: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    zIndex: 1,
+  },
   referenceLinesContainer: {
     position: 'absolute',
     top: 0,
@@ -324,6 +365,7 @@ const styles = createStyles({
     right: 0,
     bottom: 0,
     pointerEvents: 'none',
+    zIndex: 3,
   },
   referenceLinesOverlay: {
     position: 'absolute',
@@ -332,20 +374,20 @@ const styles = createStyles({
   },
   maxLabel: {
     position: 'absolute',
-    top: -8, // Move down a touch from -10
-    right: theme.spacing.sm, // Right aligned instead of left
+    top: -8,
+    right: theme.spacing.sm,
     color: theme.colors.muted,
-    fontSize: 13, // Custom 13px size
+    fontSize: 13,
     fontFamily: theme.typography.fontFamily,
     fontWeight: theme.typography.weights.normal,
     zIndex: 1,
   },
   minLabel: {
     position: 'absolute',
-    bottom: -8, // Move up a touch bit more from -10
-    right: theme.spacing.sm, // Right aligned instead of left
+    bottom: -8,
+    right: theme.spacing.sm,
     color: theme.colors.muted,
-    fontSize: 13, // Custom 13px size
+    fontSize: 13,
     fontFamily: theme.typography.fontFamily,
     fontWeight: theme.typography.weights.normal,
     zIndex: 1,
@@ -354,14 +396,14 @@ const styles = createStyles({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.sm,
-    marginTop: theme.spacing.lg, // Add more spacing above the selectors
+    marginTop: theme.spacing.lg,
   },
   durationButton: {
     flex: 1,
-    paddingVertical: 6, // Custom 6px vertical padding for precise height
+    paddingVertical: 6,
     paddingHorizontal: theme.spacing.xs,
     marginHorizontal: theme.spacing.xs,
-    borderRadius: 20, // Large enough to make sides semi-circular
+    borderRadius: 20,
     backgroundColor: theme.colors.background,
     alignItems: 'center',
   },
