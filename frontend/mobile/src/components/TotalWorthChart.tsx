@@ -84,6 +84,9 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
 
   // State to track the currently selected data point
   const [selectedDataPoint, setSelectedDataPoint] = useState<typeof chartData[0] | null>(null);
+  
+  // State to store chart bounds for proper line positioning
+  const [chartBounds, setChartBounds] = useState<{top: number, bottom: number, left: number, right: number} | null>(null);
 
   // Function to find closest point (this runs on JS thread)
   const findClosestPoint = useCallback((xValue: number) => {
@@ -126,6 +129,25 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     }
   );
 
+  // Calculate Y positions for min/max horizontal lines
+  const getHorizontalLinePositions = useMemo(() => {
+    if (!chartBounds) return { maxY: 50, minY: chartHeight - 50 }; // Fallback to old positions
+    
+    // Map data values to screen Y coordinates
+    const dataRange = maxValue - minValue;
+    const chartRange = chartBounds.bottom - chartBounds.top;
+    
+    // Calculate Y position for max value (top of chart area)
+    const maxY = chartBounds.top;
+    
+    // Calculate Y position for min value (bottom of chart area)  
+    const minY = chartBounds.bottom;
+    
+    console.log('Chart Bounds:', chartBounds, 'Max Y:', maxY, 'Min Y:', minY);
+    
+    return { maxY, minY };
+  }, [chartBounds, maxValue, minValue, chartHeight]);
+
   // Notify parent component of selection changes
   React.useEffect(() => {
     handleDataPointSelected(selectedDataPoint);
@@ -147,41 +169,51 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
               transformState={transformState}
               chartPressState={pressState}
             >
-              {({ points, chartBounds }) => (
-                <>
-                  {/* Gradient Definition */}
-                  <Defs>
-                    <LinearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <Stop
-                        offset="0%"
-                        stopColor={lineColor}
-                        stopOpacity="0.4"
-                      />
-                      <Stop
-                        offset="100%"
-                        stopColor={lineColor}
-                        stopOpacity="0.0"
-                      />
-                    </LinearGradient>
-                  </Defs>
+              {({ points, chartBounds: victoryChartBounds }) => {
+                // Update chart bounds using a ref callback instead of useEffect
+                if (victoryChartBounds && (!chartBounds || 
+                    chartBounds.top !== victoryChartBounds.top || 
+                    chartBounds.bottom !== victoryChartBounds.bottom)) {
+                  // Only update if bounds have changed to avoid unnecessary re-renders
+                  setTimeout(() => setChartBounds(victoryChartBounds), 0);
+                }
 
-                  {/* Area with gradient fill */}
-                  <Area
-                    points={points.y}
-                    y0={chartBounds.bottom}
-                    curveType="natural"
-                    color="url(#areaGradient)"
-                  />
+                return (
+                  <>
+                    {/* Gradient Definition */}
+                    <Defs>
+                      <LinearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <Stop
+                          offset="0%"
+                          stopColor={lineColor}
+                          stopOpacity="0.4"
+                        />
+                        <Stop
+                          offset="100%"
+                          stopColor={lineColor}
+                          stopOpacity="0.0"
+                        />
+                      </LinearGradient>
+                    </Defs>
 
-                  {/* Main line */}
-                  <Line
-                    points={points.y}
-                    curveType="natural"
-                    strokeWidth={2.5}
-                    color={lineColor}
-                  />
-                </>
-              )}
+                    {/* Area with gradient fill */}
+                    <Area
+                      points={points.y}
+                      y0={victoryChartBounds.bottom}
+                      curveType="natural"
+                      color="url(#areaGradient)"
+                    />
+
+                    {/* Main line */}
+                    <Line
+                      points={points.y}
+                      curveType="natural"
+                      strokeWidth={2.5}
+                      color={lineColor}
+                    />
+                  </>
+                );
+              }}
             </CartesianChart>
           </View>
           
@@ -195,9 +227,9 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
               {/* Top horizontal line at max value */}
               <SvgLine
                 x1={0}
-                y1={50}
+                y1={getHorizontalLinePositions.maxY}
                 x2={chartWidth}
-                y2={50}
+                y2={getHorizontalLinePositions.maxY}
                 stroke={theme.colors.muted}
                 strokeWidth={0.5}
                 opacity={0.6}
@@ -206,9 +238,9 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
               {/* Bottom horizontal line at min value */}
               <SvgLine
                 x1={0}
-                y1={chartHeight - 50}
+                y1={getHorizontalLinePositions.minY}
                 x2={chartWidth}
-                y2={chartHeight - 50}
+                y2={getHorizontalLinePositions.minY}
                 stroke={theme.colors.muted}
                 strokeWidth={0.5}
                 opacity={0.6}
