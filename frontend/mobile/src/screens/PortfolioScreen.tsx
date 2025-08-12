@@ -37,26 +37,87 @@ export default function PortfolioScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedGranularity, setSelectedGranularity] = useState('ALL');
 
-  const handleCategoryToggle = (category: 'stocks' | 'crypto') => {
-    setSelectedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category],
-    }));
+  const handleCategoryToggle = async (category: 'stocks' | 'crypto') => {
+    const newCategories = {
+      ...selectedCategories,
+      [category]: !selectedCategories[category],
+    };
+    
+    setSelectedCategories(newCategories);
+    
+    // Refetch performance data with new category filter
+    // We need to manually calculate the filtered assets for the new selection
+    const filtered = positions.filter(asset => {
+      const isStockCategory = asset.category.includes('Stock') || 
+                             asset.category.includes('Gold') || 
+                             asset.category.includes('Real Estate');
+      const isCryptoCategory = asset.category.includes('Crypto');
+      
+      if (newCategories.stocks && newCategories.crypto) {
+        return true; // All assets
+      } else if (newCategories.stocks && !newCategories.crypto) {
+        return isStockCategory;
+      } else if (!newCategories.stocks && newCategories.crypto) {
+        return isCryptoCategory;
+      }
+      return false; // Neither selected
+    });
+    
+    const assetSymbols = newCategories.stocks && newCategories.crypto 
+      ? undefined 
+      : filtered.map(asset => asset.asset);
+    
+    try {
+      const performanceDataResponse = await apiService.getPerformance(selectedGranularity, assetSymbols);
+      setPerformanceData(performanceDataResponse);
+    } catch (error) {
+      console.error('Error fetching filtered performance data:', error);
+    }
   };
 
   const handleDataPointSelected = (dataPoint: PerformanceData | null) => {
     setSelectedDataPoint(dataPoint);
   };
 
-  // Data fetching functions
-  const fetchData = async (granularity: string = selectedGranularity) => {
-    try {
-      const [positionsData, performanceDataResponse] = await Promise.all([
-        apiService.getPositions(),
-        apiService.getPerformance(granularity)
-      ]);
+  // Get filtered asset symbols based on selected categories
+  const getFilteredAssetSymbols = (positions: Asset[]): string[] | undefined => {
+    // If both categories are selected, don't filter (get all assets)
+    if (selectedCategories.stocks && selectedCategories.crypto) {
+      return undefined;
+    }
+    
+    const filtered = positions.filter(asset => {
+      const isStockCategory = asset.category.includes('Stock') || 
+                             asset.category.includes('Gold') || 
+                             asset.category.includes('Real Estate');
+      const isCryptoCategory = asset.category.includes('Crypto');
       
-      setPositions(positionsData);
+      if (selectedCategories.stocks && !selectedCategories.crypto) {
+        return isStockCategory;
+      } else if (!selectedCategories.stocks && selectedCategories.crypto) {
+        return isCryptoCategory;
+      }
+      return false; // Neither selected
+    });
+    
+    return filtered.map(asset => asset.asset);
+  };
+
+  // Data fetching functions
+  const fetchData = async (granularity: string = selectedGranularity, forceRefreshPositions: boolean = false) => {
+    try {
+      let positionsData = positions;
+      
+      // Only fetch positions if we don't have them or if forced
+      if (positions.length === 0 || forceRefreshPositions) {
+        positionsData = await apiService.getPositions();
+        setPositions(positionsData);
+      }
+      
+      // Get filtered asset symbols for performance query
+      const assetSymbols = getFilteredAssetSymbols(positionsData);
+      
+      const performanceDataResponse = await apiService.getPerformance(granularity, assetSymbols);
       setPerformanceData(performanceDataResponse);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -67,7 +128,7 @@ export default function PortfolioScreen() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await fetchData();
+      await fetchData(selectedGranularity, true); // Force refresh positions
     } finally {
       setIsRefreshing(false);
     }

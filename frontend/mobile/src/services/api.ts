@@ -55,14 +55,18 @@ class ApiService {
     }
   }
 
-  async getPerformance(granularity: string): Promise<PerformanceData[]> {
+  async getPerformance(granularity: string, assets?: string[]): Promise<PerformanceData[]> {
     try {
-      return await this.makeRequest<PerformanceData[]>(
-        `/performance/${granularity}`
-      );
+      let endpoint = `/performance/${granularity}`;
+      if (assets && assets.length > 0) {
+        const assetsParam = assets.join(',');
+        endpoint += `?assets=${encodeURIComponent(assetsParam)}`;
+      }
+      
+      return await this.makeRequest<PerformanceData[]>(endpoint);
     } catch (error) {
       if (USE_MOCK_DATA) {
-        console.log(`Using mock performance data for ${granularity}`);
+        console.log(`Using mock performance data for ${granularity}${assets ? ` with assets: ${assets.join(', ')}` : ''}`);
         return mockPerformanceData;
       }
       console.error(
