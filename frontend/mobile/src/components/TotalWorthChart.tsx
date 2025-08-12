@@ -184,7 +184,7 @@ const ChartLoadingAnimation = ({ width, height }: { width: number; height: numbe
   );
 };
 
-export default function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoading = false }: TotalWorthChartProps) {
+function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoading = false }: TotalWorthChartProps) {
   const [selectedDuration, setSelectedDuration] = useState<Duration>('ALL');
   const { width } = Dimensions.get('window');
   const chartWidth = width - theme.spacing.xl * 2;
@@ -652,14 +652,31 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
         ]} />
       </View>
 
-      {/* Duration Selector - Memoized to prevent flicker */}
-      <DurationSelector 
-        selectedDuration={selectedDuration}
-        onDurationChange={(duration) => {
-          setSelectedDuration(duration);
-          onGranularityChange?.(duration);
-        }}
-      />
+      {/* Duration Selector - Static to prevent any flicker */}
+      <View style={styles.durationContainer}>
+        {durations.map((duration) => (
+          <View
+            key={duration}
+            style={[
+              styles.durationButton,
+              selectedDuration === duration && styles.durationButtonSelected,
+            ]}
+            onTouchEnd={() => {
+              setSelectedDuration(duration);
+              onGranularityChange?.(duration);
+            }}
+          >
+            <Text
+              style={[
+                styles.durationText,
+                selectedDuration === duration && styles.durationTextSelected,
+              ]}
+            >
+              {duration}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -757,32 +774,5 @@ const styles = createStyles({
   },
 });
 
-// Memoized duration selector to prevent flickering during data changes
-const DurationSelector = React.memo(({ selectedDuration, onDurationChange }: {
-  selectedDuration: Duration;
-  onDurationChange: (duration: Duration) => void;
-}) => {
-  return (
-    <View style={styles.durationContainer}>
-      {durations.map((duration) => (
-        <View
-          key={duration}
-          style={[
-            styles.durationButton,
-            selectedDuration === duration && styles.durationButtonSelected,
-          ]}
-          onTouchEnd={() => onDurationChange(duration)}
-        >
-          <Text
-            style={[
-              styles.durationText,
-              selectedDuration === duration && styles.durationTextSelected,
-            ]}
-          >
-            {duration}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-});
+// Memoize the entire component to prevent unnecessary re-renders
+export default React.memo(TotalWorthChart);
