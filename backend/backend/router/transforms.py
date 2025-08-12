@@ -48,7 +48,7 @@ def get_enriched_positions(db: Session) -> list[schemas.Position]:
     return enriched_positions
 
 
-def get_performance(db: Session, duration: str) -> list[schemas.Performance]:
+def get_performance(db: Session, duration: str, assets: list[str]) -> list[schemas.Performance]:
     """Returns the historical performance of the portfolio over time"""
     current_date = datetime.date.today()
 
@@ -63,6 +63,10 @@ def get_performance(db: Session, duration: str) -> list[schemas.Performance]:
         func.sum(models.HistoricalPosition.cost).label("total_cost"),
         func.sum(models.HistoricalPosition.value).label("total_value"),
     )
+
+    if assets:
+        query = query.where(models.HistoricalPosition.asset.in_(assets))
+
     if start_date:
         query = query.where(models.HistoricalPosition.date >= start_date)
 
