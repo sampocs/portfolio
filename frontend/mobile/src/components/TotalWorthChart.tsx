@@ -23,7 +23,7 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
   const [selectedDuration, setSelectedDuration] = useState<Duration>('ALL');
   const { width } = Dimensions.get('window');
   const chartWidth = width - theme.spacing.xl * 2;
-  const chartHeight = 300;
+  const chartHeight = 210;
 
   // Early return if no data
   if (!data || data.length === 0) {
