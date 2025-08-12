@@ -28,6 +28,11 @@ export default function App() {
           tabBarStyle: {
             backgroundColor: theme.colors.background,
             borderTopColor: theme.colors.card,
+            paddingTop: 8,
+            height: 90,
+          },
+          tabBarLabelStyle: {
+            marginTop: 4,
           },
           headerShown: false,
         })}
