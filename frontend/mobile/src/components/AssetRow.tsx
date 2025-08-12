@@ -3,15 +3,31 @@ import { View, Text, Image } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import { Asset } from '../data/types';
-import { assetConfigs } from '../data/assetsLoader';
 
 interface AssetRowProps {
   asset: Asset;
 }
 
+// Asset image mapping
+const assetImages: { [key: string]: any } = {
+  'VT': require('../../assets/images/VT.png'),
+  'VOO': require('../../assets/images/VOO.png'),
+  'VO': require('../../assets/images/VO.png'),
+  'VB': require('../../assets/images/VB.png'),
+  'VXUS': require('../../assets/images/VXUS.png'),
+  'VWO': require('../../assets/images/VWO.png'),
+  'COIN': require('../../assets/images/COIN.png'),
+  'HOOD': require('../../assets/images/HOOD.png'),
+  'AAAU': require('../../assets/images/AAAU.png'),
+  'VNQ': require('../../assets/images/VNQ.png'),
+  'BTC': require('../../assets/images/BTC.png'),
+  'ETH': require('../../assets/images/ETH.png'),
+  'SOL': require('../../assets/images/SOL.png'),
+};
+
 export default function AssetRow({ asset }: AssetRowProps) {
-  // Find the asset config for logo
-  const assetConfig = assetConfigs.find(config => config.asset === asset.asset);
+  // Get image source from mapping
+  const imageSource = assetImages[asset.asset];
   
   // Calculate values
   const totalValue = parseFloat(asset.value);
@@ -41,7 +57,15 @@ export default function AssetRow({ asset }: AssetRowProps) {
     <View style={styles.container}>
       <View style={styles.leftSection}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>{asset.asset}</Text>
+          {imageSource ? (
+            <Image 
+              source={imageSource} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.logoText}>{asset.asset}</Text>
+          )}
         </View>
         <View style={styles.assetInfo}>
           <Text style={styles.ticker}>{asset.asset}</Text>
@@ -96,6 +120,10 @@ const styles = createStyles({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: theme.spacing.md,
+  },
+  logoImage: {
+    width: 32,
+    height: 32,
   },
   logoText: {
     color: theme.colors.foreground,
