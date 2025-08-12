@@ -44,19 +44,19 @@ Building a React Native application to display investment portfolio information 
 
 ### 4. Data Layer
 
-- [ ] Setup mock data structure for development
-  - [ ] Create positions mock data based on assets.yaml
-  - [ ] Create performance mock data with time series
-  - [ ] Define TypeScript interfaces for API responses
+- [x] Setup mock data structure for development
+  - [x] Create positions mock data based on assets.yaml
+  - [x] Create performance mock data with time series
+  - [x] Define TypeScript interfaces for API responses
 
 ### 5. Portfolio Screen Components
 
 #### 5.1 Category Selector Component
 
-- [ ] Create toggleable buttons for "Crypto" and "Stocks"
-- [ ] Implement button styling (outline, background, colors)
-- [ ] Add toggle state management
-- [ ] Position horizontally with Stocks left, Crypto right
+- [x] Create toggleable buttons for "Crypto" and "Stocks"
+- [x] Implement button styling (outline, background, colors)
+- [x] Add toggle state management
+- [x] Position horizontally with Stocks left, Crypto right
 
 #### 5.2 Summary Component
 
