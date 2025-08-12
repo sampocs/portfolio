@@ -88,6 +88,9 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
   
   // State to store chart bounds for proper line positioning
   const [chartBounds, setChartBounds] = useState<{top: number, bottom: number, left: number, right: number} | null>(null);
+  
+  // State to store Victory Native's exact points for gradient
+  const [victoryPoints, setVictoryPoints] = useState<any[] | null>(null);
 
   // Function to find closest point (this runs on JS thread)
   const findClosestPoint = useCallback((xValue: number) => {
@@ -147,13 +150,40 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     return { maxY, minY };
   }, [chartBounds, maxValue, minValue, chartHeight]);
 
-  // Create Skia path for gradient area
+  // Create Skia path using Victory Native's exact points
+  const createGradientPathFromPoints = useCallback((points: any[], bounds: {top: number, bottom: number, left: number, right: number}) => {
+    if (!points?.length || !bounds) return null;
+
+    console.log('Creating gradient path from Victory points');
+    console.log('Points sample:', points.slice(0, 3));
+    console.log('Bounds:', bounds);
+
+    const path = Skia.Path.Make();
+
+    // Start at bottom-left corner
+    path.moveTo(bounds.left, bounds.bottom);
+    
+    // Use Victory Native's exact point coordinates
+    points.forEach((point, index) => {
+      if (point && typeof point.x === 'number' && typeof point.y === 'number') {
+        if (index < 3) {
+          console.log(`Victory point ${index}: (${point.x}, ${point.y})`);
+        }
+        path.lineTo(point.x, point.y);
+      }
+    });
+
+    // Close the path
+    path.lineTo(bounds.right, bounds.bottom);
+    path.lineTo(bounds.left, bounds.bottom);
+    path.close();
+
+    return path;
+  }, []);
+
+  // Fallback path creation method
   const createGradientPath = useCallback((bounds: {top: number, bottom: number, left: number, right: number}) => {
     if (!chartData.length || !bounds) return null;
-
-    console.log('Creating gradient path with bounds:', bounds);
-    console.log('Chart data length:', chartData.length);
-    console.log('Value range:', minValue, 'to', maxValue);
 
     const path = Skia.Path.Make();
     const chartRange = bounds.right - bounds.left;
@@ -163,15 +193,11 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     // Start at bottom-left corner of the chart area
     path.moveTo(bounds.left, bounds.bottom);
 
-    // Create points following the data line
+    // Create points that exactly match Victory Native's line positioning
     chartData.forEach((dataPoint, index) => {
       const x = bounds.left + (index / (chartData.length - 1)) * chartRange;
       const normalizedValue = valueRange > 0 ? (dataPoint.y - minValue) / valueRange : 0.5;
-      const y = bounds.bottom - normalizedValue * heightRange;
-      
-      if (index < 3) {
-        console.log(`Point ${index}: (${x}, ${y}) - value: ${dataPoint.y}`);
-      }
+      const y = bounds.top + (1 - normalizedValue) * heightRange;
       
       path.lineTo(x, y);
     });
@@ -198,16 +224,20 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
         {/* Chart and Overlays */}
         <View style={styles.chartWrapper}>
           <View style={[{ width: chartWidth, height: chartHeight }]}>
-            {/* Skia gradient background */}
-            {chartBounds && (() => {
-              const gradientPath = createGradientPath({
-                top: 0,
-                bottom: chartHeight,
-                left: 0,
-                right: chartWidth
-              });
+            {/* Skia gradient background - positioned behind Victory chart */}
+            {chartBounds && victoryPoints && (() => {
+              const gradientPath = createGradientPathFromPoints(victoryPoints, chartBounds);
               return gradientPath ? (
-                <Canvas style={styles.gradientCanvas}>
+                <Canvas 
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: chartWidth,
+                    height: chartHeight,
+                    zIndex: 1,
+                  }}
+                >
                   <Path path={gradientPath}>
                     <SkiaLinearGradient
                       start={vec(0, 0)}
@@ -233,7 +263,14 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
                     chartBounds.top !== victoryChartBounds.top || 
                     chartBounds.bottom !== victoryChartBounds.bottom)) {
                   // Only update if bounds have changed to avoid unnecessary re-renders
+                  console.log('Victory chart bounds updated:', victoryChartBounds);
+                  console.log('Victory points sample:', points.y?.slice(0, 3));
                   setTimeout(() => setChartBounds(victoryChartBounds), 0);
+                }
+
+                // Store Victory points for gradient
+                if (points.y && (!victoryPoints || points.y.length !== victoryPoints.length)) {
+                  setTimeout(() => setVictoryPoints(points.y), 0);
                 }
 
                 return (
