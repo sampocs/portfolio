@@ -36,6 +36,7 @@ export default function PortfolioScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedGranularity, setSelectedGranularity] = useState('ALL');
+  const [isChartLoading, setIsChartLoading] = useState(false);
 
   const handleCategoryToggle = async (category: 'stocks' | 'crypto') => {
     const newCategories = {
@@ -44,6 +45,7 @@ export default function PortfolioScreen() {
     };
     
     setSelectedCategories(newCategories);
+    setIsChartLoading(true);
     
     // Refetch performance data with new category filter
     // We need to manually calculate the filtered assets for the new selection
@@ -72,6 +74,8 @@ export default function PortfolioScreen() {
       setPerformanceData(performanceDataResponse);
     } catch (error) {
       console.error('Error fetching filtered performance data:', error);
+    } finally {
+      setIsChartLoading(false);
     }
   };
 
@@ -136,7 +140,12 @@ export default function PortfolioScreen() {
 
   const handleGranularityChange = async (granularity: string) => {
     setSelectedGranularity(granularity);
-    await fetchData(granularity);
+    setIsChartLoading(true);
+    try {
+      await fetchData(granularity);
+    } finally {
+      setIsChartLoading(false);
+    }
   };
 
   // Initial data load
@@ -239,6 +248,7 @@ export default function PortfolioScreen() {
           data={performanceData}
           onDataPointSelected={handleDataPointSelected}
           onGranularityChange={handleGranularityChange}
+          isLoading={isChartLoading}
         />
         <AssetList
           assets={positions}

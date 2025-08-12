@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, Dimensions } from 'react-native';
+import { View, Text, Dimensions, ActivityIndicator } from 'react-native';
 import { CartesianChart, Line, useChartTransformState, useChartPressState } from 'victory-native';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import { Svg, Line as SvgLine, Circle } from 'react-native-svg';
@@ -12,33 +12,22 @@ interface TotalWorthChartProps {
   data: PerformanceData[];
   onDataPointSelected?: (dataPoint: PerformanceData | null) => void;
   onGranularityChange?: (granularity: string) => void;
+  isLoading?: boolean;
 }
 
 type Duration = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
 
 const durations: Duration[] = ['1W', '1M', 'YTD', '1Y', 'ALL'];
 
-export default function TotalWorthChart({ data, onDataPointSelected, onGranularityChange }: TotalWorthChartProps) {
+export default function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoading = false }: TotalWorthChartProps) {
   const [selectedDuration, setSelectedDuration] = useState<Duration>('ALL');
   const { width } = Dimensions.get('window');
   const chartWidth = width - theme.spacing.xl * 2;
   const chartHeight = 170;
 
-  // Early return if no data
-  if (!data || data.length === 0) {
-    return (
-      <View style={styles.container}>
-        <View style={[styles.chartWrapper, { height: chartHeight, backgroundColor: theme.colors.card, justifyContent: 'center', alignItems: 'center' }]}>
-          <Text style={[{ color: theme.colors.muted }, getTextStyle('md')]}>
-            No data available
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
   // Transform data for chart (needs numeric values and date objects)
   const chartData = useMemo(() => {
+    if (!data || data.length === 0) return [];
     return data.map((item, index) => ({
       x: index, // Use index for x-axis
       y: parseFloat(item.value),
@@ -50,8 +39,14 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
   }, [data]);
 
   // Calculate min/max values for the horizontal lines
-  const minValue = useMemo(() => Math.min(...chartData.map(d => d.y)), [chartData]);
-  const maxValue = useMemo(() => Math.max(...chartData.map(d => d.y)), [chartData]);
+  const minValue = useMemo(() => {
+    if (chartData.length === 0) return 0;
+    return Math.min(...chartData.map(d => d.y));
+  }, [chartData]);
+  const maxValue = useMemo(() => {
+    if (chartData.length === 0) return 0;
+    return Math.max(...chartData.map(d => d.y));
+  }, [chartData]);
 
   // Determine if overall return is positive
   const totalReturn = useMemo(() => {
@@ -236,6 +231,51 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
   React.useEffect(() => {
     handleDataPointSelected(selectedDataPoint);
   }, [selectedDataPoint, handleDataPointSelected]);
+
+  // Show loading state or if no data
+  if (isLoading || !data || data.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.chartWrapper, styles.loadingContainer, { height: chartHeight }]}>
+          {isLoading ? (
+            <>
+              <ActivityIndicator size="large" color={theme.colors.foreground} />
+              <Text style={styles.loadingText}>Loading Chart...</Text>
+            </>
+          ) : (
+            <Text style={[{ color: theme.colors.muted }, getTextStyle('md')]}>
+              No data available
+            </Text>
+          )}
+        </View>
+        {/* Still show duration selector */}
+        <View style={styles.durationContainer}>
+          {durations.map((duration) => (
+            <View
+              key={duration}
+              style={[
+                styles.durationButton,
+                selectedDuration === duration && styles.durationButtonSelected,
+              ]}
+              onTouchEnd={() => {
+                setSelectedDuration(duration);
+                onGranularityChange?.(duration);
+              }}
+            >
+              <Text
+                style={[
+                  styles.durationText,
+                  selectedDuration === duration && styles.durationTextSelected,
+                ]}
+              >
+                {duration}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -476,5 +516,15 @@ const styles = createStyles({
   },
   durationTextSelected: {
     color: theme.colors.foreground,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  loadingText: {
+    color: theme.colors.muted,
+    ...getTextStyle('md'),
+    marginTop: theme.spacing.sm,
   },
 });
