@@ -24,7 +24,7 @@ const formatDate = (dateString: string): string => {
 export default function PortfolioScreen() {
   const [selectedCategories, setSelectedCategories] = useState({
     stocks: true,
-    crypto: false,
+    crypto: true,
   });
 
   // State for chart interaction
