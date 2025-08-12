@@ -54,7 +54,7 @@ export default function Summary({ totalValue, totalReturn, totalReturnPercent, s
 
 const styles = createStyles({
   container: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
   },
   label: {
     color: theme.colors.muted,
