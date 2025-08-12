@@ -11,7 +11,7 @@ export const colors = {
 };
 
 export const typography = {
-  fontFamily: 'Roobertpro',
+  fontFamily: 'System', // Uses SF Pro on iOS, Roboto on Android - clean modern system fonts
   sizes: {
     xs: 12,
     sm: 14,

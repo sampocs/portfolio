@@ -39,7 +39,7 @@ Building a React Native application to display investment portfolio information 
     - destructive-foreground: #48070F (red highlight background)
     - success: #34D86C (green for gains)
     - success-foreground: #00351D (green highlight background)
-  - [ ] Install and configure Roobertpro font
+  - [x] Install and configure Roobertpro font (using system fonts as equivalent)
   - [x] Create theme constants and styling utilities
 
 ### 4. Data Layer
