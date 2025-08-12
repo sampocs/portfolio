@@ -2,17 +2,15 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency, formatPercentage } from '../styles/utils';
-import RollingCounter from './RollingCounter';
 
 interface SummaryProps {
   totalValue: number;
   totalReturn: number;
   totalReturnPercent: number;
   selectedDate?: string;
-  disableValueAnimation?: boolean; // Disable animation when user is panning chart
 }
 
-export default function Summary({ totalValue, totalReturn, totalReturnPercent, selectedDate, disableValueAnimation = false }: SummaryProps) {
+export default function Summary({ totalValue, totalReturn, totalReturnPercent, selectedDate }: SummaryProps) {
   const isPositiveReturn = totalReturn >= 0;
   
   return (
@@ -20,12 +18,7 @@ export default function Summary({ totalValue, totalReturn, totalReturnPercent, s
       <Text style={styles.label}>Total Worth</Text>
       
       <View style={styles.valueContainer}>
-        <RollingCounter 
-          value={totalValue}
-          style={styles.totalValue}
-          duration={800}
-          disableAnimation={disableValueAnimation}
-        />
+        <Text style={styles.totalValue}>{formatCurrency(totalValue).replace('$', '')}</Text>
         <Text style={styles.currency}>USD</Text>
       </View>
       
