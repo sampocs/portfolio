@@ -27,6 +27,7 @@ type Duration = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
 
 const durations: Duration[] = ['1W', '1M', 'YTD', '1Y', 'ALL'];
 
+
 // Loading animation component
 const ChartLoadingAnimation = ({ width, height }: { width: number; height: number }) => {
   const shimmerTranslate = useSharedValue(-width);
@@ -267,11 +268,14 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
     let loadingAnimationTimeout: NodeJS.Timeout | undefined;
     
     if (isLoading) {
-      // Immediately show opaque overlay to hide any chart glitches
-      overlayOpacity.value = withTiming(1, { duration: 150 });
+      // Show opaque overlay instantly to hide any chart glitches
+      overlayOpacity.value = withTiming(1, { duration: 50 });
       
-      // Start loading overlay (but without animation initially)
-      loadingOpacity.value = withTiming(1, { duration: 300 });
+      // Start loading overlay after overlay is opaque
+      setTimeout(() => {
+        loadingOpacity.value = withTiming(1, { duration: 300 });
+      }, 100);
+      
       setShowLoadingAnimation(false);
       
       // If we're still loading after 500ms, show the animation
@@ -286,12 +290,12 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
       
       // Hide loading animation
       setShowLoadingAnimation(false);
-      loadingOpacity.value = withTiming(0, { duration: 300 });
+      loadingOpacity.value = withTiming(0, { duration: 200 });
       
-      // Wait a bit for new chart to render, then hide overlay
+      // Wait longer for new chart to fully stabilize, then hide overlay
       setTimeout(() => {
-        overlayOpacity.value = withTiming(0, { duration: 400 });
-      }, 200);
+        overlayOpacity.value = withTiming(0, { duration: 500 });
+      }, 400);
     }
 
     return () => {
@@ -648,31 +652,14 @@ export default function TotalWorthChart({ data, onDataPointSelected, onGranulari
         ]} />
       </View>
 
-      {/* Duration Selector */}
-      <View style={styles.durationContainer}>
-        {durations.map((duration) => (
-          <View
-            key={duration}
-            style={[
-              styles.durationButton,
-              selectedDuration === duration && styles.durationButtonSelected,
-            ]}
-            onTouchEnd={() => {
-              setSelectedDuration(duration);
-              onGranularityChange?.(duration);
-            }}
-          >
-            <Text
-              style={[
-                styles.durationText,
-                selectedDuration === duration && styles.durationTextSelected,
-              ]}
-            >
-              {duration}
-            </Text>
-          </View>
-        ))}
-      </View>
+      {/* Duration Selector - Memoized to prevent flicker */}
+      <DurationSelector 
+        selectedDuration={selectedDuration}
+        onDurationChange={(duration) => {
+          setSelectedDuration(duration);
+          onGranularityChange?.(duration);
+        }}
+      />
     </View>
   );
 }
@@ -768,4 +755,34 @@ const styles = createStyles({
     zIndex: 10,
     backgroundColor: theme.colors.background,
   },
+});
+
+// Memoized duration selector to prevent flickering during data changes
+const DurationSelector = React.memo(({ selectedDuration, onDurationChange }: {
+  selectedDuration: Duration;
+  onDurationChange: (duration: Duration) => void;
+}) => {
+  return (
+    <View style={styles.durationContainer}>
+      {durations.map((duration) => (
+        <View
+          key={duration}
+          style={[
+            styles.durationButton,
+            selectedDuration === duration && styles.durationButtonSelected,
+          ]}
+          onTouchEnd={() => onDurationChange(duration)}
+        >
+          <Text
+            style={[
+              styles.durationText,
+              selectedDuration === duration && styles.durationTextSelected,
+            ]}
+          >
+            {duration}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
 });
