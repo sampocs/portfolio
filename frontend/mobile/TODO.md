@@ -75,12 +75,12 @@ Building a React Native application to display investment portfolio information 
 
 #### 5.4 Asset List Component
 
-- [ ] Create individual asset components
-- [ ] Add asset logos from assets.yaml paths
-- [ ] Display asset ticker (bold) and quantity|price (muted)
-- [ ] Show total value, gains/losses, and returns
-- [ ] Implement proper styling with card background
-- [ ] Stack components vertically
+- [x] Create individual asset components
+- [x] Add asset logos from assets.yaml paths
+- [x] Display asset ticker (bold) and quantity|price (muted)
+- [x] Show total value, gains/losses, and returns
+- [x] Implement proper styling with card background
+- [x] Stack components vertically
 
 ### 6. API Integration
 
