@@ -68,10 +68,10 @@ const styles = createStyles({
   },
   totalValue: {
     color: theme.colors.foreground,
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: theme.typography.weights.bold,
     fontFamily: theme.typography.fontFamily,
-    lineHeight: 40,
+    lineHeight: 44,
   },
   currency: {
     color: theme.colors.muted,
@@ -86,7 +86,7 @@ const styles = createStyles({
     alignItems: 'center',
   },
   returnDollar: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: theme.typography.weights.normal,
     fontFamily: theme.typography.fontFamily,
     marginRight: theme.spacing.sm,
@@ -97,7 +97,7 @@ const styles = createStyles({
     borderRadius: theme.borderRadius.sm,
   },
   returnPercent: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: theme.typography.weights.bold,
     fontFamily: theme.typography.fontFamily,
   },
