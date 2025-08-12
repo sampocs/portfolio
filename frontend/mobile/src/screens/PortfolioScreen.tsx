@@ -104,8 +104,25 @@ export default function PortfolioScreen() {
     }
   };
 
-  // Calculate portfolio summary from API data
-  const portfolioSummary = calculatePortfolioSummary(positions);
+  // Filter assets based on selected categories (same logic as AssetList)
+  const filteredPositions = positions.filter(asset => {
+    const isStockCategory = asset.category.includes('Stock') || 
+                           asset.category.includes('Gold') || 
+                           asset.category.includes('Real Estate');
+    const isCryptoCategory = asset.category.includes('Crypto');
+    
+    if (selectedCategories.stocks && selectedCategories.crypto) {
+      return true; // Show all
+    } else if (selectedCategories.stocks && !selectedCategories.crypto) {
+      return isStockCategory;
+    } else if (!selectedCategories.stocks && selectedCategories.crypto) {
+      return isCryptoCategory;
+    }
+    return false; // Neither selected, show nothing
+  });
+
+  // Calculate portfolio summary from filtered API data
+  const portfolioSummary = calculatePortfolioSummary(filteredPositions);
 
   // Get summary data - use selected data point if available, otherwise use current totals
   const summaryData = selectedDataPoint ? {
