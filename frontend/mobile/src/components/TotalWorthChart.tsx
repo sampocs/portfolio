@@ -407,7 +407,7 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
 
 const styles = createStyles({
   container: {
-    marginBottom: theme.spacing.sm,
+    marginBottom: 0,
   },
   chartContainer: {
     position: 'relative',
@@ -462,14 +462,14 @@ const styles = createStyles({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.sm,
-    marginTop: theme.spacing.sm,
+    marginTop: 2,
   },
   durationButton: {
     flex: 1,
-    paddingVertical: 4,
+    paddingVertical: 2,
     paddingHorizontal: theme.spacing.xs,
     marginHorizontal: theme.spacing.xs,
-    borderRadius: 20,
+    borderRadius: 16,
     backgroundColor: theme.colors.background,
     alignItems: 'center',
   },

@@ -100,7 +100,7 @@ const styles = createStyles({
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
   },
   assetsList: {
     // Assets list styling
