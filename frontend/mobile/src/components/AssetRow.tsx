@@ -102,7 +102,7 @@ const styles = createStyles({
     backgroundColor: theme.colors.card,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.md,
+    marginBottom: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
