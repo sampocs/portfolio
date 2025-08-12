@@ -100,7 +100,7 @@ export default function AssetRow({ asset }: AssetRowProps) {
 const styles = createStyles({
   container: {
     backgroundColor: theme.colors.card,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.md,
     flexDirection: 'row',
@@ -122,8 +122,8 @@ const styles = createStyles({
     marginRight: theme.spacing.md,
   },
   logoImage: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     marginRight: theme.spacing.md,
   },
   logoText: {
@@ -136,11 +136,15 @@ const styles = createStyles({
   },
   ticker: {
     color: theme.colors.foreground,
-    ...getTextStyle('lg', 'bold'),
+    fontSize: 16,
+    fontWeight: theme.typography.weights.bold,
+    fontFamily: theme.typography.fontFamily,
   },
   details: {
     color: theme.colors.muted,
-    ...getTextStyle('sm'),
+    fontSize: 12,
+    fontWeight: theme.typography.weights.normal,
+    fontFamily: theme.typography.fontFamily,
     marginTop: 2,
   },
   rightSection: {
@@ -148,7 +152,9 @@ const styles = createStyles({
   },
   totalValue: {
     color: theme.colors.foreground,
-    ...getTextStyle('lg', 'bold'),
+    fontSize: 16,
+    fontWeight: theme.typography.weights.bold,
+    fontFamily: theme.typography.fontFamily,
   },
   returnsContainer: {
     flexDirection: 'row',
@@ -156,7 +162,9 @@ const styles = createStyles({
     marginTop: 2,
   },
   returnValue: {
-    ...getTextStyle('sm'),
+    fontSize: 12,
+    fontWeight: theme.typography.weights.normal,
+    fontFamily: theme.typography.fontFamily,
     marginRight: theme.spacing.xs,
   },
   percentContainer: {
@@ -165,6 +173,8 @@ const styles = createStyles({
     borderRadius: theme.borderRadius.sm,
   },
   percentText: {
-    ...getTextStyle('sm', 'bold'),
+    fontSize: 12,
+    fontWeight: theme.typography.weights.bold,
+    fontFamily: theme.typography.fontFamily,
   },
 });

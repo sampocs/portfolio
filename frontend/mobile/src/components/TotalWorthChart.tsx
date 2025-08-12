@@ -24,7 +24,7 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
   const [selectedDuration, setSelectedDuration] = useState<Duration>('ALL');
   const { width } = Dimensions.get('window');
   const chartWidth = width - theme.spacing.xl * 2;
-  const chartHeight = 210;
+  const chartHeight = 170;
 
   // Early return if no data
   if (!data || data.length === 0) {
@@ -407,7 +407,7 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
 
 const styles = createStyles({
   container: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.sm,
   },
   chartContainer: {
     position: 'relative',
@@ -462,11 +462,11 @@ const styles = createStyles({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.sm,
-    marginTop: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
   },
   durationButton: {
     flex: 1,
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: theme.spacing.xs,
     marginHorizontal: theme.spacing.xs,
     borderRadius: 20,
