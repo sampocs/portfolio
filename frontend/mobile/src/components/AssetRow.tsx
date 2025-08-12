@@ -56,17 +56,17 @@ export default function AssetRow({ asset }: AssetRowProps) {
   return (
     <View style={styles.container}>
       <View style={styles.leftSection}>
-        <View style={styles.logoContainer}>
-          {imageSource ? (
-            <Image 
-              source={imageSource} 
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          ) : (
+        {imageSource ? (
+          <Image 
+            source={imageSource} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <View style={styles.logoContainer}>
             <Text style={styles.logoText}>{asset.asset}</Text>
-          )}
-        </View>
+          </View>
+        )}
         <View style={styles.assetInfo}>
           <Text style={styles.ticker}>{asset.asset}</Text>
           <Text style={styles.details}>
@@ -122,8 +122,9 @@ const styles = createStyles({
     marginRight: theme.spacing.md,
   },
   logoImage: {
-    width: 32,
-    height: 32,
+    width: 48,
+    height: 48,
+    marginRight: theme.spacing.md,
   },
   logoText: {
     color: theme.colors.foreground,
