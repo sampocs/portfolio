@@ -16,8 +16,11 @@ import { PerformanceData } from '../data/types';
 interface TotalWorthChartProps {
   data: PerformanceData[];
   onDataPointSelected?: (dataPoint: PerformanceData | null) => void;
-  onGranularityChange?: (granularity: string) => void;
   isLoading?: boolean;
+}
+
+interface ChartDurationSelectorProps {
+  onGranularityChange?: (granularity: string) => void;
 }
 
 type Duration = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
@@ -26,8 +29,70 @@ const durations: Duration[] = ['1W', '1M', 'YTD', '1Y', 'ALL'];
 
 
 
-function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoading = false }: TotalWorthChartProps) {
+// Separate duration selector component that won't be affected by chart animations
+export function ChartDurationSelector({ onGranularityChange }: ChartDurationSelectorProps) {
   const [selectedDuration, setSelectedDuration] = useState<Duration>('ALL');
+
+  // Completely isolated styles to avoid any inheritance
+  const isolatedStyles = {
+    container: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      paddingHorizontal: theme.spacing.sm,
+      marginTop: 2,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 2,
+      paddingHorizontal: theme.spacing.xs,
+      marginHorizontal: theme.spacing.xs,
+      borderRadius: 16,
+      backgroundColor: theme.colors.background,
+      alignItems: 'center' as const,
+    },
+    buttonSelected: {
+      backgroundColor: theme.colors.accent,
+    },
+    text: {
+      color: theme.colors.muted,
+      fontSize: 14,
+      fontFamily: theme.typography.fontFamily,
+      fontWeight: '500' as const,
+    },
+    textSelected: {
+      color: theme.colors.foreground,
+    },
+  };
+
+  return (
+    <View style={isolatedStyles.container}>
+      {durations.map((duration) => (
+        <View
+          key={duration}
+          style={[
+            isolatedStyles.button,
+            selectedDuration === duration && isolatedStyles.buttonSelected,
+          ]}
+          onTouchEnd={() => {
+            setSelectedDuration(duration);
+            onGranularityChange?.(duration);
+          }}
+        >
+          <Text
+            style={[
+              isolatedStyles.text,
+              selectedDuration === duration && isolatedStyles.textSelected,
+            ]}
+          >
+            {duration}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function TotalWorthChart({ data, onDataPointSelected, isLoading = false }: TotalWorthChartProps) {
   const { width } = Dimensions.get('window');
   const chartWidth = width - theme.spacing.xl * 2;
   const chartHeight = 170;
@@ -304,189 +369,163 @@ function TotalWorthChart({ data, onDataPointSelected, onGranularityChange, isLoa
 
       {/* Main chart content */}
       <View style={styles.chartContainer}>
-        <Text style={styles.maxLabel}>{formatCurrency(maxValue)}</Text>
-          
-          {/* Chart and Overlays */}
-          <View style={styles.chartWrapper}>
-            <View style={[{ width: chartWidth, height: chartHeight }]}>
-              {/* Skia gradient background - positioned behind Victory chart */}
-              {chartBounds && victoryPoints && chartData.length > 0 && (() => {
-                const gradientPath = createGradientPathFromPoints(victoryPoints, chartBounds);
-                return gradientPath ? (
-                  <Canvas 
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: chartWidth,
-                      height: chartHeight,
-                      zIndex: 1,
-                    }}
-                  >
-                    <Path path={gradientPath}>
-                      <SkiaLinearGradient
-                        start={vec(0, 0)}
-                        end={vec(0, chartHeight)}
-                        colors={[lineColor + '66', lineColor + '00']} // 40% to 0% opacity
-                      />
-                    </Path>
-                  </Canvas>
-                ) : null;
-              })()}
+          <Text style={styles.maxLabel}>{formatCurrency(maxValue)}</Text>
             
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2 }}>
-              <CartesianChart
-                data={chartData}
-                xKey="x"
-                yKeys={['y']}
-                transformState={transformState}
-                chartPressState={pressState}
-              >
-              {({ points, chartBounds: victoryChartBounds }) => {
-                // Update chart bounds using a ref callback instead of useEffect
-                if (victoryChartBounds && (!chartBounds || 
-                    chartBounds.top !== victoryChartBounds.top || 
-                    chartBounds.bottom !== victoryChartBounds.bottom)) {
-                  // Only update if bounds have changed to avoid unnecessary re-renders
-                  setTimeout(() => setChartBounds(victoryChartBounds), 0);
-                }
+            {/* Chart and Overlays */}
+            <View style={styles.chartWrapper}>
+              <View style={[{ width: chartWidth, height: chartHeight }]}>
+                {/* Skia gradient background - positioned behind Victory chart */}
+                {chartBounds && victoryPoints && chartData.length > 0 && (() => {
+                  const gradientPath = createGradientPathFromPoints(victoryPoints, chartBounds);
+                  return gradientPath ? (
+                    <Canvas 
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: chartWidth,
+                        height: chartHeight,
+                        zIndex: 1,
+                      }}
+                    >
+                      <Path path={gradientPath}>
+                        <SkiaLinearGradient
+                          start={vec(0, 0)}
+                          end={vec(0, chartHeight)}
+                          colors={[lineColor + '66', lineColor + '00']} // 40% to 0% opacity
+                        />
+                      </Path>
+                    </Canvas>
+                  ) : null;
+                })()}
+              
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2 }}>
+                <CartesianChart
+                  data={chartData}
+                  xKey="x"
+                  yKeys={['y']}
+                  transformState={transformState}
+                  chartPressState={pressState}
+                >
+                {({ points, chartBounds: victoryChartBounds }) => {
+                  // Update chart bounds using a ref callback instead of useEffect
+                  if (victoryChartBounds && (!chartBounds || 
+                      chartBounds.top !== victoryChartBounds.top || 
+                      chartBounds.bottom !== victoryChartBounds.bottom)) {
+                    // Only update if bounds have changed to avoid unnecessary re-renders
+                    setTimeout(() => setChartBounds(victoryChartBounds), 0);
+                  }
 
-                // Store Victory points for gradient
-                if (points.y && (!victoryPoints || points.y.length !== victoryPoints.length)) {
-                  setTimeout(() => setVictoryPoints(points.y), 0);
-                }
+                  // Store Victory points for gradient
+                  if (points.y && (!victoryPoints || points.y.length !== victoryPoints.length)) {
+                    setTimeout(() => setVictoryPoints(points.y), 0);
+                  }
 
-                return (
-                  <>
-                    {/* Main line */}
-                    <Line
-                      points={points.y}
-                      curveType="natural"
-                      strokeWidth={2.5}
-                      color={lineColor}
-                    />
-                  </>
-                );
-              }}
-            </CartesianChart>
+                  return (
+                    <>
+                      {/* Main line */}
+                      <Line
+                        points={points.y}
+                        curveType="natural"
+                        strokeWidth={2.5}
+                        color={lineColor}
+                      />
+                    </>
+                  );
+                }}
+              </CartesianChart>
+              </View>
             </View>
-          </View>
-          
-          {/* Horizontal reference lines and crosshair overlay */}
-          <View style={styles.referenceLinesContainer}>
-            <Animated.View style={referenceLinesAnimatedStyle}>
+            
+            {/* Horizontal reference lines and crosshair overlay */}
+            <View style={styles.referenceLinesContainer}>
+              <Animated.View style={referenceLinesAnimatedStyle}>
+                <Svg
+                  height={chartHeight}
+                  width={chartWidth}
+                  style={styles.referenceLinesOverlay}
+                >
+                  {/* Only show reference lines when we have valid data and bounds */}
+                  {chartBounds && chartData.length > 0 && (
+                    <>
+                      {/* Top horizontal line at max value */}
+                      <SvgLine
+                        x1={0}
+                        y1={getHorizontalLinePositions.maxY}
+                        x2={chartWidth}
+                        y2={getHorizontalLinePositions.maxY}
+                        stroke={theme.colors.muted}
+                        strokeWidth={0.5}
+                        opacity={0.6}
+                      />
+                      
+                      {/* Bottom horizontal line at min value */}
+                      <SvgLine
+                        x1={0}
+                        y1={getHorizontalLinePositions.minY}
+                        x2={chartWidth}
+                        y2={getHorizontalLinePositions.minY}
+                        stroke={theme.colors.muted}
+                        strokeWidth={0.5}
+                        opacity={0.6}
+                      />
+                    </>
+                  )}
+                </Svg>
+              </Animated.View>
+
+              {/* Crosshair overlay (separate from reference lines) */}
               <Svg
                 height={chartHeight}
                 width={chartWidth}
-                style={styles.referenceLinesOverlay}
+                style={[styles.referenceLinesOverlay, { position: 'absolute' }]}
               >
-                {/* Only show reference lines when we have valid data and bounds */}
-                {chartBounds && chartData.length > 0 && (
+                {/* Crosshair - only show when chart is being pressed */}
+                {pressActive && pressState && (
                   <>
-                    {/* Top horizontal line at max value */}
+                    {/* Vertical line */}
                     <SvgLine
-                      x1={0}
-                      y1={getHorizontalLinePositions.maxY}
-                      x2={chartWidth}
-                      y2={getHorizontalLinePositions.maxY}
-                      stroke={theme.colors.muted}
-                      strokeWidth={0.5}
-                      opacity={0.6}
+                      x1={pressState.x.position.value}
+                      y1={20}
+                      x2={pressState.x.position.value}
+                      y2={chartHeight - 20}
+                      stroke={theme.colors.foreground}
+                      strokeWidth={1}
+                      opacity={0.8}
                     />
                     
-                    {/* Bottom horizontal line at min value */}
-                    <SvgLine
-                      x1={0}
-                      y1={getHorizontalLinePositions.minY}
-                      x2={chartWidth}
-                      y2={getHorizontalLinePositions.minY}
-                      stroke={theme.colors.muted}
-                      strokeWidth={0.5}
-                      opacity={0.6}
+                    {/* Point indicator */}
+                    <Circle
+                      cx={pressState.x.position.value}
+                      cy={pressState.y.y.position.value}
+                      r={4}
+                      fill={lineColor}
+                      stroke={theme.colors.background}
+                      strokeWidth={2}
                     />
                   </>
                 )}
               </Svg>
-            </Animated.View>
-
-            {/* Crosshair overlay (separate from reference lines) */}
-            <Svg
-              height={chartHeight}
-              width={chartWidth}
-              style={[styles.referenceLinesOverlay, { position: 'absolute' }]}
-            >
-              {/* Crosshair - only show when chart is being pressed */}
-              {pressActive && pressState && (
-                <>
-                  {/* Vertical line */}
-                  <SvgLine
-                    x1={pressState.x.position.value}
-                    y1={20}
-                    x2={pressState.x.position.value}
-                    y2={chartHeight - 20}
-                    stroke={theme.colors.foreground}
-                    strokeWidth={1}
-                    opacity={0.8}
-                  />
-                  
-                  {/* Point indicator */}
-                  <Circle
-                    cx={pressState.x.position.value}
-                    cy={pressState.y.y.position.value}
-                    r={4}
-                    fill={lineColor}
-                    stroke={theme.colors.background}
-                    strokeWidth={2}
-                  />
-                </>
-              )}
-            </Svg>
+            </View>
           </View>
+
+          <Text style={styles.minLabel}>{formatCurrency(minValue)}</Text>
+          
+          {/* Simple overlay to hide chart glitches during transitions */}
+          <Animated.View style={[
+            overlayAnimatedStyle,
+            {
+              position: 'absolute',
+              top: -15, // Extend up to cover max label
+              left: 0,
+              right: 0,
+              bottom: -15, // Extend down to cover min label
+              backgroundColor: theme.colors.background,
+              zIndex: 20,
+              pointerEvents: 'none',
+            }
+          ]} />
         </View>
-
-        <Text style={styles.minLabel}>{formatCurrency(minValue)}</Text>
-        
-        {/* Simple overlay to hide chart glitches during transitions */}
-        <Animated.View style={[
-          overlayAnimatedStyle,
-          {
-            position: 'absolute',
-            top: -15, // Extend up to cover max label
-            left: 0,
-            right: 0,
-            bottom: -15, // Extend down to cover min label
-            backgroundColor: theme.colors.background,
-            zIndex: 20,
-            pointerEvents: 'none',
-          }
-        ]} />
-      </View>
-
-      {/* Duration Selector - Static to prevent any flicker */}
-      <View style={styles.durationContainer}>
-        {durations.map((duration) => (
-          <View
-            key={duration}
-            style={[
-              styles.durationButton,
-              selectedDuration === duration && styles.durationButtonSelected,
-            ]}
-            onTouchEnd={() => {
-              setSelectedDuration(duration);
-              onGranularityChange?.(duration);
-            }}
-          >
-            <Text
-              style={[
-                styles.durationText,
-                selectedDuration === duration && styles.durationTextSelected,
-              ]}
-            >
-              {duration}
-            </Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }

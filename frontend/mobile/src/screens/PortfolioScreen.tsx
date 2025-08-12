@@ -5,7 +5,7 @@ import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import CategorySelector from '../components/CategorySelector';
 import Summary from '../components/Summary';
-import TotalWorthChart from '../components/TotalWorthChart';
+import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
 import AssetList from '../components/AssetList';
 import { apiService } from '../services/api';
 import { calculatePortfolioSummary } from '../data/utils';
@@ -244,12 +244,16 @@ export default function PortfolioScreen() {
           selectedDate={summaryData.selectedDate}
         />
         <TotalWorthChart
-          key={`${selectedGranularity}-${selectedCategories.stocks}-${selectedCategories.crypto}`}
           data={performanceData}
           onDataPointSelected={handleDataPointSelected}
-          onGranularityChange={handleGranularityChange}
           isLoading={isChartLoading}
         />
+        {/* Duration Selector - In ScrollView but with isolation wrapper */}
+        <View style={{ zIndex: 999, elevation: 999 }}>
+          <ChartDurationSelector
+            onGranularityChange={handleGranularityChange}
+          />
+        </View>
         <AssetList
           assets={positions}
           selectedCategories={selectedCategories}
