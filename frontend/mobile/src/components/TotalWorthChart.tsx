@@ -138,12 +138,14 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     const chartRange = chartBounds.bottom - chartBounds.top;
     
     // Calculate Y position for max value (top of chart area)
-    const maxY = chartBounds.top;
+    // Adjust by ~9px to account for label space and internal padding
+    const maxY = chartBounds.top + 9;
     
     // Calculate Y position for min value (bottom of chart area)  
     const minY = chartBounds.bottom;
     
     console.log('Chart Bounds:', chartBounds, 'Max Y:', maxY, 'Min Y:', minY);
+    console.log('Data values - Max:', maxValue, 'Min:', minValue);
     
     return { maxY, minY };
   }, [chartBounds, maxValue, minValue, chartHeight]);
