@@ -27,7 +27,8 @@ export default function App() {
           tabBarInactiveTintColor: theme.colors.muted,
           tabBarStyle: {
             backgroundColor: theme.colors.background,
-            borderTopColor: theme.colors.card,
+            borderTopWidth: 1,
+            borderTopColor: "#333333",
             paddingTop: 8,
             height: 90,
           },

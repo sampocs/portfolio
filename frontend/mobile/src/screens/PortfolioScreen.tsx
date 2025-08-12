@@ -70,7 +70,7 @@ export default function PortfolioScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Portfolio</Text>
       </View>
@@ -116,5 +116,6 @@ const styles = createStyles({
   scrollContent: {
     flex: 1,
     paddingHorizontal: theme.spacing.xl,
+    paddingBottom: 20,
   },
 });
