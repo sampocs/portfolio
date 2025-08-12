@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -7,9 +7,9 @@ import CategorySelector from '../components/CategorySelector';
 import Summary from '../components/Summary';
 import TotalWorthChart from '../components/TotalWorthChart';
 import AssetList from '../components/AssetList';
-import { mockPositions, mockPerformanceData } from '../data/mockData';
+import { apiService } from '../services/api';
 import { calculatePortfolioSummary } from '../data/utils';
-import { PerformanceData } from '../data/types';
+import { Asset, PerformanceData } from '../data/types';
 
 // Format date from YYYY-MM-DD to "Aug 7, 2025"
 const formatDate = (dateString: string): string => {
@@ -30,6 +30,13 @@ export default function PortfolioScreen() {
   // State for chart interaction
   const [selectedDataPoint, setSelectedDataPoint] = useState<PerformanceData | null>(null);
 
+  // API data state
+  const [positions, setPositions] = useState<Asset[]>([]);
+  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedGranularity, setSelectedGranularity] = useState('ALL');
+
   const handleCategoryToggle = (category: 'stocks' | 'crypto') => {
     setSelectedCategories(prev => ({
       ...prev,
@@ -40,6 +47,50 @@ export default function PortfolioScreen() {
   const handleDataPointSelected = (dataPoint: PerformanceData | null) => {
     setSelectedDataPoint(dataPoint);
   };
+
+  // Data fetching functions
+  const fetchData = async (granularity: string = selectedGranularity) => {
+    try {
+      const [positionsData, performanceDataResponse] = await Promise.all([
+        apiService.getPositions(),
+        apiService.getPerformance(granularity)
+      ]);
+      
+      setPositions(positionsData);
+      setPerformanceData(performanceDataResponse);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // Handle error - could show toast or error state
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleGranularityChange = async (granularity: string) => {
+    setSelectedGranularity(granularity);
+    await fetchData(granularity);
+  };
+
+  // Initial data load
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      try {
+        await fetchData();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, []);
 
   const getDisplayText = () => {
     if (selectedCategories.stocks && selectedCategories.crypto) {
@@ -53,8 +104,8 @@ export default function PortfolioScreen() {
     }
   };
 
-  // Calculate portfolio summary from mock data
-  const portfolioSummary = calculatePortfolioSummary(mockPositions);
+  // Calculate portfolio summary from API data
+  const portfolioSummary = calculatePortfolioSummary(positions);
 
   // Get summary data - use selected data point if available, otherwise use current totals
   const summaryData = selectedDataPoint ? {
@@ -69,12 +120,32 @@ export default function PortfolioScreen() {
     selectedDate: undefined,
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]} edges={['top']}>
+        <ActivityIndicator size="large" color={theme.colors.foreground} />
+        <Text style={styles.loadingText}>Loading Portfolio...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Portfolio</Text>
       </View>
-      <ScrollView style={styles.scrollContent}>
+      <ScrollView 
+        style={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.colors.foreground]}
+            tintColor={theme.colors.foreground}
+            progressBackgroundColor={theme.colors.card}
+          />
+        }
+      >
         <CategorySelector
           selectedCategories={selectedCategories}
           onCategoryToggle={handleCategoryToggle}
@@ -86,11 +157,12 @@ export default function PortfolioScreen() {
           selectedDate={summaryData.selectedDate}
         />
         <TotalWorthChart
-          data={mockPerformanceData}
+          data={performanceData}
           onDataPointSelected={handleDataPointSelected}
+          onGranularityChange={handleGranularityChange}
         />
         <AssetList
-          assets={mockPositions}
+          assets={positions}
           selectedCategories={selectedCategories}
         />
       </ScrollView>
@@ -117,5 +189,14 @@ const styles = createStyles({
     flex: 1,
     paddingHorizontal: theme.spacing.xl,
     paddingBottom: 20,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: theme.colors.muted,
+    ...getTextStyle('md'),
+    marginTop: theme.spacing.md,
   },
 });

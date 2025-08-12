@@ -11,16 +11,14 @@ import { PerformanceData } from '../data/types';
 interface TotalWorthChartProps {
   data: PerformanceData[];
   onDataPointSelected?: (dataPoint: PerformanceData | null) => void;
+  onGranularityChange?: (granularity: string) => void;
 }
 
 type Duration = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
 
 const durations: Duration[] = ['1W', '1M', 'YTD', '1Y', 'ALL'];
 
-export default function TotalWorthChart({ data, onDataPointSelected }: TotalWorthChartProps) {
-  console.log('TotalWorthChart - data:', data);
-  console.log('TotalWorthChart - onDataPointSelected:', onDataPointSelected);
-  
+export default function TotalWorthChart({ data, onDataPointSelected, onGranularityChange }: TotalWorthChartProps) {
   const [selectedDuration, setSelectedDuration] = useState<Duration>('ALL');
   const { width } = Dimensions.get('window');
   const chartWidth = width - theme.spacing.xl * 2;
@@ -28,7 +26,6 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
 
   // Early return if no data
   if (!data || data.length === 0) {
-    console.log('TotalWorthChart - No data available');
     return (
       <View style={styles.container}>
         <View style={[styles.chartWrapper, { height: chartHeight, backgroundColor: theme.colors.card, justifyContent: 'center', alignItems: 'center' }]}>
@@ -95,16 +92,12 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
   // Function to find closest point (this runs on JS thread)
   const findClosestPoint = useCallback((xValue: number) => {
     if (chartData.length === 0) return null;
-    
-    console.log('Finding closest point - Press X:', xValue, 'Chart Width:', chartWidth);
-    
+        
     // Map screen coordinate to data index
     // Victory Native XL gives us screen coordinates, so we need to normalize
     const normalizedX = Math.max(0, Math.min(1, xValue / chartWidth));
     const dataIndex = Math.round(normalizedX * (chartData.length - 1));
     const clampedIndex = Math.max(0, Math.min(chartData.length - 1, dataIndex));
-    
-    console.log('Normalized X:', normalizedX, 'Data Index:', clampedIndex, 'Date:', chartData[clampedIndex]?.date);
     
     return chartData[clampedIndex];
   }, [chartData, chartWidth]);
@@ -144,19 +137,12 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
     // Calculate Y position for min value (bottom of chart area)  
     const minY = chartBounds.bottom;
     
-    console.log('Chart Bounds:', chartBounds, 'Max Y:', maxY, 'Min Y:', minY);
-    console.log('Data values - Max:', maxValue, 'Min:', minValue);
-    
     return { maxY, minY };
   }, [chartBounds, maxValue, minValue, chartHeight]);
 
   // Create Skia path using Victory Native's exact points with smooth curves
   const createGradientPathFromPoints = useCallback((points: any[], bounds: {top: number, bottom: number, left: number, right: number}) => {
     if (!points?.length || !bounds) return null;
-
-    console.log('Creating gradient path from Victory points');
-    console.log('Points sample:', points.slice(0, 3));
-    console.log('Bounds:', bounds);
 
     const path = Skia.Path.Make();
 
@@ -292,8 +278,6 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
                     chartBounds.top !== victoryChartBounds.top || 
                     chartBounds.bottom !== victoryChartBounds.bottom)) {
                   // Only update if bounds have changed to avoid unnecessary re-renders
-                  console.log('Victory chart bounds updated:', victoryChartBounds);
-                  console.log('Victory points sample:', points.y?.slice(0, 3));
                   setTimeout(() => setChartBounds(victoryChartBounds), 0);
                 }
 
@@ -388,7 +372,10 @@ export default function TotalWorthChart({ data, onDataPointSelected }: TotalWort
               styles.durationButton,
               selectedDuration === duration && styles.durationButtonSelected,
             ]}
-            onTouchEnd={() => setSelectedDuration(duration)}
+            onTouchEnd={() => {
+              setSelectedDuration(duration);
+              onGranularityChange?.(duration);
+            }}
           >
             <Text
               style={[
