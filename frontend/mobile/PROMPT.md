@@ -121,7 +121,19 @@ Create the TODO.md from the following:
   - The endpoints are https://portfolio-backend-production-29dc.up.railway.app/positions and https://portfolio-backend-production-29dc.up.railway.app/performance/{granularity} where granularity is either "1W", "1M", "YTD", "1Y", "ALL"
   - It needs an auth bearer token which can be found from the FASTAPI_SECRET env variable
   - The granularity passed to peformance should be chosen based on what has selected under the chart
-- Allocations tab to be spec'd and completed later
+- Build grouping section in allocations tab
+  - This will be at the top of the page and should allow the selection of the options "Categories" or "Assets". Only one can be selected at once
+- Build category chart in allocations tabe
+  - If "Categories" is selected, it should display a dual donut chart that shows the target and current allocations for each.
+  - Data can be found in the positions data (either mockData or actual API response)
+  - Display the current/target allocations as a percentage and dollar value
+- Build asset chart in allocations tabe
+  - If "Assets" is selected, it should display a bullet list chart for each asset
+  - You can store each asset's section in it's own component
+  - On the left side of the component should be the asset logo, with the asset description underneath
+  - Next to that, it should be the chart. There should be a solid line for the current allocation and a vertical line tick for the target allocation.
+  - The line should be scaled so that 50% would take up the full space it has available, and it should be scaled the same for each asset such that a 10% asset should have half the length of a 20% asset
+  - It should display the current/target percentages, current/target dollar values, and percent/dollar deltas. Arrange these in whatever way you think is best
 
 ## Coding Rules
 
