@@ -82,7 +82,7 @@ export default function CategoryLegend({ categories }: CategoryLegendProps) {
 
 const styles = createStyles({
   container: {
-    marginTop: theme.spacing.lg,
+    marginTop: theme.spacing.md,
   },
   sectionTitle: {
     color: theme.colors.foreground,
@@ -94,7 +94,7 @@ const styles = createStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.card,
     borderRadius: 0,
     marginBottom: 0,

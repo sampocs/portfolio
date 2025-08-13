@@ -49,7 +49,7 @@ export default function GroupingSection({ selectedGrouping, onGroupingChange }: 
 const styles = createStyles({
   container: {
     flexDirection: 'row',
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.sm,
   },
   button: {
     paddingHorizontal: theme.spacing.md,

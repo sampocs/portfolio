@@ -21,7 +21,7 @@ interface DonutSegment {
 }
 
 // Base chart configuration - only change these values to resize
-const CHART_SIZE = 240;
+const CHART_SIZE = 260;
 const STROKE_WIDTH = 22;
 const TARGET_STROKE_WIDTH = 18;
 
@@ -29,8 +29,8 @@ const TARGET_STROKE_WIDTH = 18;
 const CENTER_X = CHART_SIZE / 2;
 const CENTER_Y = CHART_SIZE / 2;
 // Keep original radius values but make them dynamic if needed
-const OUTER_RADIUS = 105;
-const TARGET_RADIUS = 75;
+const OUTER_RADIUS = 115;
+const TARGET_RADIUS = 85;
 const INNER_RADIUS = 60; // For future use if needed
 const TOUCH_BUFFER = Math.min(4, STROKE_WIDTH * 0.2); // Dynamic buffer based on stroke width
 
@@ -328,8 +328,9 @@ const centerLabelHeight = 60;
 const styles = createStyles({
   container: {
     alignItems: 'center',
-    marginVertical: theme.spacing.sm,
-    marginHorizontal: -theme.spacing.md,
+    marginVertical: theme.spacing.xs,
+    marginHorizontal: 0,
+    paddingHorizontal: 0,
   },
   chartContainer: {
     width: CHART_SIZE,

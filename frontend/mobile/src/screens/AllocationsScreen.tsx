@@ -130,7 +130,7 @@ const styles = createStyles({
   },
   scrollContent: {
     flex: 1,
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xs,
     paddingBottom: 20,
   },
   loadingContainer: {
