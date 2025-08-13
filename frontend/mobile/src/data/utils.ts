@@ -29,6 +29,31 @@ export const calculatePortfolioSummary = (
   };
 };
 
+export const calculateCurrentAllocations = (positions: Asset[]): Asset[] => {
+  const totalValue = positions.reduce(
+    (sum, asset) => sum + parseFloat(asset.value),
+    0
+  );
+
+  const assetsWithAllocations = positions.map(asset => {
+    const allocation = ((parseFloat(asset.value) / totalValue) * 100).toFixed(2);
+    return {
+      ...asset,
+      current_allocation: allocation
+    };
+  });
+
+  // Log current allocations for each asset
+  console.log('=== Current Allocations ===');
+  console.log(`Total Portfolio Value: $${totalValue.toLocaleString()}`);
+  assetsWithAllocations.forEach(asset => {
+    console.log(`${asset.asset}: ${asset.current_allocation}% (Target: ${asset.target_allocation}%) - ${asset.category}`);
+  });
+  console.log('========================');
+
+  return assetsWithAllocations;
+};
+
 export const filterAssetsByCategory = (
   assets: Asset[],
   category: "Crypto" | "Stocks"
