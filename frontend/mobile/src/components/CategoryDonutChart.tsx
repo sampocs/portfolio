@@ -308,7 +308,11 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           </View>
 
           {/* Interactive areas on top */}
-          <Svg width={CHART_SIZE} height={CHART_SIZE} style={styles.interactiveSvg}>
+          <Svg 
+            width={CHART_SIZE} 
+            height={CHART_SIZE} 
+            style={styles.interactiveSvg}
+          >
             {createInteractiveSegments()}
           </Svg>
         </View>

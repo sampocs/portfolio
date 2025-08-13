@@ -73,22 +73,22 @@ export default function AllocationsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerText}>Allocations</Text>
       </View>
-      <TouchableOpacity 
-        style={styles.backgroundTouchable}
-        onPress={() => setSelectedCategory(null)}
-        activeOpacity={1}
+      <ScrollView 
+        style={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.colors.foreground]}
+            tintColor={theme.colors.foreground}
+            progressBackgroundColor={theme.colors.card}
+          />
+        }
       >
-        <ScrollView 
-          style={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              colors={[theme.colors.foreground]}
-              tintColor={theme.colors.foreground}
-              progressBackgroundColor={theme.colors.card}
-            />
-          }
+        <TouchableOpacity 
+          style={styles.contentTouchable}
+          onPress={() => setSelectedCategory(null)}
+          activeOpacity={1}
         >
           <GroupingSection
             selectedGrouping={selectedGrouping}
@@ -107,8 +107,8 @@ export default function AllocationsScreen() {
           ) : (
             <AssetAllocationList assets={positions} />
           )}
-        </ScrollView>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -142,7 +142,7 @@ const styles = createStyles({
     ...getTextStyle('md'),
     marginTop: theme.spacing.md,
   },
-  backgroundTouchable: {
+  contentTouchable: {
     flex: 1,
   },
 });
