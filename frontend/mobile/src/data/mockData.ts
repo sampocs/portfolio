@@ -107,7 +107,7 @@ export const mockPositions: Asset[] = [
   },
   {
     asset: 'AAAU',
-    category: 'Gold',
+    category: 'Alternatives',
     description: 'Gold',
     current_price: '19.87',
     average_price: '18.45',
@@ -120,7 +120,7 @@ export const mockPositions: Asset[] = [
   },
   {
     asset: 'VNQ',
-    category: 'Real Estate',
+    category: 'Alternatives',
     description: 'Real Estate',
     current_price: '92.31',
     average_price: '87.12',
