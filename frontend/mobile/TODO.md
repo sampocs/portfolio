@@ -84,13 +84,13 @@ Building a React Native application to display investment portfolio information 
 
 ### 6. API Integration
 
-- [ ] Integrate with actual API endpoints
-  - [ ] Setup authentication with FASTAPI_SECRET bearer token
-  - [ ] Connect positions endpoint: `/positions`
-  - [ ] Connect performance endpoint: `/performance/{granularity}`
-  - [ ] Map granularity from chart duration selection
-  - [ ] Replace mock data with API calls
-  - [ ] Add loading states and error handling
+- [x] Integrate with actual API endpoints
+  - [x] Setup authentication with FASTAPI_SECRET bearer token
+  - [x] Connect positions endpoint: `/positions`
+  - [x] Connect performance endpoint: `/performance/{granularity}`
+  - [x] Map granularity from chart duration selection
+  - [x] Replace mock data with API calls
+  - [x] Add loading states and error handling
 
 ### 7. Allocations Tab (Future)
 
