@@ -29,9 +29,8 @@ logger = logging.getLogger("portfolio")
 class Category(Enum):
     STOCK_ETFS = "Stock ETFs"
     CRYPTO_STOCKS = "Crypto Stocks"
-    GOLD = "Gold"
-    REAL_ESTATE = "Real Estate"
     CRYPTO_TOKENS = "Crypto Tokens"
+    ALTERNATIVES = "Alternatives"
 
 
 class Platform(Enum):
