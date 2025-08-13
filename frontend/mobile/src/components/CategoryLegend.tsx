@@ -58,7 +58,6 @@ function LegendRow({ category }: LegendRowProps) {
 export default function CategoryLegend({ categories }: CategoryLegendProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Category Breakdown</Text>
       {categories.map((category, index) => (
         <LegendRow key={`${category.category}-${index}`} category={category} />
       ))}
@@ -79,11 +78,11 @@ const styles = createStyles({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
   },
   leftSection: {
     flexDirection: 'row',
@@ -91,14 +90,14 @@ const styles = createStyles({
     flex: 1,
   },
   colorIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: theme.spacing.sm,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: theme.spacing.md,
   },
   categoryName: {
     color: theme.colors.foreground,
-    ...getTextStyle('sm', 'medium'),
+    ...getTextStyle('sm', 'semibold'),
     flex: 1,
   },
   rightSection: {
@@ -106,14 +105,14 @@ const styles = createStyles({
     flex: 1.5,
   },
   percentageSection: {
-    marginBottom: 2,
+    marginBottom: 3,
   },
   allocationText: {
     color: theme.colors.muted,
     ...getTextStyle('xs'),
   },
   valueSection: {
-    marginBottom: 2,
+    marginBottom: 3,
   },
   valueText: {
     color: theme.colors.foreground,
@@ -124,10 +123,10 @@ const styles = createStyles({
   },
   deltaContainer: {
     paddingHorizontal: theme.spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: theme.borderRadius.sm,
   },
   deltaText: {
-    ...getTextStyle('xs', 'medium'),
+    ...getTextStyle('xs', 'semibold'),
   },
 });

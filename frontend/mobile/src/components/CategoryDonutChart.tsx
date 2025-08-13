@@ -22,8 +22,8 @@ const CHART_SIZE = 200;
 const INNER_RADIUS = 55;
 const OUTER_RADIUS = 85;
 const TARGET_RADIUS = 40;
-const STROKE_WIDTH = 16;
-const TARGET_STROKE_WIDTH = 12;
+const STROKE_WIDTH = 22;
+const TARGET_STROKE_WIDTH = 18;
 
 // Helper function to convert percentage to angle (0-360 degrees)
 const percentageToAngle = (percentage: number): number => {
