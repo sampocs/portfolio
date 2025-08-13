@@ -63,7 +63,6 @@ export default function AllocationsScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]} edges={['top']}>
         <ActivityIndicator size="large" color={theme.colors.foreground} />
-        <Text style={styles.loadingText}>Loading Allocations...</Text>
       </SafeAreaView>
     );
   }
