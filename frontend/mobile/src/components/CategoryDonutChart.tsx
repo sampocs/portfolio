@@ -20,12 +20,19 @@ interface DonutSegment {
   percentage: number;
 }
 
+// Base chart configuration - only change these values to resize
 const CHART_SIZE = 240;
-const INNER_RADIUS = 60;
-const OUTER_RADIUS = 105;
-const TARGET_RADIUS = 75;
 const STROKE_WIDTH = 22;
 const TARGET_STROKE_WIDTH = 18;
+
+// Derived constants - automatically calculated
+const CENTER_X = CHART_SIZE / 2;
+const CENTER_Y = CHART_SIZE / 2;
+// Keep original radius values but make them dynamic if needed
+const OUTER_RADIUS = 105;
+const TARGET_RADIUS = 75;
+const INNER_RADIUS = 60; // For future use if needed
+const TOUCH_BUFFER = Math.min(4, STROKE_WIDTH * 0.2); // Dynamic buffer based on stroke width
 
 // Helper function to convert percentage to angle (0-360 degrees)
 const percentageToAngle = (percentage: number): number => {
@@ -63,9 +70,59 @@ const createArcPath = (
   ].join(' ');
 };
 
+// Helper function to create touch area for ring segments
+const createTouchArea = (
+  radius: number,
+  strokeWidth: number,
+  startAngle: number,
+  endAngle: number,
+  category: CategoryAllocation,
+  onCategorySelect: (category: CategoryAllocation | null) => void,
+  keyPrefix: string,
+  index: number
+): React.ReactElement => {
+  const adjustedStartAngle = startAngle - 90;
+  const adjustedEndAngle = endAngle - 90;
+  
+  const innerRadius = radius - strokeWidth / 2 - TOUCH_BUFFER;
+  const outerRadius = radius + strokeWidth / 2 + TOUCH_BUFFER;
+  
+  const startAngleRad = (adjustedStartAngle * Math.PI) / 180;
+  const endAngleRad = (adjustedEndAngle * Math.PI) / 180;
+  
+  const x1 = CENTER_X + innerRadius * Math.cos(startAngleRad);
+  const y1 = CENTER_Y + innerRadius * Math.sin(startAngleRad);
+  const x2 = CENTER_X + outerRadius * Math.cos(startAngleRad);
+  const y2 = CENTER_Y + outerRadius * Math.sin(startAngleRad);
+  const x3 = CENTER_X + outerRadius * Math.cos(endAngleRad);
+  const y3 = CENTER_Y + outerRadius * Math.sin(endAngleRad);
+  const x4 = CENTER_X + innerRadius * Math.cos(endAngleRad);
+  const y4 = CENTER_Y + innerRadius * Math.sin(endAngleRad);
+  
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  
+  const pathData = [
+    'M', x1, y1, 'L', x2, y2,
+    'A', outerRadius, outerRadius, 0, largeArc, 1, x3, y3,
+    'L', x4, y4, 'A', innerRadius, innerRadius, 0, largeArc, 0, x1, y1, 'Z'
+  ].join(' ');
+
+  return (
+    <Path
+      key={`${keyPrefix}-interactive-${index}`}
+      d={pathData}
+      fill="transparent"
+      stroke="transparent"
+      strokeWidth={0}
+      onPress={(e) => {
+        e.stopPropagation();
+        onCategorySelect(category);
+      }}
+    />
+  );
+};
+
 export default function CategoryDonutChart({ categories, selectedCategory, onCategorySelect }: CategoryDonutChartProps) {
-  const centerX = CHART_SIZE / 2;
-  const centerY = CHART_SIZE / 2;
 
   // Calculate total portfolio value for center display
   const totalPortfolioValue = categories.reduce((sum, cat) => sum + cat.currentValue, 0);
@@ -106,7 +163,7 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
     });
   }, [categories]);
 
-  // Create separate touchable path elements for inner and outer rings  
+  // Create interactive segments using the helper function
   const createInteractiveSegments = (): React.ReactElement[] => {
     const segments: React.ReactElement[] = [];
 
@@ -115,45 +172,17 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
       const currentSegment = currentSegments[index];
       if (!currentSegment || currentSegment.percentage <= 0) return;
 
-      const startAngle = currentSegment.startAngle - 90;
-      const endAngle = currentSegment.endAngle - 90;
-      
-      // Touch area should cover just the outer ring stroke area + small buffer
-      const innerRadius = OUTER_RADIUS - STROKE_WIDTH / 2 - 3; // Just inside the stroke
-      const outerRadius = OUTER_RADIUS + STROKE_WIDTH / 2 + 3; // Just outside the stroke
-      
-      const startAngleRad = (startAngle * Math.PI) / 180;
-      const endAngleRad = (endAngle * Math.PI) / 180;
-      
-      const x1 = centerX + innerRadius * Math.cos(startAngleRad);
-      const y1 = centerY + innerRadius * Math.sin(startAngleRad);
-      const x2 = centerX + outerRadius * Math.cos(startAngleRad);
-      const y2 = centerY + outerRadius * Math.sin(startAngleRad);
-      const x3 = centerX + outerRadius * Math.cos(endAngleRad);
-      const y3 = centerY + outerRadius * Math.sin(endAngleRad);
-      const x4 = centerX + innerRadius * Math.cos(endAngleRad);
-      const y4 = centerY + innerRadius * Math.sin(endAngleRad);
-      
-      const largeArc = currentSegment.endAngle - currentSegment.startAngle > 180 ? 1 : 0;
-      
-      const pathData = [
-        'M', x1, y1, 'L', x2, y2,
-        'A', outerRadius, outerRadius, 0, largeArc, 1, x3, y3,
-        'L', x4, y4, 'A', innerRadius, innerRadius, 0, largeArc, 0, x1, y1, 'Z'
-      ].join(' ');
-
       segments.push(
-        <Path
-          key={`outer-interactive-${index}`}
-          d={pathData}
-          fill="transparent"
-          stroke="transparent"
-          strokeWidth={0}
-          onPress={(e) => {
-            e.stopPropagation();
-            onCategorySelect(category);
-          }}
-        />
+        createTouchArea(
+          OUTER_RADIUS,
+          STROKE_WIDTH,
+          currentSegment.startAngle,
+          currentSegment.endAngle,
+          category,
+          onCategorySelect,
+          'outer',
+          index
+        )
       );
     });
 
@@ -162,45 +191,17 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
       const targetSegment = targetSegments[index];
       if (!targetSegment || targetSegment.percentage <= 0) return;
 
-      const startAngle = targetSegment.startAngle - 90;
-      const endAngle = targetSegment.endAngle - 90;
-      
-      // Touch area should cover just the inner ring stroke area + small buffer
-      const innerRadius = TARGET_RADIUS - TARGET_STROKE_WIDTH / 2 - 3; // Just inside the stroke
-      const outerRadius = TARGET_RADIUS + TARGET_STROKE_WIDTH / 2 + 3; // Just outside the stroke
-      
-      const startAngleRad = (startAngle * Math.PI) / 180;
-      const endAngleRad = (endAngle * Math.PI) / 180;
-      
-      const x1 = centerX + innerRadius * Math.cos(startAngleRad);
-      const y1 = centerY + innerRadius * Math.sin(startAngleRad);
-      const x2 = centerX + outerRadius * Math.cos(startAngleRad);
-      const y2 = centerY + outerRadius * Math.sin(startAngleRad);
-      const x3 = centerX + outerRadius * Math.cos(endAngleRad);
-      const y3 = centerY + outerRadius * Math.sin(endAngleRad);
-      const x4 = centerX + innerRadius * Math.cos(endAngleRad);
-      const y4 = centerY + innerRadius * Math.sin(endAngleRad);
-      
-      const largeArc = targetSegment.endAngle - targetSegment.startAngle > 180 ? 1 : 0;
-      
-      const pathData = [
-        'M', x1, y1, 'L', x2, y2,
-        'A', outerRadius, outerRadius, 0, largeArc, 1, x3, y3,
-        'L', x4, y4, 'A', innerRadius, innerRadius, 0, largeArc, 0, x1, y1, 'Z'
-      ].join(' ');
-
       segments.push(
-        <Path
-          key={`inner-interactive-${index}`}
-          d={pathData}
-          fill="transparent"
-          stroke="transparent"
-          strokeWidth={0}
-          onPress={(e) => {
-            e.stopPropagation();
-            onCategorySelect(category);
-          }}
-        />
+        createTouchArea(
+          TARGET_RADIUS,
+          TARGET_STROKE_WIDTH,
+          targetSegment.startAngle,
+          targetSegment.endAngle,
+          category,
+          onCategorySelect,
+          'inner',
+          index
+        )
       );
     });
 
@@ -227,8 +228,8 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
                 return (
                   <Circle
                     key={`target-${index}`}
-                    cx={centerX}
-                    cy={centerY}
+                    cx={CENTER_X}
+                    cy={CENTER_Y}
                     r={TARGET_RADIUS}
                     fill="none"
                     stroke={segment.color}
@@ -236,7 +237,7 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
                     strokeDasharray={strokeDasharray}
                     strokeDashoffset={strokeDashoffset}
                     opacity={opacity}
-                    transform={`rotate(-90 ${centerX} ${centerY})`}
+                    transform={`rotate(-90 ${CENTER_X} ${CENTER_Y})`}
                   />
                 );
               })}
@@ -258,8 +259,8 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
                 return (
                   <Circle
                     key={`current-${index}`}
-                    cx={centerX}
-                    cy={centerY}
+                    cx={CENTER_X}
+                    cy={CENTER_Y}
                     r={OUTER_RADIUS}
                     fill="none"
                     stroke={segment.color}
@@ -267,7 +268,7 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
                     strokeDasharray={strokeDasharray}
                     strokeDashoffset={strokeDashoffset}
                     opacity={opacity}
-                    transform={`rotate(-90 ${centerX} ${centerY})`}
+                    transform={`rotate(-90 ${CENTER_X} ${CENTER_Y})`}
                   />
                 );
               })}
@@ -320,6 +321,10 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
   );
 }
 
+// Calculate center label dimensions - restored to working values
+const centerLabelSize = 120; // Original working width
+const centerLabelHeight = 60;
+
 const styles = createStyles({
   container: {
     alignItems: 'center',
@@ -339,11 +344,14 @@ const styles = createStyles({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    transform: [{ translateX: -60 }, { translateY: -25 }],
+    transform: [
+      { translateX: -(centerLabelSize / 2) }, 
+      { translateY: -(centerLabelHeight / 2) + 5 }
+    ],
     alignItems: 'center',
     justifyContent: 'center',
-    width: 120,
-    height: 60,
+    width: centerLabelSize,
+    height: centerLabelHeight,
   },
   totalValueText: {
     color: theme.colors.foreground,
