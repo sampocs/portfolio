@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
-import { View, Text, Dimensions } from 'react-native';
-import { Svg, Circle, G } from 'react-native-svg';
+import React, { useMemo, useState } from 'react';
+import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
+import { Svg, Circle, G, Path } from 'react-native-svg';
 import { theme } from '../styles/theme';
-import { createStyles, getTextStyle } from '../styles/utils';
+import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
 import { CategoryAllocation } from '../data/types';
 import { getCategoryColor } from '../data/utils';
 
@@ -18,10 +18,10 @@ interface DonutSegment {
   percentage: number;
 }
 
-const CHART_SIZE = 200;
-const INNER_RADIUS = 55;
-const OUTER_RADIUS = 85;
-const TARGET_RADIUS = 40;
+const CHART_SIZE = 220;
+const INNER_RADIUS = 60;
+const OUTER_RADIUS = 95;
+const TARGET_RADIUS = 65;
 const STROKE_WIDTH = 22;
 const TARGET_STROKE_WIDTH = 18;
 
@@ -62,8 +62,12 @@ const createArcPath = (
 };
 
 export default function CategoryDonutChart({ categories }: CategoryDonutChartProps) {
+  const [selectedCategory, setSelectedCategory] = useState<CategoryAllocation | null>(null);
   const centerX = CHART_SIZE / 2;
   const centerY = CHART_SIZE / 2;
+
+  // Calculate total portfolio value for center display
+  const totalPortfolioValue = categories.reduce((sum, cat) => sum + cat.currentValue, 0);
 
   // Calculate segments for current allocations (outer ring)
   const currentSegments = useMemo(() => {
@@ -101,15 +105,74 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
     });
   }, [categories]);
 
+  // Create touchable path elements for interaction
+  const createInteractiveSegments = () => {
+    return categories.map((category, index) => {
+      const currentSegment = currentSegments[index];
+      if (!currentSegment || currentSegment.percentage <= 0) return null;
+
+      // Create path for the outer ring segment
+      const startAngle = currentSegment.startAngle - 90; // Adjust for top start
+      const endAngle = currentSegment.endAngle - 90;
+      
+      const innerRadius = OUTER_RADIUS - STROKE_WIDTH;
+      const outerRadius = OUTER_RADIUS;
+      
+      // Calculate path coordinates
+      const startAngleRad = (startAngle * Math.PI) / 180;
+      const endAngleRad = (endAngle * Math.PI) / 180;
+      
+      const x1 = centerX + innerRadius * Math.cos(startAngleRad);
+      const y1 = centerY + innerRadius * Math.sin(startAngleRad);
+      const x2 = centerX + outerRadius * Math.cos(startAngleRad);
+      const y2 = centerY + outerRadius * Math.sin(startAngleRad);
+      
+      const x3 = centerX + outerRadius * Math.cos(endAngleRad);
+      const y3 = centerY + outerRadius * Math.sin(endAngleRad);
+      const x4 = centerX + innerRadius * Math.cos(endAngleRad);
+      const y4 = centerY + innerRadius * Math.sin(endAngleRad);
+      
+      const largeArc = currentSegment.endAngle - currentSegment.startAngle > 180 ? 1 : 0;
+      
+      const pathData = [
+        'M', x1, y1,
+        'L', x2, y2,
+        'A', outerRadius, outerRadius, 0, largeArc, 1, x3, y3,
+        'L', x4, y4,
+        'A', innerRadius, innerRadius, 0, largeArc, 0, x1, y1,
+        'Z'
+      ].join(' ');
+
+      return (
+        <Path
+          key={`interactive-${index}`}
+          d={pathData}
+          fill="transparent"
+          stroke="transparent"
+          strokeWidth={0}
+          onPress={() => setSelectedCategory(category)}
+        />
+      );
+    });
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.chartContainer}>
+      <TouchableOpacity 
+        style={styles.chartContainer}
+        onPress={() => setSelectedCategory(null)}
+        activeOpacity={1}
+      >
         <Svg width={CHART_SIZE} height={CHART_SIZE}>
           {/* Target allocations (inner ring) */}
           <G>
             {targetSegments.map((segment, index) => {
               // Only render if percentage is greater than 0
               if (segment.percentage <= 0) return null;
+              
+              const category = categories[index];
+              const isSelected = selectedCategory?.category === category.category;
+              const opacity = selectedCategory && !isSelected ? 0.3 : 0.7;
               
               const circumference = 2 * Math.PI * TARGET_RADIUS;
               const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
@@ -126,7 +189,7 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
                   strokeWidth={TARGET_STROKE_WIDTH}
                   strokeDasharray={strokeDasharray}
                   strokeDashoffset={strokeDashoffset}
-                  opacity={0.7}
+                  opacity={opacity}
                   transform={`rotate(-90 ${centerX} ${centerY})`}
                 />
               );
@@ -138,6 +201,10 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
             {currentSegments.map((segment, index) => {
               // Only render if percentage is greater than 0
               if (segment.percentage <= 0) return null;
+              
+              const category = categories[index];
+              const isSelected = selectedCategory?.category === category.category;
+              const opacity = selectedCategory && !isSelected ? 0.3 : 1.0;
               
               const circumference = 2 * Math.PI * OUTER_RADIUS;
               const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
@@ -154,19 +221,52 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
                   strokeWidth={STROKE_WIDTH}
                   strokeDasharray={strokeDasharray}
                   strokeDashoffset={strokeDashoffset}
+                  opacity={opacity}
                   transform={`rotate(-90 ${centerX} ${centerY})`}
                 />
               );
             })}
           </G>
+
+          {/* Interactive overlay paths */}
+          <G>
+            {createInteractiveSegments()}
+          </G>
         </Svg>
 
-        {/* Center label */}
+        {/* Dynamic center content */}
         <View style={styles.centerLabel}>
-          <Text style={styles.centerLabelText}>Current vs</Text>
-          <Text style={styles.centerLabelText}>Target</Text>
+          {selectedCategory ? (
+            <>
+              <Text style={styles.selectedCategoryName}>{selectedCategory.category}</Text>
+              <Text style={styles.selectedAllocationText}>
+                {selectedCategory.currentAllocation.toFixed(1)}% → {selectedCategory.targetAllocation.toFixed(1)}%
+              </Text>
+              <Text style={styles.selectedValueText}>
+                {formatCurrency(selectedCategory.currentValue)}
+              </Text>
+              <Text style={[
+                styles.selectedDeltaText,
+                { color: selectedCategory.percentageDelta >= 0 ? theme.colors.success : theme.colors.destructive }
+              ]}>
+                {selectedCategory.percentageDelta >= 0 ? '+' : ''}{selectedCategory.percentageDelta.toFixed(1)}%
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.totalValueText}>
+                {totalPortfolioValue.toLocaleString('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              </Text>
+              <Text style={styles.totalLabelText}>Total Value</Text>
+            </>
+          )}
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -175,6 +275,7 @@ const styles = createStyles({
   container: {
     alignItems: 'center',
     marginVertical: theme.spacing.lg,
+    marginHorizontal: -theme.spacing.md,
   },
   chartContainer: {
     position: 'relative',
@@ -185,14 +286,43 @@ const styles = createStyles({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    transform: [{ translateX: -30 }, { translateY: -12 }],
+    transform: [{ translateX: -50 }, { translateY: -30 }],
     alignItems: 'center',
     justifyContent: 'center',
+    width: 100,
+    height: 60,
   },
-  centerLabelText: {
+  totalValueText: {
+    color: theme.colors.foreground,
+    ...getTextStyle('lg', 'bold'),
+    textAlign: 'center',
+  },
+  totalLabelText: {
     color: theme.colors.muted,
     ...getTextStyle('xs'),
     textAlign: 'center',
-    lineHeight: 14,
+    marginTop: 2,
+  },
+  selectedCategoryName: {
+    color: theme.colors.foreground,
+    ...getTextStyle('sm', 'bold'),
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  selectedAllocationText: {
+    color: theme.colors.muted,
+    ...getTextStyle('xs'),
+    textAlign: 'center',
+    marginBottom: 1,
+  },
+  selectedValueText: {
+    color: theme.colors.foreground,
+    ...getTextStyle('xs', 'medium'),
+    textAlign: 'center',
+    marginBottom: 1,
+  },
+  selectedDeltaText: {
+    ...getTextStyle('xs', 'bold'),
+    textAlign: 'center',
   },
 });
