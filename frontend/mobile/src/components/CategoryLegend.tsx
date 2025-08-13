@@ -16,8 +16,9 @@ interface LegendRowProps {
 function LegendRow({ category }: LegendRowProps) {
   const color = getCategoryColor(category.category);
   const isOverAllocated = category.percentageDelta > 0;
-  const deltaColor = isOverAllocated ? theme.colors.destructive : theme.colors.success;
-  const deltaBackgroundColor = isOverAllocated ? theme.colors.destructiveBackground : theme.colors.successBackground;
+  // Green for overallocated, red for underallocated
+  const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
+  const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
   // Calculate target dollar value for display
   const targetValue = category.currentValue - category.dollarDelta;
