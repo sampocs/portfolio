@@ -105,20 +105,22 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
     });
   }, [categories]);
 
-  // Create touchable path elements for interaction
-  const createInteractiveSegments = () => {
-    return categories.map((category, index) => {
-      const currentSegment = currentSegments[index];
-      if (!currentSegment || currentSegment.percentage <= 0) return null;
+  // Create separate touchable path elements for inner and outer rings  
+  const createInteractiveSegments = (): React.ReactElement[] => {
+    const segments: React.ReactElement[] = [];
 
-      // Create path for the outer ring segment
-      const startAngle = currentSegment.startAngle - 90; // Adjust for top start
+    // Outer ring touchable areas (current allocations)
+    categories.forEach((category, index) => {
+      const currentSegment = currentSegments[index];
+      if (!currentSegment || currentSegment.percentage <= 0) return;
+
+      const startAngle = currentSegment.startAngle - 90;
       const endAngle = currentSegment.endAngle - 90;
       
-      const innerRadius = OUTER_RADIUS - STROKE_WIDTH;
-      const outerRadius = OUTER_RADIUS;
+      // Touch area should cover just the outer ring stroke area + small buffer
+      const innerRadius = OUTER_RADIUS - STROKE_WIDTH / 2 - 3; // Just inside the stroke
+      const outerRadius = OUTER_RADIUS + STROKE_WIDTH / 2 + 3; // Just outside the stroke
       
-      // Calculate path coordinates
       const startAngleRad = (startAngle * Math.PI) / 180;
       const endAngleRad = (endAngle * Math.PI) / 180;
       
@@ -126,7 +128,6 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
       const y1 = centerY + innerRadius * Math.sin(startAngleRad);
       const x2 = centerX + outerRadius * Math.cos(startAngleRad);
       const y2 = centerY + outerRadius * Math.sin(startAngleRad);
-      
       const x3 = centerX + outerRadius * Math.cos(endAngleRad);
       const y3 = centerY + outerRadius * Math.sin(endAngleRad);
       const x4 = centerX + innerRadius * Math.cos(endAngleRad);
@@ -135,136 +136,186 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
       const largeArc = currentSegment.endAngle - currentSegment.startAngle > 180 ? 1 : 0;
       
       const pathData = [
-        'M', x1, y1,
-        'L', x2, y2,
+        'M', x1, y1, 'L', x2, y2,
         'A', outerRadius, outerRadius, 0, largeArc, 1, x3, y3,
-        'L', x4, y4,
-        'A', innerRadius, innerRadius, 0, largeArc, 0, x1, y1,
-        'Z'
+        'L', x4, y4, 'A', innerRadius, innerRadius, 0, largeArc, 0, x1, y1, 'Z'
       ].join(' ');
 
-      return (
+      segments.push(
         <Path
-          key={`interactive-${index}`}
+          key={`outer-interactive-${index}`}
           d={pathData}
           fill="transparent"
           stroke="transparent"
           strokeWidth={0}
-          onPress={() => setSelectedCategory(category)}
+          onPress={(e) => {
+            e.stopPropagation();
+            setSelectedCategory(category);
+          }}
         />
       );
     });
+
+    // Inner ring touchable areas (target allocations)
+    categories.forEach((category, index) => {
+      const targetSegment = targetSegments[index];
+      if (!targetSegment || targetSegment.percentage <= 0) return;
+
+      const startAngle = targetSegment.startAngle - 90;
+      const endAngle = targetSegment.endAngle - 90;
+      
+      // Touch area should cover just the inner ring stroke area + small buffer
+      const innerRadius = TARGET_RADIUS - TARGET_STROKE_WIDTH / 2 - 3; // Just inside the stroke
+      const outerRadius = TARGET_RADIUS + TARGET_STROKE_WIDTH / 2 + 3; // Just outside the stroke
+      
+      const startAngleRad = (startAngle * Math.PI) / 180;
+      const endAngleRad = (endAngle * Math.PI) / 180;
+      
+      const x1 = centerX + innerRadius * Math.cos(startAngleRad);
+      const y1 = centerY + innerRadius * Math.sin(startAngleRad);
+      const x2 = centerX + outerRadius * Math.cos(startAngleRad);
+      const y2 = centerY + outerRadius * Math.sin(startAngleRad);
+      const x3 = centerX + outerRadius * Math.cos(endAngleRad);
+      const y3 = centerY + outerRadius * Math.sin(endAngleRad);
+      const x4 = centerX + innerRadius * Math.cos(endAngleRad);
+      const y4 = centerY + innerRadius * Math.sin(endAngleRad);
+      
+      const largeArc = targetSegment.endAngle - targetSegment.startAngle > 180 ? 1 : 0;
+      
+      const pathData = [
+        'M', x1, y1, 'L', x2, y2,
+        'A', outerRadius, outerRadius, 0, largeArc, 1, x3, y3,
+        'L', x4, y4, 'A', innerRadius, innerRadius, 0, largeArc, 0, x1, y1, 'Z'
+      ].join(' ');
+
+      segments.push(
+        <Path
+          key={`inner-interactive-${index}`}
+          d={pathData}
+          fill="transparent"
+          stroke="transparent"
+          strokeWidth={0}
+          onPress={(e) => {
+            e.stopPropagation();
+            setSelectedCategory(category);
+          }}
+        />
+      );
+    });
+
+    return segments;
   };
 
   return (
     <View style={styles.container}>
+      {/* Background - always resets when touched */}
       <TouchableOpacity 
-        style={styles.chartContainer}
+        style={styles.backgroundTouchable}
         onPress={() => setSelectedCategory(null)}
         activeOpacity={1}
       >
-        <Svg width={CHART_SIZE} height={CHART_SIZE}>
-          {/* Target allocations (inner ring) */}
-          <G>
-            {targetSegments.map((segment, index) => {
-              // Only render if percentage is greater than 0
-              if (segment.percentage <= 0) return null;
-              
-              const category = categories[index];
-              const isSelected = selectedCategory?.category === category.category;
-              const opacity = selectedCategory && !isSelected ? 0.3 : 0.7;
-              
-              const circumference = 2 * Math.PI * TARGET_RADIUS;
-              const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
-              const strokeDashoffset = -((segment.startAngle / 360) * circumference);
-              
-              return (
-                <Circle
-                  key={`target-${index}`}
-                  cx={centerX}
-                  cy={centerY}
-                  r={TARGET_RADIUS}
-                  fill="none"
-                  stroke={segment.color}
-                  strokeWidth={TARGET_STROKE_WIDTH}
-                  strokeDasharray={strokeDasharray}
-                  strokeDashoffset={strokeDashoffset}
-                  opacity={opacity}
-                  transform={`rotate(-90 ${centerX} ${centerY})`}
-                />
-              );
-            })}
-          </G>
+        <View style={styles.chartContainer}>
+          <Svg width={CHART_SIZE} height={CHART_SIZE} pointerEvents="none">
+            {/* Target allocations (inner ring) - visual only */}
+            <G>
+              {targetSegments.map((segment, index) => {
+                if (segment.percentage <= 0) return null;
+                
+                const category = categories[index];
+                const isSelected = selectedCategory?.category === category.category;
+                const opacity = selectedCategory && !isSelected ? 0.3 : 0.7;
+                
+                const circumference = 2 * Math.PI * TARGET_RADIUS;
+                const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
+                const strokeDashoffset = -((segment.startAngle / 360) * circumference);
+                
+                return (
+                  <Circle
+                    key={`target-${index}`}
+                    cx={centerX}
+                    cy={centerY}
+                    r={TARGET_RADIUS}
+                    fill="none"
+                    stroke={segment.color}
+                    strokeWidth={TARGET_STROKE_WIDTH}
+                    strokeDasharray={strokeDasharray}
+                    strokeDashoffset={strokeDashoffset}
+                    opacity={opacity}
+                    transform={`rotate(-90 ${centerX} ${centerY})`}
+                  />
+                );
+              })}
+            </G>
 
-          {/* Current allocations (outer ring) */}
-          <G>
-            {currentSegments.map((segment, index) => {
-              // Only render if percentage is greater than 0
-              if (segment.percentage <= 0) return null;
-              
-              const category = categories[index];
-              const isSelected = selectedCategory?.category === category.category;
-              const opacity = selectedCategory && !isSelected ? 0.3 : 1.0;
-              
-              const circumference = 2 * Math.PI * OUTER_RADIUS;
-              const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
-              const strokeDashoffset = -((segment.startAngle / 360) * circumference);
-              
-              return (
-                <Circle
-                  key={`current-${index}`}
-                  cx={centerX}
-                  cy={centerY}
-                  r={OUTER_RADIUS}
-                  fill="none"
-                  stroke={segment.color}
-                  strokeWidth={STROKE_WIDTH}
-                  strokeDasharray={strokeDasharray}
-                  strokeDashoffset={strokeDashoffset}
-                  opacity={opacity}
-                  transform={`rotate(-90 ${centerX} ${centerY})`}
-                />
-              );
-            })}
-          </G>
+            {/* Current allocations (outer ring) - visual only */}
+            <G>
+              {currentSegments.map((segment, index) => {
+                if (segment.percentage <= 0) return null;
+                
+                const category = categories[index];
+                const isSelected = selectedCategory?.category === category.category;
+                const opacity = selectedCategory && !isSelected ? 0.3 : 1.0;
+                
+                const circumference = 2 * Math.PI * OUTER_RADIUS;
+                const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
+                const strokeDashoffset = -((segment.startAngle / 360) * circumference);
+                
+                return (
+                  <Circle
+                    key={`current-${index}`}
+                    cx={centerX}
+                    cy={centerY}
+                    r={OUTER_RADIUS}
+                    fill="none"
+                    stroke={segment.color}
+                    strokeWidth={STROKE_WIDTH}
+                    strokeDasharray={strokeDasharray}
+                    strokeDashoffset={strokeDashoffset}
+                    opacity={opacity}
+                    transform={`rotate(-90 ${centerX} ${centerY})`}
+                  />
+                );
+              })}
+            </G>
+          </Svg>
 
-          {/* Interactive overlay paths */}
-          <G>
+          {/* Dynamic center content */}
+          <View style={styles.centerLabel}>
+            {selectedCategory ? (
+              <>
+                <Text style={styles.selectedCategoryName}>{selectedCategory.category}</Text>
+                <Text style={styles.selectedAllocationText}>
+                  {selectedCategory.currentAllocation.toFixed(1)}% → {selectedCategory.targetAllocation.toFixed(1)}%
+                </Text>
+                <Text style={styles.selectedValueText}>
+                  {formatCurrency(selectedCategory.currentValue)}
+                </Text>
+                <Text style={[
+                  styles.selectedDeltaText,
+                  { color: selectedCategory.percentageDelta >= 0 ? theme.colors.success : theme.colors.destructive }
+                ]}>
+                  {selectedCategory.percentageDelta >= 0 ? '+' : ''}{selectedCategory.percentageDelta.toFixed(1)}%
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.totalValueText}>
+                  {totalPortfolioValue.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </Text>
+                <Text style={styles.totalLabelText}>Total Value</Text>
+              </>
+            )}
+          </View>
+
+          {/* Interactive areas on top */}
+          <Svg width={CHART_SIZE} height={CHART_SIZE} style={styles.interactiveSvg}>
             {createInteractiveSegments()}
-          </G>
-        </Svg>
-
-        {/* Dynamic center content */}
-        <View style={styles.centerLabel}>
-          {selectedCategory ? (
-            <>
-              <Text style={styles.selectedCategoryName}>{selectedCategory.category}</Text>
-              <Text style={styles.selectedAllocationText}>
-                {selectedCategory.currentAllocation.toFixed(1)}% → {selectedCategory.targetAllocation.toFixed(1)}%
-              </Text>
-              <Text style={styles.selectedValueText}>
-                {formatCurrency(selectedCategory.currentValue)}
-              </Text>
-              <Text style={[
-                styles.selectedDeltaText,
-                { color: selectedCategory.percentageDelta >= 0 ? theme.colors.success : theme.colors.destructive }
-              ]}>
-                {selectedCategory.percentageDelta >= 0 ? '+' : ''}{selectedCategory.percentageDelta.toFixed(1)}%
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.totalValueText}>
-                {totalPortfolioValue.toLocaleString('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })}
-              </Text>
-              <Text style={styles.totalLabelText}>Total Value</Text>
-            </>
-          )}
+          </Svg>
         </View>
       </TouchableOpacity>
     </View>
@@ -277,10 +328,20 @@ const styles = createStyles({
     marginVertical: theme.spacing.sm,
     marginHorizontal: -theme.spacing.md,
   },
-  chartContainer: {
+  backgroundTouchable: {
     position: 'relative',
     width: CHART_SIZE,
     height: CHART_SIZE,
+    backgroundColor: 'rgba(0,0,255,0.1)', // Blue debug - background touchable
+  },
+  chartContainer: {
+    width: CHART_SIZE,
+    height: CHART_SIZE,
+  },
+  interactiveSvg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   centerLabel: {
     position: 'absolute',
