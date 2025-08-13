@@ -278,7 +278,7 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           <View style={styles.centerLabel}>
             {selectedCategory ? (
               <>
-                <Text style={styles.selectedCategoryName}>{selectedCategory.category}</Text>
+                <Text style={styles.selectedCategoryName} numberOfLines={1} adjustsFontSizeToFit>{selectedCategory.category}</Text>
                 <Text style={styles.selectedAllocationText}>
                   {selectedCategory.currentAllocation.toFixed(1)}% → {selectedCategory.targetAllocation.toFixed(1)}%
                 </Text>
@@ -339,43 +339,43 @@ const styles = createStyles({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    transform: [{ translateX: -50 }, { translateY: -25 }],
+    transform: [{ translateX: -60 }, { translateY: -25 }],
     alignItems: 'center',
     justifyContent: 'center',
-    width: 100,
+    width: 120,
     height: 60,
   },
   totalValueText: {
     color: theme.colors.foreground,
-    ...getTextStyle('lg', 'bold'),
+    ...getTextStyle('xl', 'bold'),
     textAlign: 'center',
   },
   totalLabelText: {
     color: theme.colors.muted,
-    ...getTextStyle('xs'),
+    ...getTextStyle('sm'),
     textAlign: 'center',
     marginTop: 2,
   },
   selectedCategoryName: {
     color: theme.colors.foreground,
-    ...getTextStyle('sm', 'bold'),
+    ...getTextStyle('md', 'bold'),
     textAlign: 'center',
     marginBottom: 2,
   },
   selectedAllocationText: {
     color: theme.colors.muted,
-    ...getTextStyle('xs'),
+    ...getTextStyle('sm'),
     textAlign: 'center',
     marginBottom: 1,
   },
   selectedValueText: {
     color: theme.colors.foreground,
-    ...getTextStyle('xs', 'medium'),
+    ...getTextStyle('sm', 'medium'),
     textAlign: 'center',
     marginBottom: 1,
   },
   selectedDeltaText: {
-    ...getTextStyle('xs', 'bold'),
+    ...getTextStyle('sm', 'bold'),
     textAlign: 'center',
   },
 });
