@@ -356,35 +356,35 @@ const styles = createStyles({
   },
   totalValueText: {
     color: theme.colors.foreground,
-    ...getTextStyle('xl', 'bold'),
+    ...getTextStyle('xxl', 'bold'),
     textAlign: 'center',
   },
   totalLabelText: {
     color: theme.colors.muted,
-    ...getTextStyle('sm'),
+    ...getTextStyle('md'),
     textAlign: 'center',
     marginTop: 2,
   },
   selectedCategoryName: {
     color: theme.colors.foreground,
-    ...getTextStyle('md', 'bold'),
+    ...getTextStyle('lg', 'bold'),
     textAlign: 'center',
     marginBottom: 2,
   },
   selectedAllocationText: {
     color: theme.colors.muted,
-    ...getTextStyle('sm'),
+    ...getTextStyle('md'),
     textAlign: 'center',
     marginBottom: 1,
   },
   selectedValueText: {
     color: theme.colors.foreground,
-    ...getTextStyle('sm', 'medium'),
+    ...getTextStyle('md', 'medium'),
     textAlign: 'center',
     marginBottom: 1,
   },
   selectedDeltaText: {
-    ...getTextStyle('sm', 'bold'),
+    ...getTextStyle('md', 'bold'),
     textAlign: 'center',
   },
 });
