@@ -339,7 +339,7 @@ const styles = createStyles({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    transform: [{ translateX: -50 }, { translateY: -30 }],
+    transform: [{ translateX: -50 }, { translateY: -25 }],
     alignItems: 'center',
     justifyContent: 'center',
     width: 100,
