@@ -18,7 +18,7 @@ interface LegendRowProps {
 function LegendRow({ category, isFirst = false, isLast = false }: LegendRowProps) {
   const color = getCategoryColor(category.category);
   const isOverAllocated = category.percentageDelta > 0;
-  // Green for overallocated, red for underallocated
+  // Over-allocated (positive delta) = green, Under-allocated (negative delta) = red
   const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
   const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
@@ -56,7 +56,7 @@ function LegendRow({ category, isFirst = false, isLast = false }: LegendRowProps
         <View style={styles.deltaSection}>
           <View style={[styles.deltaContainer, { backgroundColor: deltaBackgroundColor }]}>
             <Text style={[styles.deltaText, { color: deltaColor }]}>
-              {isOverAllocated ? '+' : ''}{formatCurrency(category.dollarDelta)} ({isOverAllocated ? '+' : ''}{category.percentageDelta.toFixed(1)}%)
+              {category.dollarDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(category.dollarDelta))} ({category.percentageDelta >= 0 ? '+' : '-'}{Math.abs(category.percentageDelta).toFixed(1)}%)
             </Text>
           </View>
         </View>
