@@ -11,9 +11,11 @@ interface CategoryLegendProps {
 
 interface LegendRowProps {
   category: CategoryAllocation;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
-function LegendRow({ category }: LegendRowProps) {
+function LegendRow({ category, isFirst = false, isLast = false }: LegendRowProps) {
   const color = getCategoryColor(category.category);
   const isOverAllocated = category.percentageDelta > 0;
   // Green for overallocated, red for underallocated
@@ -23,8 +25,16 @@ function LegendRow({ category }: LegendRowProps) {
   // Calculate target dollar value for display
   const targetValue = category.currentValue - category.dollarDelta;
 
+  // Dynamic container style based on position
+  const containerStyle = [
+    styles.legendRow,
+    isFirst && styles.firstRow,
+    isLast && styles.lastRow,
+    !isLast && styles.separatorRow,
+  ];
+
   return (
-    <View style={styles.legendRow}>
+    <View style={containerStyle}>
       <View style={styles.leftSection}>
         <View style={[styles.colorIndicator, { backgroundColor: color }]} />
         <Text style={styles.categoryName}>{category.category}</Text>
@@ -59,7 +69,12 @@ export default function CategoryLegend({ categories }: CategoryLegendProps) {
   return (
     <View style={styles.container}>
       {categories.map((category, index) => (
-        <LegendRow key={`${category.category}-${index}`} category={category} />
+        <LegendRow 
+          key={`${category.category}-${index}`} 
+          category={category}
+          isFirst={index === 0}
+          isLast={index === categories.length - 1}
+        />
       ))}
     </View>
   );
@@ -81,8 +96,20 @@ const styles = createStyles({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.sm,
+    borderRadius: 0,
+    marginBottom: 0,
+  },
+  firstRow: {
+    borderTopLeftRadius: theme.borderRadius.md,
+    borderTopRightRadius: theme.borderRadius.md,
+  },
+  lastRow: {
+    borderBottomLeftRadius: theme.borderRadius.md,
+    borderBottomRightRadius: theme.borderRadius.md,
+  },
+  separatorRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   leftSection: {
     flexDirection: 'row',
