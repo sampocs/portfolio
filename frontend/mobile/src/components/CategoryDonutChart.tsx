@@ -18,10 +18,10 @@ interface DonutSegment {
   percentage: number;
 }
 
-const CHART_SIZE = 220;
+const CHART_SIZE = 240;
 const INNER_RADIUS = 60;
-const OUTER_RADIUS = 95;
-const TARGET_RADIUS = 65;
+const OUTER_RADIUS = 105;
+const TARGET_RADIUS = 75;
 const STROKE_WIDTH = 22;
 const TARGET_STROKE_WIDTH = 18;
 
@@ -274,7 +274,7 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
 const styles = createStyles({
   container: {
     alignItems: 'center',
-    marginVertical: theme.spacing.lg,
+    marginVertical: theme.spacing.sm,
     marginHorizontal: -theme.spacing.md,
   },
   chartContainer: {
