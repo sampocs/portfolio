@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -16,6 +16,7 @@ export default function AllocationsScreen() {
   const [positions, setPositions] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryAllocation | null>(null);
 
   // Calculate category data from positions
   const categoryData = useMemo(() => {
@@ -72,32 +73,42 @@ export default function AllocationsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerText}>Allocations</Text>
       </View>
-      <ScrollView 
-        style={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[theme.colors.foreground]}
-            tintColor={theme.colors.foreground}
-            progressBackgroundColor={theme.colors.card}
-          />
-        }
+      <TouchableOpacity 
+        style={styles.backgroundTouchable}
+        onPress={() => setSelectedCategory(null)}
+        activeOpacity={1}
       >
-        <GroupingSection
-          selectedGrouping={selectedGrouping}
-          onGroupingChange={setSelectedGrouping}
-        />
+        <ScrollView 
+          style={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[theme.colors.foreground]}
+              tintColor={theme.colors.foreground}
+              progressBackgroundColor={theme.colors.card}
+            />
+          }
+        >
+          <GroupingSection
+            selectedGrouping={selectedGrouping}
+            onGroupingChange={setSelectedGrouping}
+          />
 
-        {selectedGrouping === 'categories' ? (
-          <>
-            <CategoryDonutChart categories={categoryData} />
-            <CategoryLegend categories={categoryData} />
-          </>
-        ) : (
-          <AssetAllocationList assets={positions} />
-        )}
-      </ScrollView>
+          {selectedGrouping === 'categories' ? (
+            <>
+              <CategoryDonutChart 
+                categories={categoryData}
+                selectedCategory={selectedCategory}
+                onCategorySelect={setSelectedCategory}
+              />
+              <CategoryLegend categories={categoryData} />
+            </>
+          ) : (
+            <AssetAllocationList assets={positions} />
+          )}
+        </ScrollView>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -130,5 +141,8 @@ const styles = createStyles({
     color: theme.colors.muted,
     ...getTextStyle('md'),
     marginTop: theme.spacing.md,
+  },
+  backgroundTouchable: {
+    flex: 1,
   },
 });

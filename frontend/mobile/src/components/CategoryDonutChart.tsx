@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text } from 'react-native';
 import { Svg, Circle, G, Path } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
@@ -8,6 +8,8 @@ import { getCategoryColor } from '../data/utils';
 
 interface CategoryDonutChartProps {
   categories: CategoryAllocation[];
+  selectedCategory: CategoryAllocation | null;
+  onCategorySelect: (category: CategoryAllocation | null) => void;
 }
 
 interface DonutSegment {
@@ -61,8 +63,7 @@ const createArcPath = (
   ].join(' ');
 };
 
-export default function CategoryDonutChart({ categories }: CategoryDonutChartProps) {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryAllocation | null>(null);
+export default function CategoryDonutChart({ categories, selectedCategory, onCategorySelect }: CategoryDonutChartProps) {
   const centerX = CHART_SIZE / 2;
   const centerY = CHART_SIZE / 2;
 
@@ -150,7 +151,7 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
           strokeWidth={0}
           onPress={(e) => {
             e.stopPropagation();
-            setSelectedCategory(category);
+            onCategorySelect(category);
           }}
         />
       );
@@ -197,7 +198,7 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
           strokeWidth={0}
           onPress={(e) => {
             e.stopPropagation();
-            setSelectedCategory(category);
+            onCategorySelect(category);
           }}
         />
       );
@@ -208,13 +209,7 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
 
   return (
     <View style={styles.container}>
-      {/* Background - always resets when touched */}
-      <TouchableOpacity 
-        style={styles.backgroundTouchable}
-        onPress={() => setSelectedCategory(null)}
-        activeOpacity={1}
-      >
-        <View style={styles.chartContainer}>
+      <View style={styles.chartContainer}>
           <Svg width={CHART_SIZE} height={CHART_SIZE} pointerEvents="none">
             {/* Target allocations (inner ring) - visual only */}
             <G>
@@ -317,7 +312,6 @@ export default function CategoryDonutChart({ categories }: CategoryDonutChartPro
             {createInteractiveSegments()}
           </Svg>
         </View>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -327,12 +321,6 @@ const styles = createStyles({
     alignItems: 'center',
     marginVertical: theme.spacing.sm,
     marginHorizontal: -theme.spacing.md,
-  },
-  backgroundTouchable: {
-    position: 'relative',
-    width: CHART_SIZE,
-    height: CHART_SIZE,
-    backgroundColor: 'rgba(0,0,255,0.1)', // Blue debug - background touchable
   },
   chartContainer: {
     width: CHART_SIZE,
