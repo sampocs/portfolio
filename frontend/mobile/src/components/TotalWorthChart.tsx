@@ -18,6 +18,7 @@ interface TotalWorthChartProps {
   data: PerformanceData[];
   onDataPointSelected?: (dataPoint: PerformanceData | null) => void;
   isLoading?: boolean;
+  isCached?: boolean; // New prop to indicate if data came from cache
 }
 
 interface ChartDurationSelectorProps {
@@ -93,7 +94,7 @@ export function ChartDurationSelector({ onGranularityChange }: ChartDurationSele
   );
 }
 
-function TotalWorthChart({ data, onDataPointSelected, isLoading = false }: TotalWorthChartProps) {
+function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCached = false }: TotalWorthChartProps) {
   const { width } = Dimensions.get('window');
   const chartWidth = width - theme.spacing.xl * 2;
   const chartHeight = 170;
@@ -172,31 +173,40 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false }: Total
   // Handle smooth transitions between loading and chart states
   React.useEffect(() => {
     if (isLoading) {
-      // Show overlay with slower, smoother fade to avoid harsh transition
+      // Use faster transitions for cached data
+      const duration = isCached ? 60 : 120;
+      const loadDuration = isCached ? 50 : 100;
+      
+      // Show overlay with adaptive timing
       overlayOpacity.value = withTiming(0.95, { 
-        duration: 120,
+        duration,
         easing: Easing.out(Easing.quad)
       });
-      // Start loading overlay with ease-in
+      // Start loading overlay
       loadingOpacity.value = withTiming(1, { 
-        duration: 100, 
+        duration: loadDuration, 
         easing: Easing.out(Easing.quad) 
       });
     } else {
-      // Start fade-out immediately with more overlap for crossfade effect
+      // Use faster transitions for cached data
+      const fadeDuration = isCached ? 50 : 100;
+      const overlayDuration = isCached ? 75 : 150;
+      const delay = isCached ? 10 : 20;
+      
+      // Start fade-out with adaptive timing
       loadingOpacity.value = withTiming(0, { 
-        duration: 100,
+        duration: fadeDuration,
         easing: Easing.in(Easing.quad)
       });
-      // Begin overlay fade-out almost immediately for crossfade
+      // Begin overlay fade-out with adaptive timing
       setTimeout(() => {
         overlayOpacity.value = withTiming(0, { 
-          duration: 150,
+          duration: overlayDuration,
           easing: Easing.out(Easing.quad) 
         });
-      }, 20);
+      }, delay);
     }
-  }, [isLoading]);
+  }, [isLoading, isCached]);
 
   // Function to find closest point (this runs on JS thread)
   const findClosestPoint = useCallback((xValue: number) => {

@@ -40,6 +40,7 @@ export default function PortfolioScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedGranularity, setSelectedGranularity] = useState('ALL');
   const [isChartLoading, setIsChartLoading] = useState(false);
+  const [isDataCached, setIsDataCached] = useState(false);
 
   const handleCategoryToggle = async (category: 'stocks' | 'crypto' | 'alternatives') => {
     const newCategories = {
@@ -48,7 +49,9 @@ export default function PortfolioScreen() {
     };
     
     setSelectedCategories(newCategories);
-    setIsChartLoading(true);
+    
+    // Clear selected data point when categories change
+    setSelectedDataPoint(null);
     
     // Refetch performance data with new category filter
     // We need to manually calculate the filtered assets for the new selection
@@ -68,9 +71,25 @@ export default function PortfolioScreen() {
       ? undefined 
       : filtered.map(asset => asset.asset);
     
+    // Check if data is cached
+    const isCached = performanceCacheManager.isCacheAvailable(selectedGranularity, assetSymbols);
+    setIsDataCached(isCached);
+    
+    // Only show loading state if data is not cached
+    if (!isCached) {
+      setIsChartLoading(true);
+    }
+    
     try {
+      const startTime = Date.now();
       const performanceDataResponse = await performanceCacheManager.getPerformanceData(selectedGranularity, assetSymbols, 'high');
       setPerformanceData(performanceDataResponse);
+      const fetchTime = Date.now() - startTime;
+      
+      // Add minimal delay for smooth transition if cached
+      if (isCached && fetchTime < 50) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
     } catch (error) {
       console.error('Error fetching filtered performance data:', error);
     } finally {
@@ -144,9 +163,26 @@ export default function PortfolioScreen() {
 
   const handleGranularityChange = async (granularity: string) => {
     setSelectedGranularity(granularity);
-    setIsChartLoading(true);
+    
+    // Check if data is immediately available from cache
+    const assetSymbols = getFilteredAssetSymbols(positions);
+    const isCached = performanceCacheManager.isCacheAvailable(granularity, assetSymbols);
+    setIsDataCached(isCached);
+    
+    // Only show loading state if data is not cached
+    if (!isCached) {
+      setIsChartLoading(true);
+    }
+    
     try {
+      const startTime = Date.now();
       await fetchData(granularity);
+      const fetchTime = Date.now() - startTime;
+      
+      // If fetch was very fast (cached), add minimal delay for smooth visual transition
+      if (isCached && fetchTime < 50) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
     } finally {
       setIsChartLoading(false);
     }
@@ -231,6 +267,7 @@ export default function PortfolioScreen() {
           data={performanceData}
           onDataPointSelected={handleDataPointSelected}
           isLoading={isChartLoading}
+          isCached={isDataCached}
         />
         {/* Duration Selector - In ScrollView but with isolation wrapper */}
         <View style={{ zIndex: 999, elevation: 999 }}>

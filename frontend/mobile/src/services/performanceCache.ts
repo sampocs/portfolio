@@ -2,7 +2,8 @@ import { PerformanceData, Asset } from "../data/types";
 import { apiService } from "./api";
 
 // Cache configuration
-const CACHE_DURATION_MINUTES = 2; // Cache for 2 minutes
+const CACHE_DURATION_MINUTES = 60; // Cache for 1 hour
+const MAX_CONCURRENT_REQUESTS = 5; // Maximum concurrent background requests
 
 // Types for cache management
 interface CacheKey {
@@ -65,6 +66,9 @@ class PerformanceCacheManager {
 
   // Process the request queue with priority handling
   private async processQueue(): Promise<void> {
+    if (this.activeRequests.size >= MAX_CONCURRENT_REQUESTS) {
+      return;
+    }
 
     // Sort queue by priority (high first) and timestamp (older first)
     this.requestQueue.sort((a, b) => {
@@ -255,6 +259,12 @@ class PerformanceCacheManager {
   clearCache(): void {
     this.cache.clear();
     console.log('Performance cache cleared');
+  }
+
+  // Check if specific data is available in cache (synchronous)
+  isCacheAvailable(granularity: string, assetSymbols?: string[]): boolean {
+    const cacheKey = this.generateCacheKey(granularity, assetSymbols);
+    return this.getCachedData(cacheKey) !== null;
   }
 
   // Get cache stats for debugging
