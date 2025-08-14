@@ -99,15 +99,15 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
         
         {/* Right content area */}
         <View style={styles.rightContent}>
-          {/* Top row - Asset description and current/target percentages */}
+          {/* Top row - Asset description and current/target dollar values */}
           <View style={styles.topRow}>
             <View style={styles.descriptionContainer}>
               <Text style={styles.description}>{asset.description}</Text>
             </View>
             
-            <View style={styles.percentageContainer}>
-              <Text style={styles.allocationText}>
-                {currentAllocation.toFixed(1)}% → {targetAllocation.toFixed(1)}%
+            <View style={styles.valueContainer}>
+              <Text style={styles.valueText}>
+                ${Math.round(currentValue).toLocaleString()} → ${Math.round(targetValue).toLocaleString()}
               </Text>
             </View>
           </View>
@@ -152,11 +152,11 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
             </Svg>
           </View>
 
-          {/* Bottom row - Dollar values and delta */}
+          {/* Bottom row - Percentages and delta */}
           <View style={styles.bottomRow}>
             <View style={styles.leftBottomSection}>
-              <Text style={styles.valueText}>
-                ${Math.round(currentValue).toLocaleString()} → ${Math.round(targetValue).toLocaleString()}
+              <Text style={styles.allocationText}>
+                {currentAllocation.toFixed(1)}% → {targetAllocation.toFixed(1)}%
               </Text>
             </View>
             
@@ -231,7 +231,7 @@ const styles = createStyles({
     color: theme.colors.foreground,
     ...getTextStyle('md', 'semibold'), // Same as AllocationLegend itemName
   },
-  percentageContainer: {
+  valueContainer: {
     alignItems: 'flex-end',
   },
   allocationText: {
