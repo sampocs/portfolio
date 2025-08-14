@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
@@ -8,16 +8,16 @@ import DonutChart from '../components/DonutChart';
 import AllocationLegend from '../components/AllocationLegend';
 import AssetAllocationList from '../components/AssetAllocationList';
 import LoadingScreen from '../components/LoadingScreen';
+import { useData } from '../contexts/DataContext';
 import { Asset, MarketAllocation, SegmentAllocation, GenericAllocation } from '../data/types';
-import { apiService } from '../services/api';
 import { aggregateAssetsByMarket, aggregateAssetsBySegment, marketToGeneric, segmentToGeneric, getMarketColor, getSegmentColor } from '../data/utils';
 
 export default function AllocationsScreen() {
   const [selectedGrouping, setSelectedGrouping] = useState<GroupingType>('markets');
-  const [positions, setPositions] = useState<Asset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedGenericItem, setSelectedGenericItem] = useState<GenericAllocation | null>(null);
+  
+  // Use shared data context instead of local state
+  const { positions, isLoading, isRefreshing, refreshData } = useData();
 
   // Calculate market data from positions
   const marketData = useMemo(() => {
@@ -53,39 +53,9 @@ export default function AllocationsScreen() {
     setSelectedGenericItem(null);
   };
 
-  // Data fetching function
-  const fetchData = async () => {
-    try {
-      const positionsData = await apiService.getPositions();
-      setPositions(positionsData);
-    } catch (error) {
-      console.error('Error fetching positions data:', error);
-      // Handle error - could show toast or error state
-    }
-  };
-
-  // Initial data load
-  useEffect(() => {
-    const loadInitialData = async () => {
-      setIsLoading(true);
-      try {
-        await fetchData();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadInitialData();
-  }, []);
-
-  // Handle pull-to-refresh
+  // Handle pull-to-refresh using shared data context
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await fetchData();
-    } finally {
-      setIsRefreshing(false);
-    }
+    await refreshData();
   };
 
   // Loading state
