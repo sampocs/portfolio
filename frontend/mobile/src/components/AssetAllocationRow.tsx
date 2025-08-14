@@ -17,8 +17,8 @@ const MAX_DISPLAY_ALLOCATION = 50; // 50% = full width
 export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
   const { width: screenWidth } = Dimensions.get('window');
   
-  // Calculate available width for the chart (screen - padding - logo section - data section)
-  const chartContainerWidth = screenWidth - (theme.spacing.xl * 2) - 100 - 120; // Approximate widths
+  // Calculate available width for the full-width chart (screen - padding - logo width - spacing)
+  const chartContainerWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_SIZE - theme.spacing.md - 8; // 8px buffer
   
   const currentAllocation = parseFloat(asset.current_allocation);
   const targetAllocation = parseFloat(asset.target_allocation);
@@ -68,10 +68,15 @@ export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
 
   const logoSource = getAssetLogo(asset.asset);
 
+  // Determine delta colors (same logic as AllocationLegend)
+  const isOverAllocated = percentageDelta > 0;
+  const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
+  const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
+
   return (
     <View style={styles.container}>
-      {/* Left section - Logo and description */}
-      <View style={styles.leftSection}>
+      {/* Top row - Logo and current/target percentages */}
+      <View style={styles.topRow}>
         <View style={styles.logoContainer}>
           {logoSource ? (
             <Image source={logoSource} style={styles.logo} />
@@ -81,69 +86,69 @@ export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
             </View>
           )}
         </View>
-        <Text style={styles.description}>{asset.description}</Text>
-      </View>
-
-      {/* Chart section */}
-      <View style={styles.chartSection}>
-        <View style={styles.chartContainer}>
-          <Svg width={chartContainerWidth} height={CHART_HEIGHT + 8}>
-            {/* Background track */}
-            <Rect
-              x={0}
-              y={4}
-              width={chartContainerWidth}
-              height={CHART_HEIGHT}
-              fill={theme.colors.card}
-              rx={CHART_HEIGHT / 2}
-            />
-            
-            {/* Current allocation bar */}
-            {currentBarWidth > 0 && (
-              <Rect
-                x={0}
-                y={4}
-                width={currentBarWidth}
-                height={CHART_HEIGHT}
-                fill={barColor}
-                rx={CHART_HEIGHT / 2}
-              />
-            )}
-            
-            {/* Target allocation tick mark */}
-            {targetPosition > 0 && targetPosition <= chartContainerWidth && (
-              <Line
-                x1={targetPosition}
-                y1={2}
-                x2={targetPosition}
-                y2={CHART_HEIGHT + 6}
-                stroke={theme.colors.foreground}
-                strokeWidth={2}
-                opacity={0.8}
-              />
-            )}
-          </Svg>
+        
+        <View style={styles.percentageContainer}>
+          <Text style={styles.allocationText}>
+            {currentAllocation.toFixed(1)}% → {targetAllocation.toFixed(1)}%
+          </Text>
         </View>
       </View>
 
-      {/* Right section - Data display */}
-      <View style={styles.rightSection}>
-        <Text style={styles.percentageText}>
-          {currentAllocation.toFixed(1)}% → {targetAllocation.toFixed(1)}%
-        </Text>
-        <Text style={styles.valueText}>
-          Current: {formatCurrency(currentValue)}
-        </Text>
-        <Text style={styles.valueText}>
-          Target: {formatCurrency(targetValue)}
-        </Text>
-        <View style={styles.deltaContainer}>
-          <Text style={[
-            styles.deltaText,
-            { color: dollarDelta >= 0 ? theme.colors.destructive : theme.colors.success }
-          ]}>
-            Delta: {dollarDelta >= 0 ? '+' : ''}{formatCurrency(dollarDelta)} ({percentageDelta >= 0 ? '+' : ''}{percentageDelta.toFixed(1)}%)
+      {/* Chart section - full width from logo edge to right edge */}
+      <View style={styles.chartSection}>
+        <Svg width={chartContainerWidth} height={CHART_HEIGHT + 8}>
+          {/* Background track */}
+          <Rect
+            x={0}
+            y={4}
+            width={chartContainerWidth}
+            height={CHART_HEIGHT}
+            fill={theme.colors.card}
+            rx={CHART_HEIGHT / 2}
+          />
+          
+          {/* Current allocation bar */}
+          {currentBarWidth > 0 && (
+            <Rect
+              x={0}
+              y={4}
+              width={currentBarWidth}
+              height={CHART_HEIGHT}
+              fill={barColor}
+              rx={CHART_HEIGHT / 2}
+            />
+          )}
+          
+          {/* Target allocation tick mark */}
+          {targetPosition > 0 && targetPosition <= chartContainerWidth && (
+            <Line
+              x1={targetPosition}
+              y1={2}
+              x2={targetPosition}
+              y2={CHART_HEIGHT + 6}
+              stroke={theme.colors.foreground}
+              strokeWidth={2}
+              opacity={0.8}
+            />
+          )}
+        </Svg>
+      </View>
+
+      {/* Bottom row - Asset description, dollar values, and delta */}
+      <View style={styles.bottomRow}>
+        <View style={styles.leftBottomSection}>
+          <Text style={styles.description}>{asset.description}</Text>
+          <Text style={styles.valueText}>
+            ${Math.round(currentValue).toLocaleString()} → ${Math.round(targetValue).toLocaleString()}
           </Text>
+        </View>
+        
+        <View style={styles.rightBottomSection}>
+          <View style={[styles.deltaContainer, { backgroundColor: deltaBackgroundColor }]}>
+            <Text style={[styles.deltaText, { color: deltaColor }]}>
+              {dollarDelta >= 0 ? '+' : '-'}${Math.round(Math.abs(dollarDelta)).toLocaleString()} ({percentageDelta >= 0 ? '+' : '-'}{Math.round(Math.abs(percentageDelta))}%)
+            </Text>
+          </View>
         </View>
       </View>
     </View>
@@ -152,20 +157,18 @@ export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
 
 const styles = createStyles({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.xs,
   },
-  leftSection: {
-    width: 80,
+  topRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   logoContainer: {
-    marginBottom: theme.spacing.xs,
+    marginRight: theme.spacing.md,
   },
   logo: {
     width: LOGO_SIZE,
@@ -181,36 +184,45 @@ const styles = createStyles({
     color: theme.colors.foreground,
     ...getTextStyle('xs', 'bold'),
   },
-  description: {
+  percentageContainer: {
+    flex: 1,
+  },
+  allocationText: {
     color: theme.colors.muted,
-    ...getTextStyle('xs'),
-    textAlign: 'center',
+    ...getTextStyle('md'), // Same as AllocationLegend
   },
   chartSection: {
+    marginBottom: theme.spacing.sm,
+    marginLeft: LOGO_SIZE + theme.spacing.md, // Align with text above
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginLeft: LOGO_SIZE + theme.spacing.md, // Align with chart
+  },
+  leftBottomSection: {
     flex: 1,
     marginRight: theme.spacing.md,
   },
-  chartContainer: {
-    justifyContent: 'center',
-  },
-  rightSection: {
-    width: 110,
-    alignItems: 'flex-end',
-  },
-  percentageText: {
+  description: {
     color: theme.colors.foreground,
-    ...getTextStyle('xs', 'semibold'),
-    marginBottom: 2,
+    ...getTextStyle('md', 'semibold'), // Same as AllocationLegend itemName
+    marginBottom: 4,
   },
   valueText: {
-    color: theme.colors.muted,
-    ...getTextStyle('xs'),
-    marginBottom: 1,
+    color: theme.colors.foreground,
+    ...getTextStyle('md'), // Same as AllocationLegend
+  },
+  rightBottomSection: {
+    alignItems: 'flex-end',
   },
   deltaContainer: {
-    marginTop: 2,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.sm,
   },
   deltaText: {
-    ...getTextStyle('xs', 'medium'),
+    ...getTextStyle('md', 'semibold'), // Same as AllocationLegend
   },
 });
