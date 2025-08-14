@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -7,6 +7,7 @@ import CategorySelector from '../components/CategorySelector';
 import Summary from '../components/Summary';
 import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
 import AssetList from '../components/AssetList';
+import LoadingScreen from '../components/LoadingScreen';
 import { apiService } from '../services/api';
 import { calculatePortfolioSummary } from '../data/utils';
 import { Asset, PerformanceData } from '../data/types';
@@ -188,11 +189,7 @@ export default function PortfolioScreen() {
   };
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, styles.loadingContainer]} edges={['top']}>
-        <ActivityIndicator size="large" color={theme.colors.foreground} />
-      </SafeAreaView>
-    );
+    return <LoadingScreen title="Portfolio" />;
   }
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -7,6 +7,7 @@ import GroupingSection, { GroupingType } from '../components/GroupingSection';
 import DonutChart from '../components/DonutChart';
 import AllocationLegend from '../components/AllocationLegend';
 import AssetAllocationList from '../components/AssetAllocationList';
+import LoadingScreen from '../components/LoadingScreen';
 import { Asset, MarketAllocation, SegmentAllocation, GenericAllocation } from '../data/types';
 import { apiService } from '../services/api';
 import { aggregateAssetsByMarket, aggregateAssetsBySegment, marketToGeneric, segmentToGeneric, getMarketColor, getSegmentColor } from '../data/utils';
@@ -89,11 +90,7 @@ export default function AllocationsScreen() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, styles.loadingContainer]} edges={['top']}>
-        <ActivityIndicator size="large" color={theme.colors.foreground} />
-      </SafeAreaView>
-    );
+    return <LoadingScreen title="Allocations" />;
   }
 
   return (
