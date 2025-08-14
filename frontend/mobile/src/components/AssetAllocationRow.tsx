@@ -85,8 +85,8 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
 
   return (
     <View style={containerStyle}>
-      {/* Top row - Logo, asset description, and current/target percentages */}
-      <View style={styles.topRow}>
+      <View style={styles.mainContent}>
+        {/* Logo - centered vertically */}
         <View style={styles.logoContainer}>
           {logoSource ? (
             <Image source={logoSource} style={styles.logo} />
@@ -97,70 +97,76 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
           )}
         </View>
         
-        <View style={styles.descriptionContainer}>
-          <Text style={styles.description}>{asset.description}</Text>
-        </View>
-        
-        <View style={styles.percentageContainer}>
-          <Text style={styles.allocationText}>
-            {currentAllocation.toFixed(1)}% → {targetAllocation.toFixed(1)}%
-          </Text>
-        </View>
-      </View>
+        {/* Right content area */}
+        <View style={styles.rightContent}>
+          {/* Top row - Asset description and current/target percentages */}
+          <View style={styles.topRow}>
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.description}>{asset.description}</Text>
+            </View>
+            
+            <View style={styles.percentageContainer}>
+              <Text style={styles.allocationText}>
+                {currentAllocation.toFixed(1)}% → {targetAllocation.toFixed(1)}%
+              </Text>
+            </View>
+          </View>
 
-      {/* Chart section - full width from logo edge to right edge */}
-      <View style={styles.chartSection}>
-        <Svg width={chartContainerWidth} height={CHART_HEIGHT + 8}>
-          {/* Background track */}
-          <Rect
-            x={0}
-            y={4}
-            width={chartContainerWidth}
-            height={CHART_HEIGHT}
-            fill={theme.colors.card}
-            rx={CHART_HEIGHT / 2}
-          />
-          
-          {/* Current allocation bar */}
-          {currentBarWidth > 0 && (
-            <Rect
-              x={0}
-              y={4}
-              width={currentBarWidth}
-              height={CHART_HEIGHT}
-              fill={barColor}
-              rx={CHART_HEIGHT / 2}
-            />
-          )}
-          
-          {/* Target allocation tick mark */}
-          {targetPosition > 0 && targetPosition <= chartContainerWidth && (
-            <Line
-              x1={targetPosition}
-              y1={2}
-              x2={targetPosition}
-              y2={CHART_HEIGHT + 6}
-              stroke={theme.colors.foreground}
-              strokeWidth={2}
-              opacity={0.8}
-            />
-          )}
-        </Svg>
-      </View>
+          {/* Chart section - full width */}
+          <View style={styles.chartSection}>
+            <Svg width={chartContainerWidth} height={CHART_HEIGHT + 8}>
+              {/* Background track */}
+              <Rect
+                x={0}
+                y={4}
+                width={chartContainerWidth}
+                height={CHART_HEIGHT}
+                fill={theme.colors.card}
+                rx={CHART_HEIGHT / 2}
+              />
+              
+              {/* Current allocation bar */}
+              {currentBarWidth > 0 && (
+                <Rect
+                  x={0}
+                  y={4}
+                  width={currentBarWidth}
+                  height={CHART_HEIGHT}
+                  fill={barColor}
+                  rx={CHART_HEIGHT / 2}
+                />
+              )}
+              
+              {/* Target allocation tick mark */}
+              {targetPosition > 0 && targetPosition <= chartContainerWidth && (
+                <Line
+                  x1={targetPosition}
+                  y1={2}
+                  x2={targetPosition}
+                  y2={CHART_HEIGHT + 6}
+                  stroke={theme.colors.foreground}
+                  strokeWidth={2}
+                  opacity={0.8}
+                />
+              )}
+            </Svg>
+          </View>
 
-      {/* Bottom row - Dollar values and delta */}
-      <View style={styles.bottomRow}>
-        <View style={styles.leftBottomSection}>
-          <Text style={styles.valueText}>
-            ${Math.round(currentValue).toLocaleString()} → ${Math.round(targetValue).toLocaleString()}
-          </Text>
-        </View>
-        
-        <View style={styles.rightBottomSection}>
-          <View style={[styles.deltaContainer, { backgroundColor: deltaBackgroundColor }]}>
-            <Text style={[styles.deltaText, { color: deltaColor }]}>
-              {dollarDelta >= 0 ? '+' : '-'}${Math.round(Math.abs(dollarDelta)).toLocaleString()} ({percentageDelta >= 0 ? '+' : '-'}{Math.round(Math.abs(percentageDelta))}%)
-            </Text>
+          {/* Bottom row - Dollar values and delta */}
+          <View style={styles.bottomRow}>
+            <View style={styles.leftBottomSection}>
+              <Text style={styles.valueText}>
+                ${Math.round(currentValue).toLocaleString()} → ${Math.round(targetValue).toLocaleString()}
+              </Text>
+            </View>
+            
+            <View style={styles.rightBottomSection}>
+              <View style={[styles.deltaContainer, { backgroundColor: deltaBackgroundColor }]}>
+                <Text style={[styles.deltaText, { color: deltaColor }]}>
+                  {dollarDelta >= 0 ? '+' : '-'}${Math.round(Math.abs(dollarDelta)).toLocaleString()} ({percentageDelta >= 0 ? '+' : '-'}{Math.round(Math.abs(percentageDelta))}%)
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       </View>
@@ -187,13 +193,21 @@ const styles = createStyles({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
+  mainContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoContainer: {
+    marginRight: theme.spacing.md,
+    alignSelf: 'center',
+  },
+  rightContent: {
+    flex: 1,
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: theme.spacing.sm,
-  },
-  logoContainer: {
-    marginRight: theme.spacing.md,
   },
   logo: {
     width: LOGO_SIZE,
@@ -226,13 +240,11 @@ const styles = createStyles({
   },
   chartSection: {
     marginBottom: theme.spacing.sm,
-    marginLeft: LOGO_SIZE + theme.spacing.md, // Align with text above
   },
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginLeft: LOGO_SIZE + theme.spacing.md, // Align with chart
   },
   leftBottomSection: {
     flex: 1,
