@@ -17,10 +17,10 @@ interface ChartRowProps {
   isLast?: boolean;
 }
 
-const BAR_HEIGHT = 12; // Increased from 6 to 12
+const BAR_HEIGHT = 16; // Increased from 12 to 16
 const BAR_SPACING = 3; // Space between current and target bars
 const CHART_HEIGHT = (BAR_HEIGHT * 2) + BAR_SPACING; // Total height for both bars
-const LOGO_SIZE = 32;
+const LOGO_SIZE = 48;
 const LOGO_WIDTH = LOGO_SIZE + 8;
 const ROW_SPACING = 4;
 
@@ -81,8 +81,13 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
         )}
       </View>
       
-      {/* Chart area */}
-      <View style={styles.chartContainer}>
+      {/* Right section with description and chart */}
+      <View style={styles.rightSection}>
+        {/* Asset description */}
+        <Text style={styles.description}>{asset.description}</Text>
+        
+        {/* Chart area */}
+        <View style={styles.chartContainer}>
         <Svg width={chartWidth + 40} height={CHART_HEIGHT + 4}>
           {/* Background tracks */}
           <Rect
@@ -131,7 +136,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
             <SvgText
               x={currentBarWidth + 6}
               y={2 + BAR_HEIGHT / 2 + 1}
-              fontSize="10"
+              fontSize="12"
               fill={currentColor}
               textAnchor="start"
               alignmentBaseline="middle"
@@ -146,7 +151,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
             <SvgText
               x={targetBarWidth + 6}
               y={2 + BAR_HEIGHT + BAR_SPACING + BAR_HEIGHT / 2 + 1}
-              fontSize="10"
+              fontSize="12"
               fill={targetColor}
               textAnchor="start"
               alignmentBaseline="middle"
@@ -156,6 +161,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
             </SvgText>
           )}
         </Svg>
+        </View>
       </View>
     </View>
   );
@@ -165,7 +171,7 @@ export default function AssetAllocationChart({ assets }: AssetAllocationChartPro
   const { width: screenWidth } = Dimensions.get('window');
   
   // Calculate chart width (screen - padding - logo width - spacing - label space)
-  const chartWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_WIDTH - theme.spacing.md - 40; // 40px for labels
+  const chartWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_SIZE - theme.spacing.md - 40; // LOGO_SIZE + 40px for labels
 
   // Calculate the maximum allocation across all assets (current or target)
   const maxAllocation = useMemo(() => {
@@ -239,10 +245,12 @@ const styles = createStyles({
     borderBottomColor: theme.colors.border,
   },
   logoContainer: {
-    width: LOGO_WIDTH,
     marginRight: theme.spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  rightSection: {
+    flex: 1,
   },
   logo: {
     width: LOGO_SIZE,
@@ -257,6 +265,11 @@ const styles = createStyles({
   logoPlaceholderText: {
     color: theme.colors.foreground,
     ...getTextStyle('xs', 'bold'),
+  },
+  description: {
+    color: theme.colors.muted,
+    ...getTextStyle('xs', 'normal'),
+    marginBottom: theme.spacing.xs,
   },
   chartContainer: {
     flex: 1,
