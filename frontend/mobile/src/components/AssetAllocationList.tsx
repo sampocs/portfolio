@@ -27,7 +27,6 @@ export default function AssetAllocationList({ assets }: AssetAllocationListProps
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Asset Allocations</Text>
       <View style={styles.assetList}>
         {sortedAssets.map((asset, index) => (
           <AssetAllocationRow
@@ -45,11 +44,6 @@ export default function AssetAllocationList({ assets }: AssetAllocationListProps
 const styles = createStyles({
   container: {
     marginTop: theme.spacing.lg,
-  },
-  sectionTitle: {
-    color: theme.colors.foreground,
-    ...getTextStyle('lg', 'semibold'),
-    marginBottom: theme.spacing.md,
   },
   assetList: {
     // No gap - components connect directly with separators
