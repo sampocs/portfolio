@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, Dimensions } from 'react-native';
+import { View, Text, Image, Dimensions } from 'react-native';
 import { Svg, Rect, Line, Defs, Mask } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -18,7 +18,8 @@ interface ChartRowProps {
 }
 
 const CHART_HEIGHT = 8;
-const LABEL_WIDTH = 60;
+const LOGO_SIZE = 24; // Smaller than detail view
+const LABEL_WIDTH = LOGO_SIZE + 8; // Logo + small margin
 const ROW_SPACING = 4;
 
 function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = false }: ChartRowProps) {
@@ -55,6 +56,32 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
   
   const blueColor = '#07BADA';
 
+  // Get asset logo
+  const getAssetLogo = (assetSymbol: string) => {
+    try {
+      const logoMap: { [key: string]: any } = {
+        'VT': require('../../assets/images/VT.png'),
+        'VOO': require('../../assets/images/VOO.png'),
+        'VO': require('../../assets/images/VO.png'),
+        'VB': require('../../assets/images/VB.png'),
+        'VXUS': require('../../assets/images/VXUS.png'),
+        'VWO': require('../../assets/images/VWO.png'),
+        'COIN': require('../../assets/images/COIN.png'),
+        'HOOD': require('../../assets/images/HOOD.png'),
+        'AAAU': require('../../assets/images/AAAU.png'),
+        'VNQ': require('../../assets/images/VNQ.png'),
+        'BTC': require('../../assets/images/BTC.png'),
+        'ETH': require('../../assets/images/ETH.png'),
+        'SOL': require('../../assets/images/SOL.png'),
+      };
+      return logoMap[assetSymbol] || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const logoSource = getAssetLogo(asset.asset);
+
   const containerStyle = [
     styles.chartRow,
     isFirst && styles.firstRow,
@@ -64,9 +91,15 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
 
   return (
     <View style={containerStyle}>
-      {/* Asset label */}
-      <View style={styles.labelContainer}>
-        <Text style={styles.assetLabel}>{asset.description}</Text>
+      {/* Asset logo */}
+      <View style={styles.logoContainer}>
+        {logoSource ? (
+          <Image source={logoSource} style={styles.logo} />
+        ) : (
+          <View style={[styles.logo, styles.logoPlaceholder]}>
+            <Text style={styles.logoPlaceholderText}>{asset.asset.slice(0, 2)}</Text>
+          </View>
+        )}
       </View>
       
       {/* Chart area */}
@@ -215,13 +248,25 @@ const styles = createStyles({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  labelContainer: {
+  logoContainer: {
     width: LABEL_WIDTH,
     marginRight: theme.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  assetLabel: {
+  logo: {
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
+    borderRadius: theme.borderRadius.sm,
+  },
+  logoPlaceholder: {
+    backgroundColor: theme.colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoPlaceholderText: {
     color: theme.colors.foreground,
-    ...getTextStyle('sm', 'semibold'),
+    ...getTextStyle('xs', 'bold'),
   },
   chartContainer: {
     flex: 1,
