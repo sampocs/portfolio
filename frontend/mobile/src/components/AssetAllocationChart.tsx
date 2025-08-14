@@ -311,7 +311,7 @@ const styles = createStyles({
     ...getTextStyle('xs', 'bold'),
   },
   description: {
-    color: theme.colors.muted,
+    color: theme.colors.foreground,
     ...getTextStyle('xs', 'normal'),
     marginBottom: theme.spacing.xs,
   },
