@@ -12,22 +12,22 @@ interface AssetAllocationChartProps {
 interface ChartRowProps {
   asset: Asset;
   chartWidth: number;
+  maxAllocation: number;
   isFirst?: boolean;
   isLast?: boolean;
 }
 
 const CHART_HEIGHT = 8;
-const MAX_DISPLAY_ALLOCATION = 50; // 50% = full width
 const LABEL_WIDTH = 60;
 const ROW_SPACING = 4;
 
-function ChartRow({ asset, chartWidth, isFirst = false, isLast = false }: ChartRowProps) {
+function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = false }: ChartRowProps) {
   const currentAllocation = parseFloat(asset.current_allocation);
   const targetAllocation = parseFloat(asset.target_allocation);
 
-  // Calculate bar dimensions based on 50% = full width scaling rule
-  const currentBarWidth = Math.min(currentAllocation / MAX_DISPLAY_ALLOCATION, 1) * chartWidth;
-  const targetPosition = Math.min(targetAllocation / MAX_DISPLAY_ALLOCATION, 1) * chartWidth;
+  // Calculate bar dimensions based on dynamic max allocation = full width
+  const currentBarWidth = (currentAllocation / maxAllocation) * chartWidth;
+  const targetPosition = (targetAllocation / maxAllocation) * chartWidth;
   
   // Calculate segments for multi-color bar
   const isOverAllocated = currentAllocation > targetAllocation;
@@ -144,6 +144,16 @@ export default function AssetAllocationChart({ assets }: AssetAllocationChartPro
   // Calculate chart width (screen - padding - label width - spacing)
   const chartWidth = screenWidth - (theme.spacing.xl * 2) - LABEL_WIDTH - theme.spacing.md;
 
+  // Calculate the maximum allocation across all assets (current or target)
+  const maxAllocation = useMemo(() => {
+    if (assets.length === 0) return 50; // fallback
+    
+    const maxCurrentAllocation = Math.max(...assets.map(asset => parseFloat(asset.current_allocation)));
+    const maxTargetAllocation = Math.max(...assets.map(asset => parseFloat(asset.target_allocation)));
+    
+    return Math.max(maxCurrentAllocation, maxTargetAllocation);
+  }, [assets]);
+
   // Sort assets by current allocation (largest first) for better visual hierarchy
   const sortedAssets = useMemo(() => {
     return [...assets].sort((a, b) => 
@@ -167,6 +177,7 @@ export default function AssetAllocationChart({ assets }: AssetAllocationChartPro
             key={`${asset.asset}-${index}`}
             asset={asset}
             chartWidth={chartWidth}
+            maxAllocation={maxAllocation}
             isFirst={index === 0}
             isLast={index === sortedAssets.length - 1}
           />
