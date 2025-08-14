@@ -66,7 +66,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
     <View style={containerStyle}>
       {/* Asset label */}
       <View style={styles.labelContainer}>
-        <Text style={styles.assetLabel}>{asset.asset}</Text>
+        <Text style={styles.assetLabel}>{asset.description}</Text>
       </View>
       
       {/* Chart area */}
@@ -154,10 +154,10 @@ export default function AssetAllocationChart({ assets }: AssetAllocationChartPro
     return Math.max(maxCurrentAllocation, maxTargetAllocation);
   }, [assets]);
 
-  // Sort assets by current allocation (largest first) for better visual hierarchy
+  // Sort assets by target allocation (largest first) for better visual hierarchy
   const sortedAssets = useMemo(() => {
     return [...assets].sort((a, b) => 
-      parseFloat(b.current_allocation) - parseFloat(a.current_allocation)
+      parseFloat(b.target_allocation) - parseFloat(a.target_allocation)
     );
   }, [assets]);
 

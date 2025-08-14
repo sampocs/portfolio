@@ -136,10 +136,10 @@ export default function AssetAllocationLegend({
   selectedAsset, 
   onAssetSelect 
 }: AssetAllocationLegendProps) {
-  // Sort assets by current allocation (largest first) to match chart order
+  // Sort assets by target allocation (largest first) to match chart order
   const sortedAssets = useMemo(() => {
     return [...assets].sort((a, b) => 
-      parseFloat(b.current_allocation) - parseFloat(a.current_allocation)
+      parseFloat(b.target_allocation) - parseFloat(a.target_allocation)
     );
   }, [assets]);
 
