@@ -26,26 +26,26 @@ export default function AssetChartLegend() {
 const styles = createStyles({
   container: {
     marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 0,
   },
   legendRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.xl,
+    gap: theme.spacing.lg,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   colorIndicator: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginRight: theme.spacing.sm,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: theme.spacing.xs,
   },
   labelText: {
-    color: theme.colors.foreground,
-    ...getTextStyle('md', 'medium'),
+    color: theme.colors.muted,
+    ...getTextStyle('sm', 'medium'),
   },
 });

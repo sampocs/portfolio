@@ -262,7 +262,7 @@ export default function AssetAllocationChart({ assets }: AssetAllocationChartPro
 
 const styles = createStyles({
   container: {
-    marginTop: theme.spacing.lg,
+    marginTop: theme.spacing.md,
   },
   chartList: {
     // No gap - components connect directly
