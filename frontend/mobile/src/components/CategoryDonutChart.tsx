@@ -219,7 +219,7 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
                 
                 const category = categories[index];
                 const isSelected = selectedCategory?.category === category.category;
-                const opacity = selectedCategory && !isSelected ? 0.3 : 0.7;
+                const opacity = selectedCategory && !isSelected ? 0.3 : 0.5;
                 
                 const circumference = 2 * Math.PI * TARGET_RADIUS;
                 const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
@@ -317,6 +317,42 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
             {createInteractiveSegments()}
           </Svg>
         </View>
+
+        {/* Ring Legend */}
+        <View style={styles.ringLegend}>
+          <View style={styles.legendRow}>
+            <Text style={styles.legendLabel}>Current:</Text>
+            <View style={styles.legendDots}>
+              {categories.slice(0, 4).map((category, index) => (
+                <View 
+                  key={`current-${index}`}
+                  style={[
+                    styles.legendDot, 
+                    { backgroundColor: getCategoryColor(category.category) }
+                  ]} 
+                />
+              ))}
+            </View>
+          </View>
+          
+          <View style={styles.legendRow}>
+            <Text style={styles.legendLabel}>Target:</Text>
+            <View style={styles.legendDots}>
+              {categories.slice(0, 4).map((category, index) => (
+                <View 
+                  key={`target-${index}`}
+                  style={[
+                    styles.legendDot, 
+                    { 
+                      backgroundColor: getCategoryColor(category.category),
+                      opacity: 0.5 
+                    }
+                  ]} 
+                />
+              ))}
+            </View>
+          </View>
+        </View>
     </View>
   );
 }
@@ -386,5 +422,30 @@ const styles = createStyles({
   selectedDeltaText: {
     ...getTextStyle('md', 'bold'),
     textAlign: 'center',
+  },
+  ringLegend: {
+    marginTop: theme.spacing.sm,
+    alignItems: 'center',
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xs / 2,
+  },
+  legendLabel: {
+    color: theme.colors.muted,
+    ...getTextStyle('xs'),
+    width: 50,
+    textAlign: 'right',
+    marginRight: theme.spacing.xs,
+  },
+  legendDots: {
+    flexDirection: 'row',
+    gap: theme.spacing.xs / 2,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
