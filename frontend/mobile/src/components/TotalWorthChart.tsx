@@ -6,7 +6,7 @@ import Animated, {
   withTiming,
   Easing
 } from 'react-native-reanimated';
-import { CartesianChart, Line, useChartTransformState, useChartPressState } from 'victory-native';
+import { CartesianChart, Line, useChartPressState } from 'victory-native';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import { Svg, Line as SvgLine, Circle } from 'react-native-svg';
 import { Canvas, Path, LinearGradient as SkiaLinearGradient, vec, Skia } from '@shopify/react-native-skia';
@@ -140,13 +140,7 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false }: Total
   // Initialize press state with proper structure for single y key
   const INIT_PRESS_STATE = { x: 0, y: { y: 0 } };
   
-  // Transform state with restricted pan (prevent line dragging)
-  const { state: transformState } = useChartTransformState({
-    panXBounds: { min: 0, max: 0 }, // Disable X-axis panning
-    panYBounds: { min: 0, max: 0 }, // Disable Y-axis panning
-    zoomXBounds: { min: 1, max: 1 }, // Disable X-axis zoom
-    zoomYBounds: { min: 1, max: 1 }, // Disable Y-axis zoom
-  });
+  // No transform state needed - we only want press detection for data point selection
   const { state: pressState, isActive: pressActive } = useChartPressState(INIT_PRESS_STATE);
 
   // Handle data point selection
@@ -423,7 +417,6 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false }: Total
                   data={chartData}
                   xKey="x"
                   yKeys={['y']}
-                  transformState={transformState}
                   chartPressState={pressState}
                 >
                 {({ points, chartBounds: victoryChartBounds }) => {
