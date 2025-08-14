@@ -9,6 +9,7 @@ import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorth
 import AssetList from '../components/AssetList';
 import LoadingScreen from '../components/LoadingScreen';
 import { apiService } from '../services/api';
+import { performanceCacheManager } from '../services/performanceCache';
 import { calculatePortfolioSummary } from '../data/utils';
 import { Asset, PerformanceData } from '../data/types';
 
@@ -68,7 +69,7 @@ export default function PortfolioScreen() {
       : filtered.map(asset => asset.asset);
     
     try {
-      const performanceDataResponse = await apiService.getPerformance(selectedGranularity, assetSymbols);
+      const performanceDataResponse = await performanceCacheManager.getPerformanceData(selectedGranularity, assetSymbols, 'high');
       setPerformanceData(performanceDataResponse);
     } catch (error) {
       console.error('Error fetching filtered performance data:', error);
@@ -104,7 +105,7 @@ export default function PortfolioScreen() {
   };
 
   // Data fetching functions
-  const fetchData = async (granularity: string = selectedGranularity, forceRefreshPositions: boolean = false) => {
+  const fetchData = async (granularity: string = selectedGranularity, forceRefreshPositions: boolean = false, isUserInitiated: boolean = true) => {
     try {
       let positionsData = positions;
       
@@ -112,12 +113,19 @@ export default function PortfolioScreen() {
       if (positions.length === 0 || forceRefreshPositions) {
         positionsData = await apiService.getPositions();
         setPositions(positionsData);
+        
+        // Start background preloading after positions are loaded
+        if (positionsData.length > 0) {
+          performanceCacheManager.preloadPerformanceData(positionsData);
+        }
       }
       
       // Get filtered asset symbols for performance query
       const assetSymbols = getFilteredAssetSymbols(positionsData);
       
-      const performanceDataResponse = await apiService.getPerformance(granularity, assetSymbols);
+      // Use cache manager with priority based on whether it's user-initiated
+      const priority = isUserInitiated ? 'high' : 'low';
+      const performanceDataResponse = await performanceCacheManager.getPerformanceData(granularity, assetSymbols, priority);
       setPerformanceData(performanceDataResponse);
     } catch (error) {
       console.error('Error fetching data:', error);
