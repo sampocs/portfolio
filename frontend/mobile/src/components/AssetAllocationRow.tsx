@@ -75,7 +75,7 @@ export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
 
   return (
     <View style={styles.container}>
-      {/* Top row - Logo and current/target percentages */}
+      {/* Top row - Logo, asset description, and current/target percentages */}
       <View style={styles.topRow}>
         <View style={styles.logoContainer}>
           {logoSource ? (
@@ -85,6 +85,10 @@ export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
               <Text style={styles.logoPlaceholderText}>{asset.asset.slice(0, 2)}</Text>
             </View>
           )}
+        </View>
+        
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.description}>{asset.description}</Text>
         </View>
         
         <View style={styles.percentageContainer}>
@@ -134,10 +138,9 @@ export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
         </Svg>
       </View>
 
-      {/* Bottom row - Asset description, dollar values, and delta */}
+      {/* Bottom row - Dollar values and delta */}
       <View style={styles.bottomRow}>
         <View style={styles.leftBottomSection}>
-          <Text style={styles.description}>{asset.description}</Text>
           <Text style={styles.valueText}>
             ${Math.round(currentValue).toLocaleString()} → ${Math.round(targetValue).toLocaleString()}
           </Text>
@@ -184,8 +187,16 @@ const styles = createStyles({
     color: theme.colors.foreground,
     ...getTextStyle('xs', 'bold'),
   },
-  percentageContainer: {
+  descriptionContainer: {
     flex: 1,
+    marginRight: theme.spacing.md,
+  },
+  description: {
+    color: theme.colors.foreground,
+    ...getTextStyle('md', 'semibold'), // Same as AllocationLegend itemName
+  },
+  percentageContainer: {
+    alignItems: 'flex-end',
   },
   allocationText: {
     color: theme.colors.muted,
@@ -204,11 +215,6 @@ const styles = createStyles({
   leftBottomSection: {
     flex: 1,
     marginRight: theme.spacing.md,
-  },
-  description: {
-    color: theme.colors.foreground,
-    ...getTextStyle('md', 'semibold'), // Same as AllocationLegend itemName
-    marginBottom: 4,
   },
   valueText: {
     color: theme.colors.foreground,
