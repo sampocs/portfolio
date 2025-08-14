@@ -23,7 +23,7 @@ interface DonutSegment {
 }
 
 // Base chart configuration - only change these values to resize
-const CHART_SIZE = 260;
+const CHART_SIZE = 250;
 const STROKE_WIDTH = 22;
 const TARGET_STROKE_WIDTH = 18;
 

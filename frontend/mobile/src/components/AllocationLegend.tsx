@@ -124,7 +124,7 @@ const styles = createStyles({
     marginBottom: 0,
   },
   segmentsRow: {
-    paddingVertical: theme.spacing.sm + 2, // Between sm and md for segments
+    paddingVertical: theme.spacing.sm + 1, // 9px for segments
     paddingHorizontal: theme.spacing.md,
   },
   firstRow: {
