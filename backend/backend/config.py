@@ -26,11 +26,18 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger("portfolio")
 
 
-class Category(Enum):
+class Market(Enum):
+    STOCKS = "Stocks"
+    CRYPTO_STOCKS = "Crypto"
+    ALTERNATIVES = "Alternatives"
+
+
+class Sector(Enum):
     STOCK_ETFS = "Stock ETFs"
     CRYPTO_STOCKS = "Crypto Stocks"
     CRYPTO_TOKENS = "Crypto Tokens"
-    ALTERNATIVES = "Alternatives"
+    ALTERNATIVES = "Gold"
+    REAL_ESTATE = "Real Estate"
 
 
 class Platform(Enum):
@@ -48,7 +55,8 @@ class Asset:
     asset: str
     description: str
     target_allocation: Decimal
-    category: Category
+    market: Market
+    sector: Sector
     platform: Platform
     price_type: PriceType
 
@@ -59,7 +67,8 @@ class Asset:
             asset=data["asset"],
             description=data["description"],
             target_allocation=Decimal(data["target_allocation"]),
-            category=Category(data["category"]),
+            market=Market(data["market"]),
+            sector=Sector(data["sector"]),
             platform=Platform(data["platform"]),
             price_type=PriceType(data["price_type"]),
         )

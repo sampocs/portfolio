@@ -6,7 +6,8 @@ class Position(BaseModel):
     """Defines the schema for the /positions API response"""
 
     asset: str
-    category: str
+    market: str
+    sector: str
     description: str
     current_price: Decimal
     average_price: Decimal

@@ -27,7 +27,8 @@ def get_enriched_positions(db: Session) -> list[schemas.Position]:
         enriched_positions.append(
             schemas.Position(
                 asset=position.asset,
-                category=asset_config.category.value,
+                market=asset_config.market.value,
+                sector=asset_config.sector.value,
                 description=asset_config.description,
                 current_price=current_price,
                 average_price=position.average_price,
