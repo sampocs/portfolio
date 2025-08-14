@@ -83,7 +83,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
       
       {/* Chart area */}
       <View style={styles.chartContainer}>
-        <Svg width={chartWidth} height={CHART_HEIGHT + 4}>
+        <Svg width={chartWidth + 40} height={CHART_HEIGHT + 4}>
           {/* Background tracks */}
           <Rect
             x={0}
@@ -127,30 +127,34 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
           )}
           
           {/* Current percentage text */}
-          <SvgText
-            x={currentBarWidth + 6}
-            y={2 + BAR_HEIGHT / 2}
-            fontSize="10"
-            fill={currentColor}
-            textAnchor="start"
-            alignmentBaseline="middle"
-            fontWeight="500"
-          >
-            {currentAllocation % 1 === 0 ? currentAllocation.toFixed(0) : currentAllocation.toFixed(1)}%
-          </SvgText>
+          {currentBarWidth > 0 && (
+            <SvgText
+              x={currentBarWidth + 6}
+              y={2 + BAR_HEIGHT / 2}
+              fontSize="10"
+              fill={currentColor}
+              textAnchor="start"
+              alignmentBaseline="middle"
+              fontWeight="500"
+            >
+              {currentAllocation % 1 === 0 ? currentAllocation.toFixed(0) : currentAllocation.toFixed(1)}%
+            </SvgText>
+          )}
           
           {/* Target percentage text */}
-          <SvgText
-            x={targetBarWidth + 6}
-            y={2 + BAR_HEIGHT + BAR_SPACING + BAR_HEIGHT / 2}
-            fontSize="10"
-            fill={targetColor}
-            textAnchor="start"
-            alignmentBaseline="middle"
-            fontWeight="500"
-          >
-            {targetAllocation % 1 === 0 ? targetAllocation.toFixed(0) : targetAllocation.toFixed(1)}%
-          </SvgText>
+          {targetBarWidth > 0 && (
+            <SvgText
+              x={targetBarWidth + 6}
+              y={2 + BAR_HEIGHT + BAR_SPACING + BAR_HEIGHT / 2}
+              fontSize="10"
+              fill={targetColor}
+              textAnchor="start"
+              alignmentBaseline="middle"
+              fontWeight="500"
+            >
+              {targetAllocation % 1 === 0 ? targetAllocation.toFixed(0) : targetAllocation.toFixed(1)}%
+            </SvgText>
+          )}
         </Svg>
       </View>
     </View>
