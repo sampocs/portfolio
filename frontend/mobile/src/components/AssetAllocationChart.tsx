@@ -22,7 +22,7 @@ interface ChartRowProps {
 const BAR_HEIGHT = 16; // Increased from 12 to 16
 const BAR_SPACING = 3; // Space between current and target bars
 const CHART_HEIGHT = (BAR_HEIGHT * 2) + BAR_SPACING; // Total height for both bars
-const LOGO_SIZE = 48;
+const LOGO_SIZE = 56;
 
 function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = false, isExpanded, onToggle }: ChartRowProps) {
   const currentAllocation = parseFloat(asset.current_allocation);
@@ -101,7 +101,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
         
         {/* Chart area */}
         <View style={styles.chartContainer}>
-        <Svg width={chartWidth + 40} height={CHART_HEIGHT + 4}>
+        <Svg width={chartWidth + 50} height={CHART_HEIGHT + 4}>
           {/* Background tracks */}
           <Rect
             x={0}
@@ -213,7 +213,7 @@ export default function AssetAllocationChart({ assets }: AssetAllocationChartPro
   };
   
   // Calculate chart width (screen - padding - logo width - spacing - label space)
-  const chartWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_SIZE - theme.spacing.md - 40; // LOGO_SIZE + 40px for labels
+  const chartWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_SIZE - theme.spacing.md - 50; // LOGO_SIZE + 50px for labels
 
   // Calculate the maximum allocation across all assets (current or target)
   const maxAllocation = useMemo(() => {
