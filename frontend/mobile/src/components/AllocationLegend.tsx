@@ -61,14 +61,14 @@ function LegendRow<T extends GenericAllocation>({
       <View style={styles.rightSection}>
         <View style={styles.valueSection}>
           <Text style={styles.valueText}>
-            {formatCurrency(item.currentValue)} → {formatCurrency(targetValue)}
+            ${Math.round(item.currentValue).toLocaleString()} → ${Math.round(targetValue).toLocaleString()}
           </Text>
         </View>
         
         <View style={styles.deltaSection}>
           <View style={[styles.deltaContainer, { backgroundColor: deltaBackgroundColor }]}>
             <Text style={[styles.deltaText, { color: deltaColor }]}>
-              {item.dollarDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(item.dollarDelta))} ({item.percentageDelta >= 0 ? '+' : '-'}{Math.abs(item.percentageDelta).toFixed(1)}%)
+              {item.dollarDelta >= 0 ? '+' : '-'}${Math.round(Math.abs(item.dollarDelta)).toLocaleString()} ({item.percentageDelta >= 0 ? '+' : '-'}{Math.round(Math.abs(item.percentageDelta))}%)
             </Text>
           </View>
         </View>
