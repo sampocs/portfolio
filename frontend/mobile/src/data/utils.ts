@@ -154,8 +154,8 @@ export const calculateAllocationDelta = (
 export const getMarketColor = (market: string): string => {
   const marketColors: { [key: string]: string } = {
     Stocks: "#34D86C", // Green
-    Crypto: "#8B5CF6", // Purple
-    Alternatives: "#AFD4FD", // Light blue
+    Crypto: "#06A9C6", // Purple
+    Alternatives: "#8B5CF6", // Light blue
   };
 
   return marketColors[market] || "#999999"; // Default to muted color
@@ -200,7 +200,8 @@ export const aggregateAssetsBySegment = (
   const segments = Array.from(segmentMap.values()).map((segment) => {
     const targetValue = (segment.targetAllocation / 100) * totalPortfolioValue;
     const dollarDelta = segment.currentValue - targetValue;
-    const percentageDelta = segment.currentAllocation - segment.targetAllocation;
+    const percentageDelta =
+      segment.currentAllocation - segment.targetAllocation;
 
     return {
       ...segment,
@@ -215,18 +216,20 @@ export const aggregateAssetsBySegment = (
 
 export const getSegmentColor = (segment: string): string => {
   const segmentColors: { [key: string]: string } = {
-    "Stock ETFs": "#34D86C", // Green
-    "Crypto Stocks": "#8B5CF6", // Purple
-    "Crypto Tokens": "#06A9C6", // Light blue
-    Gold: "#FBBF24", // Light blue
-    "Real Estate": "#AFD4FD", // Yellow
+    "Stock ETFs": "#34D86C",
+    "Crypto Stocks": "#8B5CF6",
+    "Crypto Tokens": "#06A9C6",
+    Gold: "#AFD4FD",
+    "Real Estate": "#B35B8A",
   };
 
   return segmentColors[segment] || "#999999"; // Default to muted color
 };
 
 // Helper functions to convert specific allocation types to generic format
-export const marketToGeneric = (market: MarketAllocation): GenericAllocation => ({
+export const marketToGeneric = (
+  market: MarketAllocation
+): GenericAllocation => ({
   name: market.market,
   currentValue: market.currentValue,
   currentAllocation: market.currentAllocation,
@@ -236,7 +239,9 @@ export const marketToGeneric = (market: MarketAllocation): GenericAllocation => 
   percentageDelta: market.percentageDelta,
 });
 
-export const segmentToGeneric = (segment: SegmentAllocation): GenericAllocation => ({
+export const segmentToGeneric = (
+  segment: SegmentAllocation
+): GenericAllocation => ({
   name: segment.segment,
   currentValue: segment.currentValue,
   currentAllocation: segment.currentAllocation,

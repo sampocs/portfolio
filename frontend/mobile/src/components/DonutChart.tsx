@@ -304,7 +304,7 @@ export default function DonutChart<T extends GenericAllocation>({
           <View style={styles.legendRow}>
             <Text style={styles.legendLabel}>Current:</Text>
             <View style={styles.legendDots}>
-              {data.slice(0, 4).map((item, index) => (
+              {data.map((item, index) => (
                 <View 
                   key={`current-${index}`}
                   style={[
@@ -319,7 +319,7 @@ export default function DonutChart<T extends GenericAllocation>({
           <View style={styles.legendRow}>
             <Text style={styles.legendLabel}>Target:</Text>
             <View style={styles.legendDots}>
-              {data.slice(0, 4).map((item, index) => (
+              {data.map((item, index) => (
                 <View 
                   key={`target-${index}`}
                   style={[
