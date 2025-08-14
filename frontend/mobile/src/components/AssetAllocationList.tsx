@@ -1,59 +1,56 @@
-import React, { useMemo } from 'react';
-import { View, Text } from 'react-native';
+import React, { useState } from 'react';
+import { View, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
-import { createStyles, getTextStyle } from '../styles/utils';
+import { createStyles } from '../styles/utils';
 import { Asset } from '../data/types';
-import AssetAllocationRow from './AssetAllocationRow';
+import AssetAllocationChart from './AssetAllocationChart';
+import AssetAllocationLegend from './AssetAllocationLegend';
 
 interface AssetAllocationListProps {
   assets: Asset[];
 }
 
 export default function AssetAllocationList({ assets }: AssetAllocationListProps) {
-  // Sort assets by current allocation (largest first) for better visual hierarchy
-  const sortedAssets = useMemo(() => {
-    return [...assets].sort((a, b) => 
-      parseFloat(b.current_allocation) - parseFloat(a.current_allocation)
-    );
-  }, [assets]);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+
+  const handleAssetSelect = (asset: Asset | null) => {
+    setSelectedAsset(asset);
+  };
 
   if (assets.length === 0) {
     return (
       <View style={styles.emptyState}>
-        <Text style={styles.emptyText}>No assets to display</Text>
+        {/* Empty state can be handled by individual components */}
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.assetList}>
-        {sortedAssets.map((asset, index) => (
-          <AssetAllocationRow
-            key={`${asset.asset}-${index}`}
-            asset={asset}
-            isFirst={index === 0}
-            isLast={index === sortedAssets.length - 1}
-          />
-        ))}
-      </View>
-    </View>
+    <TouchableOpacity 
+      style={styles.container}
+      onPress={() => setSelectedAsset(null)}
+      activeOpacity={1}
+    >
+      {/* Chart Section - Visual bars for quick comparison */}
+      <AssetAllocationChart assets={assets} />
+      
+      {/* Legend Section - Detailed data */}
+      <AssetAllocationLegend 
+        assets={assets}
+        selectedAsset={selectedAsset}
+        onAssetSelect={handleAssetSelect}
+      />
+    </TouchableOpacity>
   );
 }
 
 const styles = createStyles({
   container: {
-    marginTop: theme.spacing.lg,
-  },
-  assetList: {
-    // No gap - components connect directly with separators
+    flex: 1,
   },
   emptyState: {
+    flex: 1,
     alignItems: 'center',
     paddingVertical: theme.spacing.xxl,
-  },
-  emptyText: {
-    color: theme.colors.muted,
-    ...getTextStyle('md'),
   },
 });
