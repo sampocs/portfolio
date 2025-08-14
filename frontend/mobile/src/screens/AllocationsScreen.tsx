@@ -134,6 +134,8 @@ export default function AllocationsScreen() {
                 data={currentData}
                 getColor={getColor}
                 groupingType={selectedGrouping}
+                selectedItem={selectedGenericItem}
+                onItemSelect={handleGenericItemSelect}
               />
             </>
           ) : (

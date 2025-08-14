@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
 import { GenericAllocation } from '../data/types';
@@ -8,6 +8,8 @@ interface AllocationLegendProps<T extends GenericAllocation> {
   data: T[];
   getColor: (name: string) => string;
   groupingType?: 'markets' | 'segments';
+  selectedItem?: T | null;
+  onItemSelect?: (item: T | null) => void;
 }
 
 interface LegendRowProps<T extends GenericAllocation> {
@@ -16,6 +18,8 @@ interface LegendRowProps<T extends GenericAllocation> {
   isFirst?: boolean;
   isLast?: boolean;
   groupingType?: 'markets' | 'segments';
+  selectedItem?: T | null;
+  onItemSelect?: (item: T | null) => void;
 }
 
 function LegendRow<T extends GenericAllocation>({ 
@@ -23,7 +27,9 @@ function LegendRow<T extends GenericAllocation>({
   getColor, 
   isFirst = false, 
   isLast = false,
-  groupingType = 'markets'
+  groupingType = 'markets',
+  selectedItem,
+  onItemSelect
 }: LegendRowProps<T>) {
   const color = getColor(item.name);
   const isOverAllocated = item.percentageDelta > 0;
@@ -34,17 +40,33 @@ function LegendRow<T extends GenericAllocation>({
   // Calculate target dollar value for display
   const targetValue = item.currentValue - item.dollarDelta;
 
-  // Dynamic container style based on position and grouping type
+  // Check if this item is selected
+  const isSelected = selectedItem?.name === item.name;
+
+  // Handle touch events
+  const handlePress = () => {
+    if (onItemSelect) {
+      // Toggle selection: if already selected, deselect; otherwise select this item
+      onItemSelect(isSelected ? null : item);
+    }
+  };
+
+  // Dynamic container style based on position, grouping type, and selection
   const containerStyle = [
     styles.legendRow,
     groupingType === 'segments' && styles.segmentsRow,
     isFirst && styles.firstRow,
     isLast && styles.lastRow,
     !isLast && styles.separatorRow,
+    isSelected && styles.selectedRow,
   ];
 
   return (
-    <View style={containerStyle}>
+    <TouchableOpacity 
+      style={containerStyle}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       <View style={styles.leftSection}>
         <View style={[styles.colorIndicator, { backgroundColor: color }]} />
         <View style={styles.nameAndPercentageContainer}>
@@ -73,14 +95,16 @@ function LegendRow<T extends GenericAllocation>({
           </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 export default function AllocationLegend<T extends GenericAllocation>({ 
   data, 
   getColor,
-  groupingType = 'markets'
+  groupingType = 'markets',
+  selectedItem,
+  onItemSelect
 }: AllocationLegendProps<T>) {
   return (
     <View style={[
@@ -95,6 +119,8 @@ export default function AllocationLegend<T extends GenericAllocation>({
           isFirst={index === 0}
           isLast={index === data.length - 1}
           groupingType={groupingType}
+          selectedItem={selectedItem}
+          onItemSelect={onItemSelect}
         />
       ))}
     </View>
@@ -138,6 +164,9 @@ const styles = createStyles({
   separatorRow: {
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+  },
+  selectedRow: {
+    backgroundColor: theme.colors.accent,
   },
   leftSection: {
     flexDirection: 'row',
