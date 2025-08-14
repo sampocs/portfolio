@@ -97,7 +97,7 @@ export default function AssetList({ assets, selectedCategories }: AssetListProps
 
 const styles = createStyles({
   container: {
-    marginTop: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
   },
   header: {
     flexDirection: 'row',

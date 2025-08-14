@@ -44,7 +44,7 @@ export function ChartDurationSelector({ onGranularityChange }: ChartDurationSele
     },
     button: {
       flex: 1,
-      paddingVertical: 2,
+      paddingVertical: 6,
       paddingHorizontal: theme.spacing.xs,
       marginHorizontal: theme.spacing.xs,
       borderRadius: 16,
