@@ -7,6 +7,7 @@ import { GenericAllocation } from '../data/types';
 interface AllocationLegendProps<T extends GenericAllocation> {
   data: T[];
   getColor: (name: string) => string;
+  groupingType?: 'markets' | 'segments';
 }
 
 interface LegendRowProps<T extends GenericAllocation> {
@@ -14,13 +15,15 @@ interface LegendRowProps<T extends GenericAllocation> {
   getColor: (name: string) => string;
   isFirst?: boolean;
   isLast?: boolean;
+  groupingType?: 'markets' | 'segments';
 }
 
 function LegendRow<T extends GenericAllocation>({ 
   item, 
   getColor, 
   isFirst = false, 
-  isLast = false 
+  isLast = false,
+  groupingType = 'markets'
 }: LegendRowProps<T>) {
   const color = getColor(item.name);
   const isOverAllocated = item.percentageDelta > 0;
@@ -31,9 +34,10 @@ function LegendRow<T extends GenericAllocation>({
   // Calculate target dollar value for display
   const targetValue = item.currentValue - item.dollarDelta;
 
-  // Dynamic container style based on position
+  // Dynamic container style based on position and grouping type
   const containerStyle = [
     styles.legendRow,
+    groupingType === 'segments' && styles.segmentsRow,
     isFirst && styles.firstRow,
     isLast && styles.lastRow,
     !isLast && styles.separatorRow,
@@ -72,10 +76,14 @@ function LegendRow<T extends GenericAllocation>({
 
 export default function AllocationLegend<T extends GenericAllocation>({ 
   data, 
-  getColor 
+  getColor,
+  groupingType = 'markets'
 }: AllocationLegendProps<T>) {
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      groupingType === 'segments' && styles.segmentsContainer
+    ]}>
       {data.map((item, index) => (
         <LegendRow 
           key={`${item.name}-${index}`} 
@@ -83,6 +91,7 @@ export default function AllocationLegend<T extends GenericAllocation>({
           getColor={getColor}
           isFirst={index === 0}
           isLast={index === data.length - 1}
+          groupingType={groupingType}
         />
       ))}
     </View>
@@ -92,6 +101,9 @@ export default function AllocationLegend<T extends GenericAllocation>({
 const styles = createStyles({
   container: {
     marginTop: theme.spacing.md,
+  },
+  segmentsContainer: {
+    marginTop: theme.spacing.xs, // Reduced top margin for segments
   },
   sectionTitle: {
     color: theme.colors.foreground,
@@ -107,6 +119,10 @@ const styles = createStyles({
     backgroundColor: theme.colors.card,
     borderRadius: 0,
     marginBottom: 0,
+  },
+  segmentsRow: {
+    paddingVertical: theme.spacing.sm + 2, // Between sm and md for segments
+    paddingHorizontal: theme.spacing.md,
   },
   firstRow: {
     borderTopLeftRadius: theme.borderRadius.md,

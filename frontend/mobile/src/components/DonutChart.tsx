@@ -11,6 +11,7 @@ interface DonutChartProps<T extends GenericAllocation> {
   onItemSelect: (item: T | null) => void;
   getColor: (name: string) => string;
   title: string; // "Markets" or "Segments"
+  groupingType?: 'markets' | 'segments';
 }
 
 interface DonutSegment {
@@ -102,7 +103,8 @@ export default function DonutChart<T extends GenericAllocation>({
   selectedItem, 
   onItemSelect, 
   getColor,
-  title
+  title,
+  groupingType = 'markets'
 }: DonutChartProps<T>) {
 
   // Calculate total portfolio value for center display
@@ -190,7 +192,10 @@ export default function DonutChart<T extends GenericAllocation>({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      groupingType === 'segments' && styles.segmentsContainer
+    ]}>
       <View style={styles.chartContainer}>
           <Svg width={CHART_SIZE} height={CHART_SIZE} pointerEvents="none">
             {/* Target allocations (inner ring) - visual only */}
@@ -348,6 +353,9 @@ const styles = createStyles({
     marginVertical: theme.spacing.xs,
     marginHorizontal: 0,
     paddingHorizontal: 0,
+  },
+  segmentsContainer: {
+    marginBottom: theme.spacing.xs / 2, // Add a bit of positive margin
   },
   chartContainer: {
     width: CHART_SIZE,

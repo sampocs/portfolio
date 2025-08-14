@@ -131,10 +131,12 @@ export default function AllocationsScreen() {
                 onItemSelect={handleGenericItemSelect}
                 getColor={getColor}
                 title={title}
+                groupingType={selectedGrouping}
               />
               <AllocationLegend 
                 data={currentData}
                 getColor={getColor}
+                groupingType={selectedGrouping}
               />
             </>
           ) : (
