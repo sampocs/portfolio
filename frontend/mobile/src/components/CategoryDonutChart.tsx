@@ -318,7 +318,7 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           </Svg>
         </View>
 
-        {/* Ring Legend */}
+        {/* Ring Legend - Top Right Corner */}
         <View style={styles.ringLegend}>
           <View style={styles.legendRow}>
             <Text style={styles.legendLabel}>Current:</Text>
@@ -424,8 +424,10 @@ const styles = createStyles({
     textAlign: 'center',
   },
   ringLegend: {
-    marginTop: theme.spacing.sm,
-    alignItems: 'center',
+    position: 'absolute',
+    top: theme.spacing.xs,
+    right: theme.spacing.xs,
+    alignItems: 'flex-end',
   },
   legendRow: {
     flexDirection: 'row',
@@ -435,8 +437,6 @@ const styles = createStyles({
   legendLabel: {
     color: theme.colors.muted,
     ...getTextStyle('xs'),
-    width: 50,
-    textAlign: 'right',
     marginRight: theme.spacing.xs,
   },
   legendDots: {
