@@ -312,7 +312,7 @@ const styles = createStyles({
   },
   description: {
     color: theme.colors.foreground,
-    ...getTextStyle('xs', 'normal'),
+    ...getTextStyle('sm', 'normal'),
     marginBottom: theme.spacing.xs,
   },
   chartContainer: {
