@@ -48,7 +48,10 @@ function LegendRow<T extends GenericAllocation>({
       <View style={styles.leftSection}>
         <View style={[styles.colorIndicator, { backgroundColor: color }]} />
         <View style={styles.nameAndPercentageContainer}>
-          <Text style={styles.itemName}>{item.name}</Text>
+          <Text style={[
+            styles.itemName,
+            groupingType === 'markets' && styles.marketItemName
+          ]}>{item.name}</Text>
           <Text style={styles.allocationText}>
             {item.currentAllocation.toFixed(1)}% → {item.targetAllocation.toFixed(1)}%
           </Text>
@@ -114,8 +117,8 @@ const styles = createStyles({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
     backgroundColor: theme.colors.card,
     borderRadius: 0,
     marginBottom: 0,
@@ -180,5 +183,9 @@ const styles = createStyles({
   },
   deltaText: {
     ...getTextStyle('sm', 'semibold'),
+  },
+  // Markets-specific minimal font improvements
+  marketItemName: {
+    ...getTextStyle('md', 'bold'), // Just bolder weight, same size
   },
 });
