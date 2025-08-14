@@ -5,6 +5,7 @@ import {
   MarketAllocation,
   SegmentAllocation,
   AllocationDelta,
+  GenericAllocation,
 } from "./types";
 
 export const calculatePortfolioSummary = (
@@ -160,6 +161,58 @@ export const getMarketColor = (market: string): string => {
   return marketColors[market] || "#999999"; // Default to muted color
 };
 
+export const aggregateAssetsBySegment = (
+  assets: Asset[]
+): SegmentAllocation[] => {
+  const segmentMap = new Map<string, SegmentAllocation>();
+  const totalPortfolioValue = assets.reduce(
+    (sum, asset) => sum + parseFloat(asset.value),
+    0
+  );
+
+  // Group assets by segment
+  assets.forEach((asset) => {
+    const segment = asset.segment;
+    const currentValue = parseFloat(asset.value);
+    const currentAllocation = parseFloat(asset.current_allocation);
+    const targetAllocation = parseFloat(asset.target_allocation);
+
+    if (!segmentMap.has(segment)) {
+      segmentMap.set(segment, {
+        segment,
+        currentValue: 0,
+        currentAllocation: 0,
+        targetAllocation: 0,
+        assets: [],
+        dollarDelta: 0,
+        percentageDelta: 0,
+      });
+    }
+
+    const segmentData = segmentMap.get(segment)!;
+    segmentData.currentValue += currentValue;
+    segmentData.currentAllocation += currentAllocation;
+    segmentData.targetAllocation += targetAllocation;
+    segmentData.assets.push(asset);
+  });
+
+  // Calculate deltas for each segment
+  const segments = Array.from(segmentMap.values()).map((segment) => {
+    const targetValue = (segment.targetAllocation / 100) * totalPortfolioValue;
+    const dollarDelta = segment.currentValue - targetValue;
+    const percentageDelta = segment.currentAllocation - segment.targetAllocation;
+
+    return {
+      ...segment,
+      dollarDelta,
+      percentageDelta,
+    };
+  });
+
+  // Sort by target allocation (largest first)
+  return segments.sort((a, b) => b.targetAllocation - a.targetAllocation);
+};
+
 export const getSegmentColor = (segment: string): string => {
   const segmentColors: { [key: string]: string } = {
     "Stock ETFs": "#34D86C", // Green
@@ -171,3 +224,24 @@ export const getSegmentColor = (segment: string): string => {
 
   return segmentColors[segment] || "#999999"; // Default to muted color
 };
+
+// Helper functions to convert specific allocation types to generic format
+export const marketToGeneric = (market: MarketAllocation): GenericAllocation => ({
+  name: market.market,
+  currentValue: market.currentValue,
+  currentAllocation: market.currentAllocation,
+  targetAllocation: market.targetAllocation,
+  assets: market.assets,
+  dollarDelta: market.dollarDelta,
+  percentageDelta: market.percentageDelta,
+});
+
+export const segmentToGeneric = (segment: SegmentAllocation): GenericAllocation => ({
+  name: segment.segment,
+  currentValue: segment.currentValue,
+  currentAllocation: segment.currentAllocation,
+  targetAllocation: segment.targetAllocation,
+  assets: segment.assets,
+  dollarDelta: segment.dollarDelta,
+  percentageDelta: segment.percentageDelta,
+});

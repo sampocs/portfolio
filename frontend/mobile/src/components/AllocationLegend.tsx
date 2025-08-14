@@ -2,28 +2,34 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
-import { MarketAllocation } from '../data/types';
-import { getMarketColor } from '../data/utils';
+import { GenericAllocation } from '../data/types';
 
-interface MarketLegendProps {
-  markets: MarketAllocation[];
+interface AllocationLegendProps<T extends GenericAllocation> {
+  data: T[];
+  getColor: (name: string) => string;
 }
 
-interface LegendRowProps {
-  market: MarketAllocation;
+interface LegendRowProps<T extends GenericAllocation> {
+  item: T;
+  getColor: (name: string) => string;
   isFirst?: boolean;
   isLast?: boolean;
 }
 
-function LegendRow({ market, isFirst = false, isLast = false }: LegendRowProps) {
-  const color = getMarketColor(market.market);
-  const isOverAllocated = market.percentageDelta > 0;
+function LegendRow<T extends GenericAllocation>({ 
+  item, 
+  getColor, 
+  isFirst = false, 
+  isLast = false 
+}: LegendRowProps<T>) {
+  const color = getColor(item.name);
+  const isOverAllocated = item.percentageDelta > 0;
   // Over-allocated (positive delta) = green, Under-allocated (negative delta) = red
   const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
   const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
   // Calculate target dollar value for display
-  const targetValue = market.currentValue - market.dollarDelta;
+  const targetValue = item.currentValue - item.dollarDelta;
 
   // Dynamic container style based on position
   const containerStyle = [
@@ -37,26 +43,26 @@ function LegendRow({ market, isFirst = false, isLast = false }: LegendRowProps) 
     <View style={containerStyle}>
       <View style={styles.leftSection}>
         <View style={[styles.colorIndicator, { backgroundColor: color }]} />
-        <Text style={styles.categoryName}>{market.market}</Text>
+        <Text style={styles.itemName}>{item.name}</Text>
       </View>
       
       <View style={styles.rightSection}>
         <View style={styles.percentageSection}>
           <Text style={styles.allocationText}>
-            {market.currentAllocation.toFixed(1)}% → {market.targetAllocation.toFixed(1)}%
+            {item.currentAllocation.toFixed(1)}% → {item.targetAllocation.toFixed(1)}%
           </Text>
         </View>
         
         <View style={styles.valueSection}>
           <Text style={styles.valueText}>
-            {formatCurrency(market.currentValue)} → {formatCurrency(targetValue)}
+            {formatCurrency(item.currentValue)} → {formatCurrency(targetValue)}
           </Text>
         </View>
         
         <View style={styles.deltaSection}>
           <View style={[styles.deltaContainer, { backgroundColor: deltaBackgroundColor }]}>
             <Text style={[styles.deltaText, { color: deltaColor }]}>
-              {market.dollarDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(market.dollarDelta))} ({market.percentageDelta >= 0 ? '+' : '-'}{Math.abs(market.percentageDelta).toFixed(1)}%)
+              {item.dollarDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(item.dollarDelta))} ({item.percentageDelta >= 0 ? '+' : '-'}{Math.abs(item.percentageDelta).toFixed(1)}%)
             </Text>
           </View>
         </View>
@@ -65,15 +71,19 @@ function LegendRow({ market, isFirst = false, isLast = false }: LegendRowProps) 
   );
 }
 
-export default function MarketLegend({ markets }: MarketLegendProps) {
+export default function AllocationLegend<T extends GenericAllocation>({ 
+  data, 
+  getColor 
+}: AllocationLegendProps<T>) {
   return (
     <View style={styles.container}>
-      {markets.map((market, index) => (
+      {data.map((item, index) => (
         <LegendRow 
-          key={`${market.market}-${index}`} 
-          market={market}
+          key={`${item.name}-${index}`} 
+          item={item}
+          getColor={getColor}
           isFirst={index === 0}
-          isLast={index === markets.length - 1}
+          isLast={index === data.length - 1}
         />
       ))}
     </View>
@@ -122,7 +132,7 @@ const styles = createStyles({
     borderRadius: 5,
     marginRight: theme.spacing.md,
   },
-  categoryName: {
+  itemName: {
     color: theme.colors.foreground,
     ...getTextStyle('sm', 'semibold'),
     flex: 1,

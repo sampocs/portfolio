@@ -65,3 +65,14 @@ export interface AllocationDelta {
   percentageDelta: number;
   isOverAllocated: boolean;
 }
+
+// Generic allocation interface for both markets and segments
+export interface GenericAllocation {
+  name: string; // market name or segment name
+  currentValue: number;
+  currentAllocation: number;
+  targetAllocation: number;
+  assets: Asset[];
+  dollarDelta: number;
+  percentageDelta: number;
+}
