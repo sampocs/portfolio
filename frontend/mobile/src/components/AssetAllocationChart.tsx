@@ -17,9 +17,11 @@ interface ChartRowProps {
   isLast?: boolean;
 }
 
-const CHART_HEIGHT = 8;
-const LOGO_SIZE = 24; // Smaller than detail view
-const LABEL_WIDTH = LOGO_SIZE + 8; // Logo + small margin
+const BAR_HEIGHT = 6;
+const BAR_SPACING = 2; // Space between current and target bars
+const CHART_HEIGHT = (BAR_HEIGHT * 2) + BAR_SPACING; // Total height for both bars
+const LOGO_SIZE = 32;
+const LOGO_WIDTH = LOGO_SIZE + 8;
 const ROW_SPACING = 4;
 
 function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = false }: ChartRowProps) {
@@ -28,33 +30,10 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
 
   // Calculate bar dimensions based on dynamic max allocation = full width
   const currentBarWidth = (currentAllocation / maxAllocation) * chartWidth;
-  const targetPosition = (targetAllocation / maxAllocation) * chartWidth;
+  const targetBarWidth = (targetAllocation / maxAllocation) * chartWidth;
   
-  // Calculate segments for multi-color bar
-  const isOverAllocated = currentAllocation > targetAllocation;
-  const isUnderAllocated = currentAllocation < targetAllocation;
-  
-  // Base blue bar goes up to the minimum of current or target
-  const blueBarWidth = Math.min(currentBarWidth, targetPosition);
-  
-  // Additional segment based on allocation status
-  let additionalSegmentWidth = 0;
-  let additionalSegmentColor = '';
-  let additionalSegmentStart = 0;
-  
-  if (isOverAllocated) {
-    // Green for excess beyond target
-    additionalSegmentWidth = currentBarWidth - targetPosition;
-    additionalSegmentColor = theme.colors.success;
-    additionalSegmentStart = targetPosition;
-  } else if (isUnderAllocated) {
-    // Red for shortage up to target
-    additionalSegmentWidth = targetPosition - currentBarWidth;
-    additionalSegmentColor = theme.colors.destructive;
-    additionalSegmentStart = currentBarWidth;
-  }
-  
-  const blueColor = '#07BADA';
+  const currentColor = '#07BADA';
+  const targetColor = '#8B5CF6';
 
   // Get asset logo
   const getAssetLogo = (assetSymbol: string) => {
@@ -105,64 +84,45 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
       {/* Chart area */}
       <View style={styles.chartContainer}>
         <Svg width={chartWidth} height={CHART_HEIGHT + 4}>
-          <Defs>
-            {/* Mask for rounded corners only on outer edges */}
-            <Mask id={`barMask-${asset.asset}`}>
-              <Rect
-                x={0}
-                y={2}
-                width={Math.max(currentBarWidth, targetPosition)}
-                height={CHART_HEIGHT}
-                fill="white"
-                rx={CHART_HEIGHT / 2}
-              />
-            </Mask>
-          </Defs>
-          
-          {/* Background track */}
+          {/* Background tracks */}
           <Rect
             x={0}
             y={2}
             width={chartWidth}
-            height={CHART_HEIGHT}
+            height={BAR_HEIGHT}
             fill={theme.colors.card}
-            rx={CHART_HEIGHT / 2}
+            rx={BAR_HEIGHT / 2}
+          />
+          <Rect
+            x={0}
+            y={2 + BAR_HEIGHT + BAR_SPACING}
+            width={chartWidth}
+            height={BAR_HEIGHT}
+            fill={theme.colors.card}
+            rx={BAR_HEIGHT / 2}
           />
           
-          {/* Blue bar segment */}
-          {blueBarWidth > 0 && (
+          {/* Current allocation bar (top) */}
+          {currentBarWidth > 0 && (
             <Rect
               x={0}
               y={2}
-              width={blueBarWidth}
-              height={CHART_HEIGHT}
-              fill={blueColor}
-              mask={`url(#barMask-${asset.asset})`}
+              width={currentBarWidth}
+              height={BAR_HEIGHT}
+              fill={currentColor}
+              rx={BAR_HEIGHT / 2}
             />
           )}
           
-          {/* Additional segment (green for excess, red for shortage) */}
-          {additionalSegmentWidth > 0 && (
+          {/* Target allocation bar (bottom) */}
+          {targetBarWidth > 0 && (
             <Rect
-              x={additionalSegmentStart}
-              y={2}
-              width={additionalSegmentWidth}
-              height={CHART_HEIGHT}
-              fill={additionalSegmentColor}
-              mask={`url(#barMask-${asset.asset})`}
-            />
-          )}
-          
-          {/* Target allocation tick mark */}
-          {targetPosition > 0 && targetPosition <= chartWidth && (
-            <Line
-              x1={targetPosition}
-              y1={0}
-              x2={targetPosition}
-              y2={CHART_HEIGHT + 4}
-              stroke={theme.colors.foreground}
-              strokeWidth={2}
-              opacity={0.8}
+              x={0}
+              y={2 + BAR_HEIGHT + BAR_SPACING}
+              width={targetBarWidth}
+              height={BAR_HEIGHT}
+              fill={targetColor}
+              rx={BAR_HEIGHT / 2}
             />
           )}
         </Svg>
@@ -174,8 +134,8 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
 export default function AssetAllocationChart({ assets }: AssetAllocationChartProps) {
   const { width: screenWidth } = Dimensions.get('window');
   
-  // Calculate chart width (screen - padding - label width - spacing)
-  const chartWidth = screenWidth - (theme.spacing.xl * 2) - LABEL_WIDTH - theme.spacing.md;
+  // Calculate chart width (screen - padding - logo width - spacing)
+  const chartWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_WIDTH - theme.spacing.md;
 
   // Calculate the maximum allocation across all assets (current or target)
   const maxAllocation = useMemo(() => {
@@ -249,7 +209,7 @@ const styles = createStyles({
     borderBottomColor: theme.colors.border,
   },
   logoContainer: {
-    width: LABEL_WIDTH,
+    width: LOGO_WIDTH,
     marginRight: theme.spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
