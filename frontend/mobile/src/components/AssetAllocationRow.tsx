@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, Dimensions } from 'react-native';
-import { Svg, Rect, Line } from 'react-native-svg';
+import { Svg, Rect, Line, Defs, Mask } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
 import { Asset } from '../data/types';
@@ -132,6 +132,20 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
           {/* Chart section - full width */}
           <View style={styles.chartSection}>
             <Svg width={chartContainerWidth} height={CHART_HEIGHT + 12}>
+              <Defs>
+                {/* Mask for rounded corners only on outer edges */}
+                <Mask id="barMask">
+                  <Rect
+                    x={0}
+                    y={6}
+                    width={Math.max(currentBarWidth, targetPosition)}
+                    height={CHART_HEIGHT}
+                    fill="white"
+                    rx={CHART_HEIGHT / 2}
+                  />
+                </Mask>
+              </Defs>
+              
               {/* Background track */}
               <Rect
                 x={0}
@@ -150,7 +164,7 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
                   width={blueBarWidth}
                   height={CHART_HEIGHT}
                   fill={blueColor}
-                  rx={CHART_HEIGHT / 2}
+                  mask="url(#barMask)"
                 />
               )}
               
@@ -162,7 +176,7 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
                   width={additionalSegmentWidth}
                   height={CHART_HEIGHT}
                   fill={additionalSegmentColor}
-                  rx={CHART_HEIGHT / 2}
+                  mask="url(#barMask)"
                 />
               )}
               
