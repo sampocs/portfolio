@@ -339,7 +339,7 @@ const styles = createStyles({
   },
   detailLabel: {
     color: theme.colors.foreground,
-    ...getTextStyle('md'),
+    ...getTextStyle('sm'),
   },
   deltaContainer: {
     paddingHorizontal: theme.spacing.sm,
@@ -347,6 +347,6 @@ const styles = createStyles({
     borderRadius: theme.borderRadius.sm,
   },
   deltaText: {
-    ...getTextStyle('md', 'semibold'),
+    ...getTextStyle('sm', 'semibold'),
   },
 });
