@@ -3,17 +3,17 @@ import { View, Text } from 'react-native';
 import { Svg, Circle, G, Path } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
-import { CategoryAllocation } from '../data/types';
-import { getCategoryColor } from '../data/utils';
+import { MarketAllocation } from '../data/types';
+import { getMarketColor } from '../data/utils';
 
 interface CategoryDonutChartProps {
-  categories: CategoryAllocation[];
-  selectedCategory: CategoryAllocation | null;
-  onCategorySelect: (category: CategoryAllocation | null) => void;
+  markets: MarketAllocation[];
+  selectedMarket: MarketAllocation | null;
+  onMarketSelect: (market: MarketAllocation | null) => void;
 }
 
 interface DonutSegment {
-  category: string;
+  market: string;
   startAngle: number;
   endAngle: number;
   color: string;
@@ -76,8 +76,8 @@ const createTouchArea = (
   strokeWidth: number,
   startAngle: number,
   endAngle: number,
-  category: CategoryAllocation,
-  onCategorySelect: (category: CategoryAllocation | null) => void,
+  market: MarketAllocation,
+  onMarketSelect: (market: MarketAllocation | null) => void,
   keyPrefix: string,
   index: number
 ): React.ReactElement => {
@@ -116,59 +116,59 @@ const createTouchArea = (
       strokeWidth={0}
       onPress={(e) => {
         e.stopPropagation();
-        onCategorySelect(category);
+        onMarketSelect(market);
       }}
     />
   );
 };
 
-export default function CategoryDonutChart({ categories, selectedCategory, onCategorySelect }: CategoryDonutChartProps) {
+export default function CategoryDonutChart({ markets, selectedMarket, onMarketSelect }: CategoryDonutChartProps) {
 
   // Calculate total portfolio value for center display
-  const totalPortfolioValue = categories.reduce((sum, cat) => sum + cat.currentValue, 0);
+  const totalPortfolioValue = markets.reduce((sum, market) => sum + market.currentValue, 0);
 
   // Calculate segments for current allocations (outer ring)
   const currentSegments = useMemo(() => {
     let startAngle = 0;
-    return categories.map(category => {
-      const percentage = category.currentAllocation;
+    return markets.map(market => {
+      const percentage = market.currentAllocation;
       const endAngle = startAngle + percentageToAngle(percentage);
       const segment: DonutSegment = {
-        category: category.category,
+        market: market.market,
         startAngle,
         endAngle,
-        color: getCategoryColor(category.category),
+        color: getMarketColor(market.market),
         percentage,
       };
       startAngle = endAngle;
       return segment;
     });
-  }, [categories]);
+  }, [markets]);
 
   // Calculate segments for target allocations (inner ring)
   const targetSegments = useMemo(() => {
     let startAngle = 0;
-    return categories.map(category => {
-      const percentage = category.targetAllocation;
+    return markets.map(market => {
+      const percentage = market.targetAllocation;
       const endAngle = startAngle + percentageToAngle(percentage);
       const segment: DonutSegment = {
-        category: category.category,
+        market: market.market,
         startAngle,
         endAngle,
-        color: getCategoryColor(category.category),
+        color: getMarketColor(market.market),
         percentage,
       };
       startAngle = endAngle;
       return segment;
     });
-  }, [categories]);
+  }, [markets]);
 
   // Create interactive segments using the helper function
   const createInteractiveSegments = (): React.ReactElement[] => {
     const segments: React.ReactElement[] = [];
 
     // Outer ring touchable areas (current allocations)
-    categories.forEach((category, index) => {
+    markets.forEach((market, index) => {
       const currentSegment = currentSegments[index];
       if (!currentSegment || currentSegment.percentage <= 0) return;
 
@@ -178,8 +178,8 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           STROKE_WIDTH,
           currentSegment.startAngle,
           currentSegment.endAngle,
-          category,
-          onCategorySelect,
+          market,
+          onMarketSelect,
           'outer',
           index
         )
@@ -187,7 +187,7 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
     });
 
     // Inner ring touchable areas (target allocations)
-    categories.forEach((category, index) => {
+    markets.forEach((market, index) => {
       const targetSegment = targetSegments[index];
       if (!targetSegment || targetSegment.percentage <= 0) return;
 
@@ -197,8 +197,8 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           TARGET_STROKE_WIDTH,
           targetSegment.startAngle,
           targetSegment.endAngle,
-          category,
-          onCategorySelect,
+          market,
+          onMarketSelect,
           'inner',
           index
         )
@@ -217,9 +217,9 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
               {targetSegments.map((segment, index) => {
                 if (segment.percentage <= 0) return null;
                 
-                const category = categories[index];
-                const isSelected = selectedCategory?.category === category.category;
-                const opacity = selectedCategory && !isSelected ? 0.3 : 0.5;
+                const market = markets[index];
+                const isSelected = selectedMarket?.market === market.market;
+                const opacity = selectedMarket && !isSelected ? 0.3 : 0.5;
                 
                 const circumference = 2 * Math.PI * TARGET_RADIUS;
                 const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
@@ -248,9 +248,9 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
               {currentSegments.map((segment, index) => {
                 if (segment.percentage <= 0) return null;
                 
-                const category = categories[index];
-                const isSelected = selectedCategory?.category === category.category;
-                const opacity = selectedCategory && !isSelected ? 0.3 : 1.0;
+                const market = markets[index];
+                const isSelected = selectedMarket?.market === market.market;
+                const opacity = selectedMarket && !isSelected ? 0.3 : 1.0;
                 
                 const circumference = 2 * Math.PI * OUTER_RADIUS;
                 const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
@@ -277,20 +277,20 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
 
           {/* Dynamic center content */}
           <View style={styles.centerLabel}>
-            {selectedCategory ? (
+            {selectedMarket ? (
               <>
-                <Text style={styles.selectedCategoryName} numberOfLines={1} adjustsFontSizeToFit>{selectedCategory.category}</Text>
+                <Text style={styles.selectedCategoryName} numberOfLines={1} adjustsFontSizeToFit>{selectedMarket.market}</Text>
                 <Text style={styles.selectedAllocationText}>
-                  {selectedCategory.currentAllocation.toFixed(1)}% → {selectedCategory.targetAllocation.toFixed(1)}%
+                  {selectedMarket.currentAllocation.toFixed(1)}% → {selectedMarket.targetAllocation.toFixed(1)}%
                 </Text>
                 <Text style={styles.selectedValueText}>
-                  {formatCurrency(selectedCategory.currentValue)}
+                  {formatCurrency(selectedMarket.currentValue)}
                 </Text>
                 <Text style={[
                   styles.selectedDeltaText,
-                  { color: selectedCategory.percentageDelta >= 0 ? theme.colors.success : theme.colors.destructive }
+                  { color: selectedMarket.percentageDelta >= 0 ? theme.colors.success : theme.colors.destructive }
                 ]}>
-                  {selectedCategory.percentageDelta >= 0 ? '+' : ''}{selectedCategory.percentageDelta.toFixed(1)}%
+                  {selectedMarket.percentageDelta >= 0 ? '+' : ''}{selectedMarket.percentageDelta.toFixed(1)}%
                 </Text>
               </>
             ) : (
@@ -323,12 +323,12 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           <View style={styles.legendRow}>
             <Text style={styles.legendLabel}>Current:</Text>
             <View style={styles.legendDots}>
-              {categories.slice(0, 4).map((category, index) => (
+              {markets.slice(0, 4).map((market, index) => (
                 <View 
                   key={`current-${index}`}
                   style={[
                     styles.legendDot, 
-                    { backgroundColor: getCategoryColor(category.category) }
+                    { backgroundColor: getMarketColor(market.market) }
                   ]} 
                 />
               ))}
@@ -338,13 +338,13 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           <View style={styles.legendRow}>
             <Text style={styles.legendLabel}>Target:</Text>
             <View style={styles.legendDots}>
-              {categories.slice(0, 4).map((category, index) => (
+              {markets.slice(0, 4).map((market, index) => (
                 <View 
                   key={`target-${index}`}
                   style={[
                     styles.legendDot, 
                     { 
-                      backgroundColor: getCategoryColor(category.category),
+                      backgroundColor: getMarketColor(market.market),
                       opacity: 0.5 
                     }
                   ]} 

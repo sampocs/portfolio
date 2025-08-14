@@ -11,6 +11,7 @@ interface AssetListProps {
   selectedCategories: {
     stocks: boolean;
     crypto: boolean;
+    alternatives: boolean;
   };
 }
 
@@ -20,19 +21,15 @@ export default function AssetList({ assets, selectedCategories }: AssetListProps
   // Filter assets based on selected categories
   const filteredAssets = useMemo(() => {
     return assets.filter(asset => {
-      const isStockCategory = asset.category.includes('Stock') || 
-                             asset.category.includes('Gold') || 
-                             asset.category.includes('Real Estate');
-      const isCryptoCategory = asset.category.includes('Crypto');
+      const isStocksMarket = asset.market === 'Stocks';
+      const isCryptoMarket = asset.market === 'Crypto';
+      const isAlternativesMarket = asset.market === 'Alternatives';
       
-      if (selectedCategories.stocks && selectedCategories.crypto) {
-        return true; // Show all
-      } else if (selectedCategories.stocks && !selectedCategories.crypto) {
-        return isStockCategory;
-      } else if (!selectedCategories.stocks && selectedCategories.crypto) {
-        return isCryptoCategory;
-      }
-      return false; // Neither selected, show nothing
+      const showStocks = selectedCategories.stocks && isStocksMarket;
+      const showCrypto = selectedCategories.crypto && isCryptoMarket;
+      const showAlternatives = selectedCategories.alternatives && isAlternativesMarket;
+      
+      return showStocks || showCrypto || showAlternatives;
     });
   }, [assets, selectedCategories]);
 

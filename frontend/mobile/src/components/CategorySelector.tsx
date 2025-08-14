@@ -4,8 +4,8 @@ import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
 interface CategorySelectorProps {
-  selectedCategories: { stocks: boolean; crypto: boolean };
-  onCategoryToggle: (category: 'stocks' | 'crypto') => void;
+  selectedCategories: { stocks: boolean; crypto: boolean; alternatives: boolean };
+  onCategoryToggle: (category: 'stocks' | 'crypto' | 'alternatives') => void;
 }
 
 export default function CategorySelector({ selectedCategories, onCategoryToggle }: CategorySelectorProps) {
@@ -38,6 +38,21 @@ export default function CategorySelector({ selectedCategories, onCategoryToggle 
           selectedCategories.crypto && styles.selectedButtonText
         ]}>
           Crypto
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={[
+          styles.button,
+          selectedCategories.alternatives && styles.selectedButton
+        ]}
+        onPress={() => onCategoryToggle('alternatives')}
+      >
+        <Text style={[
+          styles.buttonText,
+          selectedCategories.alternatives && styles.selectedButtonText
+        ]}>
+          Alternatives
         </Text>
       </TouchableOpacity>
     </View>

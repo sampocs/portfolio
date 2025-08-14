@@ -25,6 +25,7 @@ export default function PortfolioScreen() {
   const [selectedCategories, setSelectedCategories] = useState({
     stocks: true,
     crypto: true,
+    alternatives: true,
   });
 
   // State for chart interaction
@@ -38,7 +39,7 @@ export default function PortfolioScreen() {
   const [selectedGranularity, setSelectedGranularity] = useState('ALL');
   const [isChartLoading, setIsChartLoading] = useState(false);
 
-  const handleCategoryToggle = async (category: 'stocks' | 'crypto') => {
+  const handleCategoryToggle = async (category: 'stocks' | 'crypto' | 'alternatives') => {
     const newCategories = {
       ...selectedCategories,
       [category]: !selectedCategories[category],
@@ -50,22 +51,18 @@ export default function PortfolioScreen() {
     // Refetch performance data with new category filter
     // We need to manually calculate the filtered assets for the new selection
     const filtered = positions.filter(asset => {
-      const isStockCategory = asset.category.includes('Stock') || 
-                             asset.category.includes('Gold') || 
-                             asset.category.includes('Real Estate');
-      const isCryptoCategory = asset.category.includes('Crypto');
+      const isStocksMarket = asset.market === 'Stocks';
+      const isCryptoMarket = asset.market === 'Crypto';
+      const isAlternativesMarket = asset.market === 'Alternatives';
       
-      if (newCategories.stocks && newCategories.crypto) {
-        return true; // All assets
-      } else if (newCategories.stocks && !newCategories.crypto) {
-        return isStockCategory;
-      } else if (!newCategories.stocks && newCategories.crypto) {
-        return isCryptoCategory;
-      }
-      return false; // Neither selected
+      const showStocks = newCategories.stocks && isStocksMarket;
+      const showCrypto = newCategories.crypto && isCryptoMarket;
+      const showAlternatives = newCategories.alternatives && isAlternativesMarket;
+      
+      return showStocks || showCrypto || showAlternatives;
     });
     
-    const assetSymbols = newCategories.stocks && newCategories.crypto 
+    const assetSymbols = newCategories.stocks && newCategories.crypto && newCategories.alternatives 
       ? undefined 
       : filtered.map(asset => asset.asset);
     
@@ -85,23 +82,21 @@ export default function PortfolioScreen() {
 
   // Get filtered asset symbols based on selected categories
   const getFilteredAssetSymbols = (positions: Asset[]): string[] | undefined => {
-    // If both categories are selected, don't filter (get all assets)
-    if (selectedCategories.stocks && selectedCategories.crypto) {
+    // If all categories are selected, don't filter (get all assets)
+    if (selectedCategories.stocks && selectedCategories.crypto && selectedCategories.alternatives) {
       return undefined;
     }
     
     const filtered = positions.filter(asset => {
-      const isStockCategory = asset.category.includes('Stock') || 
-                             asset.category.includes('Gold') || 
-                             asset.category.includes('Real Estate');
-      const isCryptoCategory = asset.category.includes('Crypto');
+      const isStocksMarket = asset.market === 'Stocks';
+      const isCryptoMarket = asset.market === 'Crypto';
+      const isAlternativesMarket = asset.market === 'Alternatives';
       
-      if (selectedCategories.stocks && !selectedCategories.crypto) {
-        return isStockCategory;
-      } else if (!selectedCategories.stocks && selectedCategories.crypto) {
-        return isCryptoCategory;
-      }
-      return false; // Neither selected
+      const showStocks = selectedCategories.stocks && isStocksMarket;
+      const showCrypto = selectedCategories.crypto && isCryptoMarket;
+      const showAlternatives = selectedCategories.alternatives && isAlternativesMarket;
+      
+      return showStocks || showCrypto || showAlternatives;
     });
     
     return filtered.map(asset => asset.asset);
@@ -162,33 +157,18 @@ export default function PortfolioScreen() {
     loadInitialData();
   }, []);
 
-  const getDisplayText = () => {
-    if (selectedCategories.stocks && selectedCategories.crypto) {
-      return 'Showing All Categories';
-    } else if (selectedCategories.stocks) {
-      return 'Showing Stocks';
-    } else if (selectedCategories.crypto) {
-      return 'Showing Crypto';
-    } else {
-      return 'No Categories Selected';
-    }
-  };
 
   // Filter assets based on selected categories (same logic as AssetList)
   const filteredPositions = positions.filter(asset => {
-    const isStockCategory = asset.category.includes('Stock') || 
-                           asset.category.includes('Gold') || 
-                           asset.category.includes('Real Estate');
-    const isCryptoCategory = asset.category.includes('Crypto');
+    const isStocksMarket = asset.market === 'Stocks';
+    const isCryptoMarket = asset.market === 'Crypto';
+    const isAlternativesMarket = asset.market === 'Alternatives';
     
-    if (selectedCategories.stocks && selectedCategories.crypto) {
-      return true; // Show all
-    } else if (selectedCategories.stocks && !selectedCategories.crypto) {
-      return isStockCategory;
-    } else if (!selectedCategories.stocks && selectedCategories.crypto) {
-      return isCryptoCategory;
-    }
-    return false; // Neither selected, show nothing
+    const showStocks = selectedCategories.stocks && isStocksMarket;
+    const showCrypto = selectedCategories.crypto && isCryptoMarket;
+    const showAlternatives = selectedCategories.alternatives && isAlternativesMarket;
+    
+    return showStocks || showCrypto || showAlternatives;
   });
 
   // Calculate portfolio summary from filtered API data

@@ -2,28 +2,28 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
-import { CategoryAllocation } from '../data/types';
-import { getCategoryColor } from '../data/utils';
+import { MarketAllocation } from '../data/types';
+import { getMarketColor } from '../data/utils';
 
-interface CategoryLegendProps {
-  categories: CategoryAllocation[];
+interface MarketLegendProps {
+  markets: MarketAllocation[];
 }
 
 interface LegendRowProps {
-  category: CategoryAllocation;
+  market: MarketAllocation;
   isFirst?: boolean;
   isLast?: boolean;
 }
 
-function LegendRow({ category, isFirst = false, isLast = false }: LegendRowProps) {
-  const color = getCategoryColor(category.category);
-  const isOverAllocated = category.percentageDelta > 0;
+function LegendRow({ market, isFirst = false, isLast = false }: LegendRowProps) {
+  const color = getMarketColor(market.market);
+  const isOverAllocated = market.percentageDelta > 0;
   // Over-allocated (positive delta) = green, Under-allocated (negative delta) = red
   const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
   const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
   // Calculate target dollar value for display
-  const targetValue = category.currentValue - category.dollarDelta;
+  const targetValue = market.currentValue - market.dollarDelta;
 
   // Dynamic container style based on position
   const containerStyle = [
@@ -37,26 +37,26 @@ function LegendRow({ category, isFirst = false, isLast = false }: LegendRowProps
     <View style={containerStyle}>
       <View style={styles.leftSection}>
         <View style={[styles.colorIndicator, { backgroundColor: color }]} />
-        <Text style={styles.categoryName}>{category.category}</Text>
+        <Text style={styles.categoryName}>{market.market}</Text>
       </View>
       
       <View style={styles.rightSection}>
         <View style={styles.percentageSection}>
           <Text style={styles.allocationText}>
-            {category.currentAllocation.toFixed(1)}% → {category.targetAllocation.toFixed(1)}%
+            {market.currentAllocation.toFixed(1)}% → {market.targetAllocation.toFixed(1)}%
           </Text>
         </View>
         
         <View style={styles.valueSection}>
           <Text style={styles.valueText}>
-            {formatCurrency(category.currentValue)} → {formatCurrency(targetValue)}
+            {formatCurrency(market.currentValue)} → {formatCurrency(targetValue)}
           </Text>
         </View>
         
         <View style={styles.deltaSection}>
           <View style={[styles.deltaContainer, { backgroundColor: deltaBackgroundColor }]}>
             <Text style={[styles.deltaText, { color: deltaColor }]}>
-              {category.dollarDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(category.dollarDelta))} ({category.percentageDelta >= 0 ? '+' : '-'}{Math.abs(category.percentageDelta).toFixed(1)}%)
+              {market.dollarDelta >= 0 ? '+' : '-'}{formatCurrency(Math.abs(market.dollarDelta))} ({market.percentageDelta >= 0 ? '+' : '-'}{Math.abs(market.percentageDelta).toFixed(1)}%)
             </Text>
           </View>
         </View>
@@ -65,15 +65,15 @@ function LegendRow({ category, isFirst = false, isLast = false }: LegendRowProps
   );
 }
 
-export default function CategoryLegend({ categories }: CategoryLegendProps) {
+export default function MarketLegend({ markets }: MarketLegendProps) {
   return (
     <View style={styles.container}>
-      {categories.map((category, index) => (
+      {markets.map((market, index) => (
         <LegendRow 
-          key={`${category.category}-${index}`} 
-          category={category}
+          key={`${market.market}-${index}`} 
+          market={market}
           isFirst={index === 0}
-          isLast={index === categories.length - 1}
+          isLast={index === markets.length - 1}
         />
       ))}
     </View>

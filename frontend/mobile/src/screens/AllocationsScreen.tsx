@@ -5,23 +5,23 @@ import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import GroupingSection, { GroupingType } from '../components/GroupingSection';
 import CategoryDonutChart from '../components/CategoryDonutChart';
-import CategoryLegend from '../components/CategoryLegend';
+import MarketLegend from '../components/MarketLegend';
 import AssetAllocationList from '../components/AssetAllocationList';
-import { Asset, CategoryAllocation } from '../data/types';
+import { Asset, MarketAllocation } from '../data/types';
 import { apiService } from '../services/api';
-import { aggregateAssetsByCategory } from '../data/utils';
+import { aggregateAssetsByMarket } from '../data/utils';
 
 export default function AllocationsScreen() {
   const [selectedGrouping, setSelectedGrouping] = useState<GroupingType>('categories');
   const [positions, setPositions] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryAllocation | null>(null);
+  const [selectedMarket, setSelectedMarket] = useState<MarketAllocation | null>(null);
 
-  // Calculate category data from positions
-  const categoryData = useMemo(() => {
+  // Calculate market data from positions
+  const marketData = useMemo(() => {
     if (positions.length === 0) return [];
-    return aggregateAssetsByCategory(positions);
+    return aggregateAssetsByMarket(positions);
   }, [positions]);
 
   // Data fetching function
@@ -87,7 +87,7 @@ export default function AllocationsScreen() {
       >
         <TouchableOpacity 
           style={styles.contentTouchable}
-          onPress={() => setSelectedCategory(null)}
+          onPress={() => setSelectedMarket(null)}
           activeOpacity={1}
         >
           <GroupingSection
@@ -98,11 +98,11 @@ export default function AllocationsScreen() {
           {selectedGrouping === 'categories' ? (
             <>
               <CategoryDonutChart 
-                categories={categoryData}
-                selectedCategory={selectedCategory}
-                onCategorySelect={setSelectedCategory}
+                markets={marketData}
+                selectedMarket={selectedMarket}
+                onMarketSelect={setSelectedMarket}
               />
-              <CategoryLegend categories={categoryData} />
+              <MarketLegend markets={marketData} />
             </>
           ) : (
             <AssetAllocationList assets={positions} />

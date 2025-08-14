@@ -4,7 +4,8 @@ import { calculateCurrentAllocations } from "./utils";
 const rawMockPositions: Asset[] = [
   {
     asset: "VT",
-    category: "Stock ETFs",
+    market: "Stocks",
+    segment: "Stock ETFs",
     description: "Total World",
     current_price: "115.42",
     average_price: "98.75",
@@ -17,7 +18,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "VOO",
-    category: "Stock ETFs",
+    market: "Stocks",
+    segment: "Stock ETFs",
     description: "Large Cap",
     current_price: "512.34",
     average_price: "478.92",
@@ -30,7 +32,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "VO",
-    category: "Stock ETFs",
+    market: "Stocks",
+    segment: "Stock ETFs",
     description: "Mid Cap",
     current_price: "278.91",
     average_price: "252.45",
@@ -43,7 +46,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "VB",
-    category: "Stock ETFs",
+    market: "Stocks",
+    segment: "Stock ETFs",
     description: "Small Cap",
     current_price: "239.81",
     average_price: "208.53",
@@ -56,7 +60,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "VXUS",
-    category: "Stock ETFs",
+    market: "Stocks",
+    segment: "Stock ETFs",
     description: "International",
     current_price: "64.89",
     average_price: "59.12",
@@ -69,7 +74,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "VWO",
-    category: "Stock ETFs",
+    market: "Stocks",
+    segment: "Stock ETFs",
     description: "Emerging",
     current_price: "45.67",
     average_price: "42.31",
@@ -82,7 +88,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "COIN",
-    category: "Crypto Stocks",
+    market: "Crypto",
+    segment: "Crypto Stocks",
     description: "Coinbase",
     current_price: "189.45",
     average_price: "165.23",
@@ -95,7 +102,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "HOOD",
-    category: "Crypto Stocks",
+    market: "Crypto",
+    segment: "Crypto Stocks",
     description: "Robinhood",
     current_price: "28.94",
     average_price: "24.67",
@@ -108,7 +116,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "AAAU",
-    category: "Alternatives",
+    market: "Alternatives",
+    segment: "Gold",
     description: "Gold",
     current_price: "19.87",
     average_price: "18.45",
@@ -121,7 +130,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "VNQ",
-    category: "Alternatives",
+    market: "Alternatives",
+    segment: "Real Estate",
     description: "Real Estate",
     current_price: "92.31",
     average_price: "87.12",
@@ -134,7 +144,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "BTC",
-    category: "Crypto Tokens",
+    market: "Crypto",
+    segment: "Crypto Tokens",
     description: "Bitcoin",
     current_price: "58429.32",
     average_price: "45231.87",
@@ -147,7 +158,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "ETH",
-    category: "Crypto Tokens",
+    market: "Crypto",
+    segment: "Crypto Tokens",
     description: "Ethereum",
     current_price: "2687.45",
     average_price: "2289.12",
@@ -160,7 +172,8 @@ const rawMockPositions: Asset[] = [
   },
   {
     asset: "SOL",
-    category: "Crypto Tokens",
+    market: "Crypto",
+    segment: "Crypto Tokens",
     description: "Solana",
     current_price: "145.67",
     average_price: "118.93",
