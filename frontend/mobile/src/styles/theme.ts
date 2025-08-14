@@ -1,18 +1,21 @@
 export const colors = {
-  background: '#000000',
-  foreground: '#F5F5F5',
-  muted: '#999999',
-  card: '#171717',
-  accent: '#242424',
-  border: '#333333',
-  destructive: '#FF3249',
-  destructiveBackground: '#48070F',
-  success: '#34D86C',
-  successBackground: '#00351D',
+  background: "#000000",
+  foreground: "#F5F5F5",
+  muted: "#999999",
+  card: "#171717",
+  accent: "#242424",
+  border: "#333333",
+  destructive: "#FF3249",
+  destructiveBackground: "#48070F",
+  success: "#34D86C",
+  successBackground: "#00351D",
+  // Asset allocation chart colors
+  allocationCurrent: "#12D5F8",
+  allocationTarget: "#BA9EFA",
 };
 
 export const typography = {
-  fontFamily: 'System', // Uses SF Pro on iOS, Roboto on Android - clean modern system fonts
+  fontFamily: "System", // Uses SF Pro on iOS, Roboto on Android - clean modern system fonts
   sizes: {
     xs: 12,
     sm: 14,
@@ -23,10 +26,10 @@ export const typography = {
     xxxl: 32,
   },
   weights: {
-    normal: '400' as const,
-    medium: '500' as const,
-    semibold: '600' as const,
-    bold: '700' as const,
+    normal: "400" as const,
+    medium: "500" as const,
+    semibold: "600" as const,
+    bold: "700" as const,
   },
 };
 

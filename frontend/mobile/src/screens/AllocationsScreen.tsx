@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
@@ -7,17 +7,19 @@ import GroupingSection, { GroupingType } from '../components/GroupingSection';
 import DonutChart from '../components/DonutChart';
 import AllocationLegend from '../components/AllocationLegend';
 import AssetAllocationList from '../components/AssetAllocationList';
+import AssetChartLegend from '../components/AssetChartLegend';
 import LoadingScreen from '../components/LoadingScreen';
-import { Asset, MarketAllocation, SegmentAllocation, GenericAllocation } from '../data/types';
-import { apiService } from '../services/api';
+import { useData } from '../contexts/DataContext';
+import { GenericAllocation } from '../data/types';
 import { aggregateAssetsByMarket, aggregateAssetsBySegment, marketToGeneric, segmentToGeneric, getMarketColor, getSegmentColor } from '../data/utils';
 
 export default function AllocationsScreen() {
   const [selectedGrouping, setSelectedGrouping] = useState<GroupingType>('markets');
-  const [positions, setPositions] = useState<Asset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedGenericItem, setSelectedGenericItem] = useState<GenericAllocation | null>(null);
+  const [localRefreshing, setLocalRefreshing] = useState(false);
+  
+  // Use shared data context instead of local state
+  const { positions, isLoading, refreshData } = useData();
 
   // Calculate market data from positions
   const marketData = useMemo(() => {
@@ -53,38 +55,13 @@ export default function AllocationsScreen() {
     setSelectedGenericItem(null);
   };
 
-  // Data fetching function
-  const fetchData = async () => {
-    try {
-      const positionsData = await apiService.getPositions();
-      setPositions(positionsData);
-    } catch (error) {
-      console.error('Error fetching positions data:', error);
-      // Handle error - could show toast or error state
-    }
-  };
-
-  // Initial data load
-  useEffect(() => {
-    const loadInitialData = async () => {
-      setIsLoading(true);
-      try {
-        await fetchData();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadInitialData();
-  }, []);
-
-  // Handle pull-to-refresh
+  // Handle pull-to-refresh using shared data context
   const handleRefresh = async () => {
-    setIsRefreshing(true);
+    setLocalRefreshing(true);
     try {
-      await fetchData();
+      await refreshData();
     } finally {
-      setIsRefreshing(false);
+      setLocalRefreshing(false);
     }
   };
 
@@ -102,7 +79,7 @@ export default function AllocationsScreen() {
         style={styles.scrollContent}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
+            refreshing={localRefreshing}
             onRefresh={handleRefresh}
             colors={[theme.colors.foreground]}
             tintColor={theme.colors.foreground}
@@ -139,7 +116,10 @@ export default function AllocationsScreen() {
               />
             </>
           ) : (
-            <AssetAllocationList assets={positions} />
+            <>
+              <AssetChartLegend />
+              <AssetAllocationList assets={positions} />
+            </>
           )}
         </TouchableOpacity>
       </ScrollView>
