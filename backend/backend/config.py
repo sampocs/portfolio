@@ -1,5 +1,6 @@
 import datetime
 from enum import Enum
+import json
 from typing import Any
 import logging
 from pydantic import Field, model_validator
@@ -24,6 +25,21 @@ DURATION_TO_TIMEDELTA = {
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("portfolio")
+
+
+@dataclass
+class InvalidPriceResponse(Exception):
+    price_type: str
+    source: str
+    response_data: dict
+
+    @property
+    def error_msg(self) -> str:
+        return f"Invalid {self.price_type} price response from {self.source}"
+
+    def log_error(self) -> None:
+        logger.error(self.error_msg)
+        logger.error(json.dumps(self.response_data, indent=4))
 
 
 class Market(Enum):

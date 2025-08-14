@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 import requests
 from sqlalchemy.orm import Session
-from backend.config import config
+from backend.config import config, InvalidPriceResponse
 from backend.database import models, crud
 
 
@@ -22,6 +22,9 @@ def _get_previous_stock_price(asset: str, target_dates: list[str]) -> dict[str, 
     }
     response = requests.get(config.alpha_prev_close_api, params=params)
     response_data: dict = response.json()
+
+    if "Time Series (Daily)" not in response_data:
+        raise InvalidPriceResponse(price_type="previous", source="AlphaVantage", response_data=response_data)
 
     daily_prices = response_data["Time Series (Daily)"]
 
@@ -49,6 +52,9 @@ def _get_previous_crypto_price(asset: str, target_dates: list[str]) -> dict[str,
     response = requests.get(config.coingecko_prev_close_api.format(coingecko_id), params=params)
     response_data: dict = response.json()
 
+    if "prices" not in response_data:
+        raise InvalidPriceResponse(price_type="previous", source="Coingecko", response_data=response_data)
+
     price_data = response_data["prices"]
     price_by_unix_date = {time_unix: str(price) for (time_unix, price) in price_data}
 
@@ -60,6 +66,10 @@ def _get_current_stock_price(asset: str) -> Decimal:
     params = {"symbol": asset, "token": config.finhub_api_token}
     response = requests.get(config.finhub_live_price_api, params=params)
     response_data: dict = response.json()
+
+    if "c" not in response_data:
+        raise InvalidPriceResponse(price_type="current", source="FinHub", response_data=response_data)
+
     return Decimal(str(response_data["c"]))
 
 
@@ -74,6 +84,9 @@ def _get_current_crypto_prices() -> dict[str, Decimal]:
 
     response = requests.get(config.coingecko_live_price_api, params=params)
     response_data: dict = response.json()
+
+    if not all(config.coingecko_ids[asset] in response_data for asset in config.crypto_tokens):
+        raise InvalidPriceResponse(price_type="current", source="Coingecko", response_data=response_data)
 
     return {asset: Decimal(str(response_data[config.coingecko_ids[asset]]["usd"])) for asset in config.crypto_tokens}
 
@@ -113,11 +126,17 @@ def get_cached_asset_prices(db: Session) -> dict[str, Decimal]:
     price_is_fresh = current_time - last_fetched_time < ttl_length
 
     # If the price is fresh, just use the one from the DB
+    latest_prices = {price_data.asset: price_data.price for price_data in all_price_data}
     if price_is_fresh:
-        return {price_data.asset: price_data.price for price_data in all_price_data}
+        return latest_prices
 
     # Otherwise fetch new prices, cache them and then return them
-    price_data_dict = get_current_asset_prices()
-    crud.store_live_prices(db, price_data_dict)
+    # If the price query fails (possibly due to the rate limit, just return the stale prices)
+    try:
+        price_data_dict = get_current_asset_prices()
+        crud.store_live_prices(db, price_data_dict)
+        return price_data_dict
+    except InvalidPriceResponse as e:
+        e.log_error()
 
-    return price_data_dict
+    return latest_prices
