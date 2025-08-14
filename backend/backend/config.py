@@ -19,7 +19,7 @@ VALID_DURATIONS = ["1W", "1M", "YTD", "1Y", "ALL"]
 DURATION_TO_TIMEDELTA = {
     "1W": datetime.timedelta(days=7),
     "1M": datetime.timedelta(days=30),
-    "1Y": datetime.timedelta(days=1),
+    "1Y": datetime.timedelta(days=365),
 }
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
