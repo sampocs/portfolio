@@ -33,6 +33,8 @@ export default function AssetAllocationList({ assets }: AssetAllocationListProps
           <AssetAllocationRow
             key={`${asset.asset}-${index}`}
             asset={asset}
+            isFirst={index === 0}
+            isLast={index === sortedAssets.length - 1}
           />
         ))}
       </View>
@@ -50,7 +52,7 @@ const styles = createStyles({
     marginBottom: theme.spacing.md,
   },
   assetList: {
-    gap: theme.spacing.sm,
+    // No gap - components connect directly with separators
   },
   emptyState: {
     alignItems: 'center',

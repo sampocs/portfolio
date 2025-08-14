@@ -8,13 +8,15 @@ import { calculateAllocationDelta } from '../data/utils';
 
 interface AssetAllocationRowProps {
   asset: Asset;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 const LOGO_SIZE = 40;
 const CHART_HEIGHT = 6;
 const MAX_DISPLAY_ALLOCATION = 50; // 50% = full width
 
-export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
+export default function AssetAllocationRow({ asset, isFirst = false, isLast = false }: AssetAllocationRowProps) {
   const { width: screenWidth } = Dimensions.get('window');
   
   // Calculate available width for the full-width chart (screen - padding - logo width - spacing)
@@ -73,8 +75,16 @@ export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
   const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
   const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
+  // Dynamic container style based on position
+  const containerStyle = [
+    styles.container,
+    isFirst && styles.firstContainer,
+    isLast && styles.lastContainer,
+    !isLast && styles.separatorContainer,
+  ];
+
   return (
-    <View style={styles.container}>
+    <View style={containerStyle}>
       {/* Top row - Logo, asset description, and current/target percentages */}
       <View style={styles.topRow}>
         <View style={styles.logoContainer}>
@@ -161,9 +171,21 @@ export default function AssetAllocationRow({ asset }: AssetAllocationRowProps) {
 const styles = createStyles({
   container: {
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: 0,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 0,
+  },
+  firstContainer: {
+    borderTopLeftRadius: theme.borderRadius.md,
+    borderTopRightRadius: theme.borderRadius.md,
+  },
+  lastContainer: {
+    borderBottomLeftRadius: theme.borderRadius.md,
+    borderBottomRightRadius: theme.borderRadius.md,
+  },
+  separatorContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   topRow: {
     flexDirection: 'row',
