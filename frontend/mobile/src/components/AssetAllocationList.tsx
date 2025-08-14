@@ -1,63 +1,39 @@
-import React, { useMemo } from 'react';
-import { View, Text } from 'react-native';
+import React from 'react';
+import { View } from 'react-native';
 import { theme } from '../styles/theme';
-import { createStyles, getTextStyle } from '../styles/utils';
+import { createStyles } from '../styles/utils';
 import { Asset } from '../data/types';
-import AssetAllocationRow from './AssetAllocationRow';
+import AssetAllocationChart from './AssetAllocationChart';
 
 interface AssetAllocationListProps {
   assets: Asset[];
 }
 
 export default function AssetAllocationList({ assets }: AssetAllocationListProps) {
-  // Sort assets by current allocation (largest first) for better visual hierarchy
-  const sortedAssets = useMemo(() => {
-    return [...assets].sort((a, b) => 
-      parseFloat(b.current_allocation) - parseFloat(a.current_allocation)
-    );
-  }, [assets]);
 
   if (assets.length === 0) {
     return (
       <View style={styles.emptyState}>
-        <Text style={styles.emptyText}>No assets to display</Text>
+        {/* Empty state can be handled by individual components */}
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Asset Allocations</Text>
-      <View style={styles.assetList}>
-        {sortedAssets.map((asset, index) => (
-          <AssetAllocationRow
-            key={`${asset.asset}-${index}`}
-            asset={asset}
-          />
-        ))}
-      </View>
+      {/* Expandable Chart with integrated details */}
+      <AssetAllocationChart assets={assets} />
     </View>
   );
 }
 
 const styles = createStyles({
   container: {
-    marginTop: theme.spacing.lg,
-  },
-  sectionTitle: {
-    color: theme.colors.foreground,
-    ...getTextStyle('lg', 'semibold'),
-    marginBottom: theme.spacing.md,
-  },
-  assetList: {
-    gap: theme.spacing.sm,
+    flex: 1,
   },
   emptyState: {
+    flex: 1,
     alignItems: 'center',
     paddingVertical: theme.spacing.xxl,
-  },
-  emptyText: {
-    color: theme.colors.muted,
-    ...getTextStyle('md'),
   },
 });

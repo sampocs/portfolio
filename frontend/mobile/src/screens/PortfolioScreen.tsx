@@ -8,7 +8,7 @@ import Summary from '../components/Summary';
 import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
 import AssetList from '../components/AssetList';
 import LoadingScreen from '../components/LoadingScreen';
-import { apiService } from '../services/api';
+import { useData } from '../contexts/DataContext';
 import { performanceCacheManager } from '../services/performanceCache';
 import { calculatePortfolioSummary } from '../data/utils';
 import { Asset, PerformanceData } from '../data/types';
@@ -33,14 +33,15 @@ export default function PortfolioScreen() {
   // State for chart interaction
   const [selectedDataPoint, setSelectedDataPoint] = useState<PerformanceData | null>(null);
 
-  // API data state
-  const [positions, setPositions] = useState<Asset[]>([]);
+  // Use shared positions data from context
+  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData } = useData();
+
+  // Local state for performance data and chart-specific loading
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedGranularity, setSelectedGranularity] = useState('ALL');
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [isDataCached, setIsDataCached] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const handleCategoryToggle = async (category: 'stocks' | 'crypto' | 'alternatives') => {
     const newCategories = {
@@ -82,8 +83,7 @@ export default function PortfolioScreen() {
     
     try {
       const startTime = Date.now();
-      const performanceDataResponse = await performanceCacheManager.getPerformanceData(selectedGranularity, assetSymbols, 'high');
-      setPerformanceData(performanceDataResponse);
+      await fetchPerformanceData(selectedGranularity, true);
       const fetchTime = Date.now() - startTime;
       
       // Add minimal delay for smooth transition if cached
@@ -123,41 +123,31 @@ export default function PortfolioScreen() {
     return filtered.map(asset => asset.asset);
   };
 
-  // Data fetching functions
-  const fetchData = async (granularity: string = selectedGranularity, forceRefreshPositions: boolean = false, isUserInitiated: boolean = true) => {
+  // Performance data fetching function (positions now come from context)
+  const fetchPerformanceData = async (granularity: string = selectedGranularity, isUserInitiated: boolean = true) => {
     try {
-      let positionsData = positions;
-      
-      // Only fetch positions if we don't have them or if forced
-      if (positions.length === 0 || forceRefreshPositions) {
-        positionsData = await apiService.getPositions();
-        setPositions(positionsData);
-        
-        // Start background preloading after positions are loaded
-        if (positionsData.length > 0) {
-          performanceCacheManager.preloadPerformanceData(positionsData);
-        }
-      }
-      
       // Get filtered asset symbols for performance query
-      const assetSymbols = getFilteredAssetSymbols(positionsData);
+      const assetSymbols = getFilteredAssetSymbols(positions);
       
       // Use cache manager with priority based on whether it's user-initiated
       const priority = isUserInitiated ? 'high' : 'low';
       const performanceDataResponse = await performanceCacheManager.getPerformanceData(granularity, assetSymbols, priority);
       setPerformanceData(performanceDataResponse);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching performance data:', error);
       // Handle error - could show toast or error state
     }
   };
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
     try {
-      await fetchData(selectedGranularity, true); // Force refresh positions
-    } finally {
-      setIsRefreshing(false);
+      // Refresh positions through context and performance data
+      await Promise.all([
+        refreshData(), // This refreshes positions
+        fetchPerformanceData(selectedGranularity, true) // This refreshes performance data
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
     }
   };
 
@@ -176,7 +166,7 @@ export default function PortfolioScreen() {
     
     try {
       const startTime = Date.now();
-      await fetchData(granularity);
+      await fetchPerformanceData(granularity);
       const fetchTime = Date.now() - startTime;
       
       // If fetch was very fast (cached), add minimal delay for smooth visual transition
@@ -188,19 +178,26 @@ export default function PortfolioScreen() {
     }
   };
 
-  // Initial data load
+  // Initial performance data load when positions are available
   useEffect(() => {
-    const loadInitialData = async () => {
-      setIsLoading(true);
-      try {
-        await fetchData();
-      } finally {
-        setIsLoading(false);
+    const loadPerformanceData = async () => {
+      if (positions.length > 0 && isInitialLoad) {
+        try {
+          // Start background preloading after positions are loaded
+          performanceCacheManager.preloadPerformanceData(positions);
+          
+          // Fetch initial performance data
+          await fetchPerformanceData();
+        } catch (error) {
+          console.error('Error loading initial performance data:', error);
+        } finally {
+          setIsInitialLoad(false);
+        }
       }
     };
 
-    loadInitialData();
-  }, []);
+    loadPerformanceData();
+  }, [positions, isInitialLoad]);
 
 
   // Filter assets based on selected categories (same logic as AssetList)
@@ -232,7 +229,7 @@ export default function PortfolioScreen() {
     selectedDate: undefined,
   };
 
-  if (isLoading) {
+  if (positionsLoading) {
     return <LoadingScreen title="Portfolio" />;
   }
 
@@ -245,7 +242,7 @@ export default function PortfolioScreen() {
         style={styles.scrollContent}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
+            refreshing={positionsRefreshing}
             onRefresh={handleRefresh}
             colors={[theme.colors.foreground]}
             tintColor={theme.colors.foreground}
