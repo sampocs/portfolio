@@ -32,8 +32,8 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
   const currentBarWidth = (currentAllocation / maxAllocation) * chartWidth;
   const targetBarWidth = (targetAllocation / maxAllocation) * chartWidth;
   
-  const currentColor = '#07BADA';
-  const targetColor = '#8B5CF6';
+  const currentColor = theme.colors.allocationCurrent;
+  const targetColor = theme.colors.allocationTarget;
 
   // Calculate allocation details for expanded view
   const currentValue = parseFloat(asset.value);

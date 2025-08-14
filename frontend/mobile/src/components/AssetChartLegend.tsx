@@ -4,8 +4,8 @@ import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
 export default function AssetChartLegend() {
-  const currentColor = '#07BADA';
-  const targetColor = '#8B5CF6';
+  const currentColor = theme.colors.allocationCurrent;
+  const targetColor = theme.colors.allocationTarget;
 
   return (
     <View style={styles.container}>
