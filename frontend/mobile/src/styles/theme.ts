@@ -10,8 +10,8 @@ export const colors = {
   success: "#34D86C",
   successBackground: "#00351D",
   // Asset allocation chart colors
-  allocationCurrent: "#07CBED",
-  allocationTarget: "#9E77F8",
+  allocationCurrent: "#12D5F8",
+  allocationTarget: "#BA9EFA",
 };
 
 export const typography = {
