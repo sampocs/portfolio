@@ -7,9 +7,10 @@ import GroupingSection, { GroupingType } from '../components/GroupingSection';
 import DonutChart from '../components/DonutChart';
 import AllocationLegend from '../components/AllocationLegend';
 import AssetAllocationList from '../components/AssetAllocationList';
+import AssetChartLegend from '../components/AssetChartLegend';
 import LoadingScreen from '../components/LoadingScreen';
 import { useData } from '../contexts/DataContext';
-import { Asset, MarketAllocation, SegmentAllocation, GenericAllocation } from '../data/types';
+import { GenericAllocation } from '../data/types';
 import { aggregateAssetsByMarket, aggregateAssetsBySegment, marketToGeneric, segmentToGeneric, getMarketColor, getSegmentColor } from '../data/utils';
 
 export default function AllocationsScreen() {
@@ -115,7 +116,10 @@ export default function AllocationsScreen() {
               />
             </>
           ) : (
-            <AssetAllocationList assets={positions} />
+            <>
+              <AssetChartLegend />
+              <AssetAllocationList assets={positions} />
+            </>
           )}
         </TouchableOpacity>
       </ScrollView>
