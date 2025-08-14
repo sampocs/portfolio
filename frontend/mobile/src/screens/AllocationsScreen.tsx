@@ -15,9 +15,10 @@ import { aggregateAssetsByMarket, aggregateAssetsBySegment, marketToGeneric, seg
 export default function AllocationsScreen() {
   const [selectedGrouping, setSelectedGrouping] = useState<GroupingType>('markets');
   const [selectedGenericItem, setSelectedGenericItem] = useState<GenericAllocation | null>(null);
+  const [localRefreshing, setLocalRefreshing] = useState(false);
   
   // Use shared data context instead of local state
-  const { positions, isLoading, isRefreshing, refreshData } = useData();
+  const { positions, isLoading, refreshData } = useData();
 
   // Calculate market data from positions
   const marketData = useMemo(() => {
@@ -55,7 +56,12 @@ export default function AllocationsScreen() {
 
   // Handle pull-to-refresh using shared data context
   const handleRefresh = async () => {
-    await refreshData();
+    setLocalRefreshing(true);
+    try {
+      await refreshData();
+    } finally {
+      setLocalRefreshing(false);
+    }
   };
 
   // Loading state
@@ -72,7 +78,7 @@ export default function AllocationsScreen() {
         style={styles.scrollContent}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
+            refreshing={localRefreshing}
             onRefresh={handleRefresh}
             colors={[theme.colors.foreground]}
             tintColor={theme.colors.foreground}
