@@ -43,16 +43,15 @@ function LegendRow<T extends GenericAllocation>({
     <View style={containerStyle}>
       <View style={styles.leftSection}>
         <View style={[styles.colorIndicator, { backgroundColor: color }]} />
-        <Text style={styles.itemName}>{item.name}</Text>
-      </View>
-      
-      <View style={styles.rightSection}>
-        <View style={styles.percentageSection}>
+        <View style={styles.nameAndPercentageContainer}>
+          <Text style={styles.itemName}>{item.name}</Text>
           <Text style={styles.allocationText}>
             {item.currentAllocation.toFixed(1)}% → {item.targetAllocation.toFixed(1)}%
           </Text>
         </View>
-        
+      </View>
+      
+      <View style={styles.rightSection}>
         <View style={styles.valueSection}>
           <Text style={styles.valueText}>
             {formatCurrency(item.currentValue)} → {formatCurrency(targetValue)}
@@ -123,7 +122,7 @@ const styles = createStyles({
   },
   leftSection: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
   },
   colorIndicator: {
@@ -131,22 +130,23 @@ const styles = createStyles({
     height: 10,
     borderRadius: 5,
     marginRight: theme.spacing.md,
+    marginTop: 2, // Align with the first line of text
+  },
+  nameAndPercentageContainer: {
+    flex: 1,
   },
   itemName: {
     color: theme.colors.foreground,
     ...getTextStyle('sm', 'semibold'),
-    flex: 1,
-  },
-  rightSection: {
-    alignItems: 'flex-end',
-    flex: 1.5,
-  },
-  percentageSection: {
-    marginBottom: 3,
+    marginBottom: 2,
   },
   allocationText: {
     color: theme.colors.muted,
     ...getTextStyle('xs'),
+  },
+  rightSection: {
+    alignItems: 'flex-end',
+    flex: 1.2, // Slightly reduced since we moved percentages to left
   },
   valueSection: {
     marginBottom: 3,
