@@ -2,7 +2,7 @@ import { Asset, PerformanceData } from "../data/types";
 import { mockPositions, mockPerformanceData } from "../data/mockData";
 
 // Configuration
-const USE_MOCK_DATA = false; // Set to false to use real API
+const USE_MOCK_DATA = true; // Set to false to use real API
 const API_BASE_URL = "https://portfolio-backend-production-29dc.up.railway.app";
 
 // Get API token from environment variable
@@ -55,18 +55,25 @@ class ApiService {
     }
   }
 
-  async getPerformance(granularity: string, assets?: string[]): Promise<PerformanceData[]> {
+  async getPerformance(
+    granularity: string,
+    assets?: string[]
+  ): Promise<PerformanceData[]> {
     try {
       let endpoint = `/performance/${granularity}`;
       if (assets && assets.length > 0) {
-        const assetsParam = assets.join(',');
+        const assetsParam = assets.join(",");
         endpoint += `?assets=${encodeURIComponent(assetsParam)}`;
       }
-      
+
       return await this.makeRequest<PerformanceData[]>(endpoint);
     } catch (error) {
       if (USE_MOCK_DATA) {
-        console.log(`Using mock performance data for ${granularity}${assets ? ` with assets: ${assets.join(', ')}` : ''}`);
+        console.log(
+          `Using mock performance data for ${granularity}${
+            assets ? ` with assets: ${assets.join(", ")}` : ""
+          }`
+        );
         return mockPerformanceData;
       }
       console.error(

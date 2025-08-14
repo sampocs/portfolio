@@ -27,3 +27,7 @@ endif
 
 pip-freeze:
 	@pipreqs backend --force
+
+copy-data:
+	@rm -rf ../porfolio-data/prices/ ../porfolio-data/trades/
+	@cp -r data/* ../portfolio-data/

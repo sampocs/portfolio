@@ -84,17 +84,25 @@ Building a React Native application to display investment portfolio information 
 
 ### 6. API Integration
 
-- [ ] Integrate with actual API endpoints
-  - [ ] Setup authentication with FASTAPI_SECRET bearer token
-  - [ ] Connect positions endpoint: `/positions`
-  - [ ] Connect performance endpoint: `/performance/{granularity}`
-  - [ ] Map granularity from chart duration selection
-  - [ ] Replace mock data with API calls
-  - [ ] Add loading states and error handling
+- [x] Integrate with actual API endpoints
+  - [x] Setup authentication with FASTAPI_SECRET bearer token
+  - [x] Connect positions endpoint: `/positions`
+  - [x] Connect performance endpoint: `/performance/{granularity}`
+  - [x] Map granularity from chart duration selection
+  - [x] Replace mock data with API calls
+  - [x] Add loading states and error handling
 
-### 7. Allocations Tab (Future)
+### 7. Allocations Tab Implementation
 
-- [ ] Spec and implement allocations screen (to be defined later)
+- [ ] Build GroupingSection component - toggle between "Categories" and "Assets"
+- [ ] Research and design category aggregation logic (group assets by category with totals)
+- [ ] Build dual donut chart component for category allocations (target vs current)
+- [ ] Build category chart legend and data display (percentages + dollar values)
+- [ ] Design asset allocation chart component with bullet/bar style
+- [ ] Build individual asset allocation row with logo, description, and chart
+- [ ] Implement allocation bar scaling (50% = full width, proportional scaling)
+- [ ] Add allocation data display (current/target %, current/target $, deltas)
+- [ ] Integrate allocations components into AllocationsScreen with API data
 
 ## API Details
 
