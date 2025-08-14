@@ -160,7 +160,7 @@ const styles = createStyles({
   },
   allocationText: {
     color: theme.colors.muted,
-    ...getTextStyle('sm'),
+    ...getTextStyle('md'),
   },
   rightSection: {
     alignItems: 'flex-end',
@@ -182,10 +182,10 @@ const styles = createStyles({
     borderRadius: theme.borderRadius.sm,
   },
   deltaText: {
-    ...getTextStyle('sm', 'semibold'),
+    ...getTextStyle('md', 'semibold'),
   },
   // Markets-specific minimal font improvements
   marketItemName: {
-    ...getTextStyle('md', 'bold'), // Just bolder weight, same size
+    ...getTextStyle('lg', 'bold'), // Larger size for market names
   },
 });
