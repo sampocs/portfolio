@@ -192,6 +192,33 @@ class PerformanceCacheManager {
     return { stocks, crypto, alternatives };
   }
 
+  // Generate all possible market filter combinations
+  private generateMarketCombinations(positions: Asset[]): Array<string[] | undefined> {
+    const { stocks, crypto, alternatives } = this.getAssetSymbolsByMarket(positions);
+    const combinations: Array<string[] | undefined> = [];
+
+    // All markets (undefined = no filter)
+    combinations.push(undefined);
+
+    // Single markets
+    if (stocks.length > 0) combinations.push(stocks);
+    if (crypto.length > 0) combinations.push(crypto);
+    if (alternatives.length > 0) combinations.push(alternatives);
+
+    // Two-market combinations
+    if (stocks.length > 0 && crypto.length > 0) {
+      combinations.push([...stocks, ...crypto]);
+    }
+    if (stocks.length > 0 && alternatives.length > 0) {
+      combinations.push([...stocks, ...alternatives]);
+    }
+    if (crypto.length > 0 && alternatives.length > 0) {
+      combinations.push([...crypto, ...alternatives]);
+    }
+
+    return combinations;
+  }
+
   // Preload performance data in background
   async preloadPerformanceData(positions: Asset[]): Promise<void> {
     if (this.preloadInProgress) {
@@ -203,47 +230,36 @@ class PerformanceCacheManager {
     console.log('Starting background preload of performance data');
 
     const durations = ['1W', '1M', 'YTD', '1Y']; // Skip 'ALL' as it's loaded initially
-    const { stocks, crypto, alternatives } = this.getAssetSymbolsByMarket(positions);
+    const allDurations = ['ALL', ...durations]; // Include ALL for market combinations
+    const marketCombinations = this.generateMarketCombinations(positions);
 
     const preloadTasks: Array<{ granularity: string; assets?: string[] }> = [];
 
-    // Add remaining durations for all assets
-    durations.forEach(duration => {
-      preloadTasks.push({ granularity: duration });
+    // For each duration, preload all market combinations
+    allDurations.forEach(duration => {
+      marketCombinations.forEach(assetCombination => {
+        // Skip 'ALL' + undefined (all markets) as it's loaded initially
+        if (duration === 'ALL' && !assetCombination) {
+          return;
+        }
+        preloadTasks.push({ 
+          granularity: duration, 
+          assets: assetCombination 
+        });
+      });
     });
 
-    // Add all durations for each market category
-    durations.forEach(duration => {
-      if (stocks.length > 0) {
-        preloadTasks.push({ granularity: duration, assets: stocks });
-      }
-      if (crypto.length > 0) {
-        preloadTasks.push({ granularity: duration, assets: crypto });
-      }
-      if (alternatives.length > 0) {
-        preloadTasks.push({ granularity: duration, assets: alternatives });
-      }
-    });
-
-    // Add current duration for all categories (ALL for each market)
-    if (stocks.length > 0) {
-      preloadTasks.push({ granularity: 'ALL', assets: stocks });
-    }
-    if (crypto.length > 0) {
-      preloadTasks.push({ granularity: 'ALL', assets: crypto });
-    }
-    if (alternatives.length > 0) {
-      preloadTasks.push({ granularity: 'ALL', assets: alternatives });
-    }
+    console.log(`Preloading ${preloadTasks.length} combinations (${allDurations.length} durations × ${marketCombinations.length} market filters)`);
 
     // Queue all preload tasks with low priority
-    const preloadPromises = preloadTasks.map(task => 
-      this.getPerformanceData(task.granularity, task.assets, 'low')
+    const preloadPromises = preloadTasks.map(task => {
+      const marketDesc = task.assets ? `[${task.assets.length} assets]` : 'all markets';
+      return this.getPerformanceData(task.granularity, task.assets, 'low')
         .catch(error => {
-          console.log(`Background preload failed for ${task.granularity}:`, error);
+          console.log(`Background preload failed for ${task.granularity} ${marketDesc}:`, error);
           // Don't throw - we don't want to fail the entire preload
-        })
-    );
+        });
+    });
 
     try {
       await Promise.allSettled(preloadPromises);
