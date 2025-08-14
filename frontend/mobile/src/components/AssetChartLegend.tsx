@@ -45,7 +45,7 @@ const styles = createStyles({
     marginRight: theme.spacing.xs,
   },
   labelText: {
-    color: theme.colors.muted,
+    color: theme.colors.foreground,
     ...getTextStyle('sm', 'medium'),
   },
 });
