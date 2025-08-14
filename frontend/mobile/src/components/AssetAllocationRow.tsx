@@ -59,7 +59,7 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
     additionalSegmentStart = currentBarWidth;
   }
   
-  const blueColor = '#06A9C6';
+  const blueColor = '#07BADA';
 
   // Get asset logo path
   const getAssetLogo = (assetSymbol: string) => {
