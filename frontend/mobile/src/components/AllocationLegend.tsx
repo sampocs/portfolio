@@ -171,7 +171,7 @@ const styles = createStyles({
   },
   valueText: {
     color: theme.colors.foreground,
-    ...getTextStyle('sm'),
+    ...getTextStyle('md'),
   },
   deltaSection: {
     alignItems: 'flex-end',
