@@ -13,7 +13,7 @@ interface AssetAllocationRowProps {
 }
 
 const LOGO_SIZE = 40;
-const CHART_HEIGHT = 6;
+const CHART_HEIGHT = 8; // Increased from 6 to 8 for thicker bar
 const MAX_DISPLAY_ALLOCATION = 50; // 50% = full width
 
 export default function AssetAllocationRow({ asset, isFirst = false, isLast = false }: AssetAllocationRowProps) {
@@ -35,13 +35,8 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
   const currentBarWidth = Math.min(currentAllocation / MAX_DISPLAY_ALLOCATION, 1) * chartContainerWidth;
   const targetPosition = Math.min(targetAllocation / MAX_DISPLAY_ALLOCATION, 1) * chartContainerWidth;
   
-  // Determine bar color based on allocation accuracy
-  const allocationDifference = Math.abs(percentageDelta);
-  const barColor = useMemo(() => {
-    if (allocationDifference <= 0.5) return theme.colors.success;
-    if (allocationDifference <= 1.0) return '#F59E0B'; // Orange for moderate difference
-    return theme.colors.destructive;
-  }, [allocationDifference]);
+  // Use consistent blue bar color
+  const barColor = '#06A9C6';
 
   // Get asset logo path
   const getAssetLogo = (assetSymbol: string) => {
@@ -114,11 +109,11 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
 
           {/* Chart section - full width */}
           <View style={styles.chartSection}>
-            <Svg width={chartContainerWidth} height={CHART_HEIGHT + 8}>
+            <Svg width={chartContainerWidth} height={CHART_HEIGHT + 12}>
               {/* Background track */}
               <Rect
                 x={0}
-                y={4}
+                y={6}
                 width={chartContainerWidth}
                 height={CHART_HEIGHT}
                 fill={theme.colors.card}
@@ -129,7 +124,7 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
               {currentBarWidth > 0 && (
                 <Rect
                   x={0}
-                  y={4}
+                  y={6}
                   width={currentBarWidth}
                   height={CHART_HEIGHT}
                   fill={barColor}
@@ -137,13 +132,13 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
                 />
               )}
               
-              {/* Target allocation tick mark */}
+              {/* Target allocation tick mark - longer */}
               {targetPosition > 0 && targetPosition <= chartContainerWidth && (
                 <Line
                   x1={targetPosition}
-                  y1={2}
+                  y1={0}
                   x2={targetPosition}
-                  y2={CHART_HEIGHT + 6}
+                  y2={CHART_HEIGHT + 12}
                   stroke={theme.colors.foreground}
                   strokeWidth={2}
                   opacity={0.8}
