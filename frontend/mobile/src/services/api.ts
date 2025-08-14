@@ -2,7 +2,7 @@ import { Asset, PerformanceData } from "../data/types";
 import { mockPositions, mockPerformanceData } from "../data/mockData";
 
 // Configuration
-const USE_MOCK_DATA = true; // Set to false to use real API
+const USE_MOCK_DATA = false; // Set to false to use real API
 const API_BASE_URL = "https://portfolio-backend-production-29dc.up.railway.app";
 
 // Get API token from environment variable

@@ -2,8 +2,10 @@ import {
   Asset,
   PerformanceData,
   PortfolioSummary,
-  CategoryAllocation,
+  MarketAllocation,
+  SegmentAllocation,
   AllocationDelta,
+  GenericAllocation,
 } from "./types";
 
 export const calculatePortfolioSummary = (
@@ -35,38 +37,28 @@ export const calculateCurrentAllocations = (positions: Asset[]): Asset[] => {
     0
   );
 
-  const assetsWithAllocations = positions.map(asset => {
-    const allocation = ((parseFloat(asset.value) / totalValue) * 100).toFixed(2);
+  const assetsWithAllocations = positions.map((asset) => {
+    const allocation = ((parseFloat(asset.value) / totalValue) * 100).toFixed(
+      2
+    );
     return {
       ...asset,
-      current_allocation: allocation
+      current_allocation: allocation,
     };
   });
-
-  // Log current allocations for each asset
-  console.log('=== Current Allocations ===');
-  console.log(`Total Portfolio Value: $${totalValue.toLocaleString()}`);
-  assetsWithAllocations.forEach(asset => {
-    console.log(`${asset.asset}: ${asset.current_allocation}% (Target: ${asset.target_allocation}%) - ${asset.category}`);
-  });
-  console.log('========================');
 
   return assetsWithAllocations;
 };
 
-export const filterAssetsByCategory = (
+export const filterAssetsByMarket = (
   assets: Asset[],
-  category: "Crypto" | "Stocks"
+  market: "Crypto" | "Stocks"
 ): Asset[] => {
-  if (category === "Crypto") {
-    return assets.filter(
-      (asset) =>
-        asset.category === "Crypto Tokens" || asset.category === "Crypto Stocks"
-    );
+  if (market === "Crypto") {
+    return assets.filter((asset) => asset.market === "Crypto");
   } else {
     return assets.filter(
-      (asset) =>
-        asset.category !== "Crypto Tokens" && asset.category !== "Crypto Stocks"
+      (asset) => asset.market === "Stocks" || asset.market === "Alternatives"
     );
   }
 };
@@ -90,25 +82,25 @@ export const getPerformanceRange = (
   };
 };
 
-export const aggregateAssetsByCategory = (
+export const aggregateAssetsByMarket = (
   assets: Asset[]
-): CategoryAllocation[] => {
-  const categoryMap = new Map<string, CategoryAllocation>();
+): MarketAllocation[] => {
+  const marketMap = new Map<string, MarketAllocation>();
   const totalPortfolioValue = assets.reduce(
     (sum, asset) => sum + parseFloat(asset.value),
     0
   );
 
-  // Group assets by category
+  // Group assets by market
   assets.forEach((asset) => {
-    const category = asset.category;
+    const market = asset.market;
     const currentValue = parseFloat(asset.value);
     const currentAllocation = parseFloat(asset.current_allocation);
     const targetAllocation = parseFloat(asset.target_allocation);
 
-    if (!categoryMap.has(category)) {
-      categoryMap.set(category, {
-        category,
+    if (!marketMap.has(market)) {
+      marketMap.set(market, {
+        market,
         currentValue: 0,
         currentAllocation: 0,
         targetAllocation: 0,
@@ -118,29 +110,28 @@ export const aggregateAssetsByCategory = (
       });
     }
 
-    const categoryData = categoryMap.get(category)!;
-    categoryData.currentValue += currentValue;
-    categoryData.currentAllocation += currentAllocation;
-    categoryData.targetAllocation += targetAllocation;
-    categoryData.assets.push(asset);
+    const marketData = marketMap.get(market)!;
+    marketData.currentValue += currentValue;
+    marketData.currentAllocation += currentAllocation;
+    marketData.targetAllocation += targetAllocation;
+    marketData.assets.push(asset);
   });
 
-  // Calculate deltas for each category
-  const categories = Array.from(categoryMap.values()).map((category) => {
-    const targetValue = (category.targetAllocation / 100) * totalPortfolioValue;
-    const dollarDelta = category.currentValue - targetValue;
-    const percentageDelta =
-      category.currentAllocation - category.targetAllocation;
+  // Calculate deltas for each market
+  const markets = Array.from(marketMap.values()).map((market) => {
+    const targetValue = (market.targetAllocation / 100) * totalPortfolioValue;
+    const dollarDelta = market.currentValue - targetValue;
+    const percentageDelta = market.currentAllocation - market.targetAllocation;
 
     return {
-      ...category,
+      ...market,
       dollarDelta,
       percentageDelta,
     };
   });
 
   // Sort by target allocation (largest first)
-  return categories.sort((a, b) => b.targetAllocation - a.targetAllocation);
+  return markets.sort((a, b) => b.targetAllocation - a.targetAllocation);
 };
 
 export const calculateAllocationDelta = (
@@ -160,13 +151,102 @@ export const calculateAllocationDelta = (
   };
 };
 
-export const getCategoryColor = (category: string): string => {
-  const categoryColors: { [key: string]: string } = {
-    "Stock ETFs": "#34D86C", // Green
-    "Crypto Stocks": "#8B5CF6", // Purple
-    "Crypto Tokens": "#06A9C6", // Very light blue
-    Alternatives: "#AFD4FD", // Red
+export const getMarketColor = (market: string): string => {
+  const marketColors: { [key: string]: string } = {
+    Stocks: "#34D86C", // Green
+    Crypto: "#06A9C6", // Purple
+    Alternatives: "#8B5CF6", // Light blue
   };
 
-  return categoryColors[category] || "#999999"; // Default to muted color
+  return marketColors[market] || "#999999"; // Default to muted color
 };
+
+export const aggregateAssetsBySegment = (
+  assets: Asset[]
+): SegmentAllocation[] => {
+  const segmentMap = new Map<string, SegmentAllocation>();
+  const totalPortfolioValue = assets.reduce(
+    (sum, asset) => sum + parseFloat(asset.value),
+    0
+  );
+
+  // Group assets by segment
+  assets.forEach((asset) => {
+    const segment = asset.segment;
+    const currentValue = parseFloat(asset.value);
+    const currentAllocation = parseFloat(asset.current_allocation);
+    const targetAllocation = parseFloat(asset.target_allocation);
+
+    if (!segmentMap.has(segment)) {
+      segmentMap.set(segment, {
+        segment,
+        currentValue: 0,
+        currentAllocation: 0,
+        targetAllocation: 0,
+        assets: [],
+        dollarDelta: 0,
+        percentageDelta: 0,
+      });
+    }
+
+    const segmentData = segmentMap.get(segment)!;
+    segmentData.currentValue += currentValue;
+    segmentData.currentAllocation += currentAllocation;
+    segmentData.targetAllocation += targetAllocation;
+    segmentData.assets.push(asset);
+  });
+
+  // Calculate deltas for each segment
+  const segments = Array.from(segmentMap.values()).map((segment) => {
+    const targetValue = (segment.targetAllocation / 100) * totalPortfolioValue;
+    const dollarDelta = segment.currentValue - targetValue;
+    const percentageDelta =
+      segment.currentAllocation - segment.targetAllocation;
+
+    return {
+      ...segment,
+      dollarDelta,
+      percentageDelta,
+    };
+  });
+
+  // Sort by target allocation (largest first)
+  return segments.sort((a, b) => b.targetAllocation - a.targetAllocation);
+};
+
+export const getSegmentColor = (segment: string): string => {
+  const segmentColors: { [key: string]: string } = {
+    "Stock ETFs": "#34D86C",
+    "Crypto Stocks": "#8B5CF6",
+    "Crypto Tokens": "#06A9C6",
+    Gold: "#AFD4FD",
+    "Real Estate": "#B35B8A",
+  };
+
+  return segmentColors[segment] || "#999999"; // Default to muted color
+};
+
+// Helper functions to convert specific allocation types to generic format
+export const marketToGeneric = (
+  market: MarketAllocation
+): GenericAllocation => ({
+  name: market.market,
+  currentValue: market.currentValue,
+  currentAllocation: market.currentAllocation,
+  targetAllocation: market.targetAllocation,
+  assets: market.assets,
+  dollarDelta: market.dollarDelta,
+  percentageDelta: market.percentageDelta,
+});
+
+export const segmentToGeneric = (
+  segment: SegmentAllocation
+): GenericAllocation => ({
+  name: segment.segment,
+  currentValue: segment.currentValue,
+  currentAllocation: segment.currentAllocation,
+  targetAllocation: segment.targetAllocation,
+  assets: segment.assets,
+  dollarDelta: segment.dollarDelta,
+  percentageDelta: segment.percentageDelta,
+});

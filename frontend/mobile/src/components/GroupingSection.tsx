@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
-export type GroupingType = 'categories' | 'assets';
+export type GroupingType = 'markets' | 'segments' | 'assets';
 
 interface GroupingSectionProps {
   selectedGrouping: GroupingType;
@@ -16,15 +16,30 @@ export default function GroupingSection({ selectedGrouping, onGroupingChange }: 
       <TouchableOpacity
         style={[
           styles.button,
-          selectedGrouping === 'categories' && styles.selectedButton
+          selectedGrouping === 'markets' && styles.selectedButton
         ]}
-        onPress={() => onGroupingChange('categories')}
+        onPress={() => onGroupingChange('markets')}
       >
         <Text style={[
           styles.buttonText,
-          selectedGrouping === 'categories' && styles.selectedButtonText
+          selectedGrouping === 'markets' && styles.selectedButtonText
         ]}>
-          Categories
+          Markets
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={[
+          styles.button,
+          selectedGrouping === 'segments' && styles.selectedButton
+        ]}
+        onPress={() => onGroupingChange('segments')}
+      >
+        <Text style={[
+          styles.buttonText,
+          selectedGrouping === 'segments' && styles.selectedButtonText
+        ]}>
+          Segments
         </Text>
       </TouchableOpacity>
       
@@ -49,7 +64,7 @@ export default function GroupingSection({ selectedGrouping, onGroupingChange }: 
 const styles = createStyles({
   container: {
     flexDirection: 'row',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.sm - 4, // Reduced by 4px to offset chart size increase
   },
   button: {
     paddingHorizontal: theme.spacing.md,

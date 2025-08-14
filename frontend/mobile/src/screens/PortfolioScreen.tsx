@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -7,7 +7,9 @@ import CategorySelector from '../components/CategorySelector';
 import Summary from '../components/Summary';
 import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
 import AssetList from '../components/AssetList';
+import LoadingScreen from '../components/LoadingScreen';
 import { apiService } from '../services/api';
+import { performanceCacheManager } from '../services/performanceCache';
 import { calculatePortfolioSummary } from '../data/utils';
 import { Asset, PerformanceData } from '../data/types';
 
@@ -25,6 +27,7 @@ export default function PortfolioScreen() {
   const [selectedCategories, setSelectedCategories] = useState({
     stocks: true,
     crypto: true,
+    alternatives: true,
   });
 
   // State for chart interaction
@@ -37,41 +40,56 @@ export default function PortfolioScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedGranularity, setSelectedGranularity] = useState('ALL');
   const [isChartLoading, setIsChartLoading] = useState(false);
+  const [isDataCached, setIsDataCached] = useState(false);
 
-  const handleCategoryToggle = async (category: 'stocks' | 'crypto') => {
+  const handleCategoryToggle = async (category: 'stocks' | 'crypto' | 'alternatives') => {
     const newCategories = {
       ...selectedCategories,
       [category]: !selectedCategories[category],
     };
     
     setSelectedCategories(newCategories);
-    setIsChartLoading(true);
+    
+    // Clear selected data point when categories change
+    setSelectedDataPoint(null);
     
     // Refetch performance data with new category filter
     // We need to manually calculate the filtered assets for the new selection
     const filtered = positions.filter(asset => {
-      const isStockCategory = asset.category.includes('Stock') || 
-                             asset.category.includes('Gold') || 
-                             asset.category.includes('Real Estate');
-      const isCryptoCategory = asset.category.includes('Crypto');
+      const isStocksMarket = asset.market === 'Stocks';
+      const isCryptoMarket = asset.market === 'Crypto';
+      const isAlternativesMarket = asset.market === 'Alternatives';
       
-      if (newCategories.stocks && newCategories.crypto) {
-        return true; // All assets
-      } else if (newCategories.stocks && !newCategories.crypto) {
-        return isStockCategory;
-      } else if (!newCategories.stocks && newCategories.crypto) {
-        return isCryptoCategory;
-      }
-      return false; // Neither selected
+      const showStocks = newCategories.stocks && isStocksMarket;
+      const showCrypto = newCategories.crypto && isCryptoMarket;
+      const showAlternatives = newCategories.alternatives && isAlternativesMarket;
+      
+      return showStocks || showCrypto || showAlternatives;
     });
     
-    const assetSymbols = newCategories.stocks && newCategories.crypto 
+    const assetSymbols = newCategories.stocks && newCategories.crypto && newCategories.alternatives 
       ? undefined 
       : filtered.map(asset => asset.asset);
     
+    // Check if data is cached
+    const isCached = performanceCacheManager.isCacheAvailable(selectedGranularity, assetSymbols);
+    setIsDataCached(isCached);
+    
+    // Only show loading state if data is not cached
+    if (!isCached) {
+      setIsChartLoading(true);
+    }
+    
     try {
-      const performanceDataResponse = await apiService.getPerformance(selectedGranularity, assetSymbols);
+      const startTime = Date.now();
+      const performanceDataResponse = await performanceCacheManager.getPerformanceData(selectedGranularity, assetSymbols, 'high');
       setPerformanceData(performanceDataResponse);
+      const fetchTime = Date.now() - startTime;
+      
+      // Add minimal delay for smooth transition if cached
+      if (isCached && fetchTime < 50) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
     } catch (error) {
       console.error('Error fetching filtered performance data:', error);
     } finally {
@@ -85,30 +103,28 @@ export default function PortfolioScreen() {
 
   // Get filtered asset symbols based on selected categories
   const getFilteredAssetSymbols = (positions: Asset[]): string[] | undefined => {
-    // If both categories are selected, don't filter (get all assets)
-    if (selectedCategories.stocks && selectedCategories.crypto) {
+    // If all categories are selected, don't filter (get all assets)
+    if (selectedCategories.stocks && selectedCategories.crypto && selectedCategories.alternatives) {
       return undefined;
     }
     
     const filtered = positions.filter(asset => {
-      const isStockCategory = asset.category.includes('Stock') || 
-                             asset.category.includes('Gold') || 
-                             asset.category.includes('Real Estate');
-      const isCryptoCategory = asset.category.includes('Crypto');
+      const isStocksMarket = asset.market === 'Stocks';
+      const isCryptoMarket = asset.market === 'Crypto';
+      const isAlternativesMarket = asset.market === 'Alternatives';
       
-      if (selectedCategories.stocks && !selectedCategories.crypto) {
-        return isStockCategory;
-      } else if (!selectedCategories.stocks && selectedCategories.crypto) {
-        return isCryptoCategory;
-      }
-      return false; // Neither selected
+      const showStocks = selectedCategories.stocks && isStocksMarket;
+      const showCrypto = selectedCategories.crypto && isCryptoMarket;
+      const showAlternatives = selectedCategories.alternatives && isAlternativesMarket;
+      
+      return showStocks || showCrypto || showAlternatives;
     });
     
     return filtered.map(asset => asset.asset);
   };
 
   // Data fetching functions
-  const fetchData = async (granularity: string = selectedGranularity, forceRefreshPositions: boolean = false) => {
+  const fetchData = async (granularity: string = selectedGranularity, forceRefreshPositions: boolean = false, isUserInitiated: boolean = true) => {
     try {
       let positionsData = positions;
       
@@ -116,12 +132,19 @@ export default function PortfolioScreen() {
       if (positions.length === 0 || forceRefreshPositions) {
         positionsData = await apiService.getPositions();
         setPositions(positionsData);
+        
+        // Start background preloading after positions are loaded
+        if (positionsData.length > 0) {
+          performanceCacheManager.preloadPerformanceData(positionsData);
+        }
       }
       
       // Get filtered asset symbols for performance query
       const assetSymbols = getFilteredAssetSymbols(positionsData);
       
-      const performanceDataResponse = await apiService.getPerformance(granularity, assetSymbols);
+      // Use cache manager with priority based on whether it's user-initiated
+      const priority = isUserInitiated ? 'high' : 'low';
+      const performanceDataResponse = await performanceCacheManager.getPerformanceData(granularity, assetSymbols, priority);
       setPerformanceData(performanceDataResponse);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -140,9 +163,26 @@ export default function PortfolioScreen() {
 
   const handleGranularityChange = async (granularity: string) => {
     setSelectedGranularity(granularity);
-    setIsChartLoading(true);
+    
+    // Check if data is immediately available from cache
+    const assetSymbols = getFilteredAssetSymbols(positions);
+    const isCached = performanceCacheManager.isCacheAvailable(granularity, assetSymbols);
+    setIsDataCached(isCached);
+    
+    // Only show loading state if data is not cached
+    if (!isCached) {
+      setIsChartLoading(true);
+    }
+    
     try {
+      const startTime = Date.now();
       await fetchData(granularity);
+      const fetchTime = Date.now() - startTime;
+      
+      // If fetch was very fast (cached), add minimal delay for smooth visual transition
+      if (isCached && fetchTime < 50) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
     } finally {
       setIsChartLoading(false);
     }
@@ -162,33 +202,18 @@ export default function PortfolioScreen() {
     loadInitialData();
   }, []);
 
-  const getDisplayText = () => {
-    if (selectedCategories.stocks && selectedCategories.crypto) {
-      return 'Showing All Categories';
-    } else if (selectedCategories.stocks) {
-      return 'Showing Stocks';
-    } else if (selectedCategories.crypto) {
-      return 'Showing Crypto';
-    } else {
-      return 'No Categories Selected';
-    }
-  };
 
   // Filter assets based on selected categories (same logic as AssetList)
   const filteredPositions = positions.filter(asset => {
-    const isStockCategory = asset.category.includes('Stock') || 
-                           asset.category.includes('Gold') || 
-                           asset.category.includes('Real Estate');
-    const isCryptoCategory = asset.category.includes('Crypto');
+    const isStocksMarket = asset.market === 'Stocks';
+    const isCryptoMarket = asset.market === 'Crypto';
+    const isAlternativesMarket = asset.market === 'Alternatives';
     
-    if (selectedCategories.stocks && selectedCategories.crypto) {
-      return true; // Show all
-    } else if (selectedCategories.stocks && !selectedCategories.crypto) {
-      return isStockCategory;
-    } else if (!selectedCategories.stocks && selectedCategories.crypto) {
-      return isCryptoCategory;
-    }
-    return false; // Neither selected, show nothing
+    const showStocks = selectedCategories.stocks && isStocksMarket;
+    const showCrypto = selectedCategories.crypto && isCryptoMarket;
+    const showAlternatives = selectedCategories.alternatives && isAlternativesMarket;
+    
+    return showStocks || showCrypto || showAlternatives;
   });
 
   // Calculate portfolio summary from filtered API data
@@ -208,11 +233,7 @@ export default function PortfolioScreen() {
   };
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, styles.loadingContainer]} edges={['top']}>
-        <ActivityIndicator size="large" color={theme.colors.foreground} />
-      </SafeAreaView>
-    );
+    return <LoadingScreen title="Portfolio" />;
   }
 
   return (
@@ -246,6 +267,7 @@ export default function PortfolioScreen() {
           data={performanceData}
           onDataPointSelected={handleDataPointSelected}
           isLoading={isChartLoading}
+          isCached={isDataCached}
         />
         {/* Duration Selector - In ScrollView but with isolation wrapper */}
         <View style={{ zIndex: 999, elevation: 999 }}>

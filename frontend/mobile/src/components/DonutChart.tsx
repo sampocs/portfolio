@@ -3,17 +3,19 @@ import { View, Text } from 'react-native';
 import { Svg, Circle, G, Path } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
-import { CategoryAllocation } from '../data/types';
-import { getCategoryColor } from '../data/utils';
+import { GenericAllocation } from '../data/types';
 
-interface CategoryDonutChartProps {
-  categories: CategoryAllocation[];
-  selectedCategory: CategoryAllocation | null;
-  onCategorySelect: (category: CategoryAllocation | null) => void;
+interface DonutChartProps<T extends GenericAllocation> {
+  data: T[];
+  selectedItem: T | null;
+  onItemSelect: (item: T | null) => void;
+  getColor: (name: string) => string;
+  title: string; // "Markets" or "Segments"
+  groupingType?: 'markets' | 'segments';
 }
 
 interface DonutSegment {
-  category: string;
+  name: string;
   startAngle: number;
   endAngle: number;
   color: string;
@@ -21,13 +23,15 @@ interface DonutSegment {
 }
 
 // Base chart configuration - only change these values to resize
-const CHART_SIZE = 260;
+const CHART_SIZE = 250;
 const STROKE_WIDTH = 22;
 const TARGET_STROKE_WIDTH = 18;
 
+// SVG dimensions (larger than chart to prevent clipping)
+const SVG_SIZE = CHART_SIZE + 8; // 4px padding on each side
 // Derived constants - automatically calculated
-const CENTER_X = CHART_SIZE / 2;
-const CENTER_Y = CHART_SIZE / 2;
+const CENTER_X = SVG_SIZE / 2;
+const CENTER_Y = SVG_SIZE / 2;
 // Keep original radius values but make them dynamic if needed
 const OUTER_RADIUS = 115;
 const TARGET_RADIUS = 85;
@@ -44,40 +48,14 @@ const degToRad = (degrees: number): number => {
   return (degrees * Math.PI) / 180;
 };
 
-// Helper function to calculate arc path for SVG
-const createArcPath = (
-  centerX: number,
-  centerY: number,
-  radius: number,
-  startAngle: number,
-  endAngle: number
-): string => {
-  const start = degToRad(startAngle - 90); // -90 to start from top
-  const end = degToRad(endAngle - 90);
-  
-  const x1 = centerX + radius * Math.cos(start);
-  const y1 = centerY + radius * Math.sin(start);
-  const x2 = centerX + radius * Math.cos(end);
-  const y2 = centerY + radius * Math.sin(end);
-  
-  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-  
-  return [
-    'M', centerX, centerY,
-    'L', x1, y1,
-    'A', radius, radius, 0, largeArc, 1, x2, y2,
-    'Z'
-  ].join(' ');
-};
-
 // Helper function to create touch area for ring segments
-const createTouchArea = (
+const createTouchArea = <T extends GenericAllocation>(
   radius: number,
   strokeWidth: number,
   startAngle: number,
   endAngle: number,
-  category: CategoryAllocation,
-  onCategorySelect: (category: CategoryAllocation | null) => void,
+  item: T,
+  onItemSelect: (item: T | null) => void,
   keyPrefix: string,
   index: number
 ): React.ReactElement => {
@@ -116,70 +94,77 @@ const createTouchArea = (
       strokeWidth={0}
       onPress={(e) => {
         e.stopPropagation();
-        onCategorySelect(category);
+        onItemSelect(item);
       }}
     />
   );
 };
 
-export default function CategoryDonutChart({ categories, selectedCategory, onCategorySelect }: CategoryDonutChartProps) {
+export default function DonutChart<T extends GenericAllocation>({ 
+  data, 
+  selectedItem, 
+  onItemSelect, 
+  getColor,
+  title,
+  groupingType = 'markets'
+}: DonutChartProps<T>) {
 
   // Calculate total portfolio value for center display
-  const totalPortfolioValue = categories.reduce((sum, cat) => sum + cat.currentValue, 0);
+  const totalPortfolioValue = data.reduce((sum, item) => sum + item.currentValue, 0);
 
   // Calculate segments for current allocations (outer ring)
   const currentSegments = useMemo(() => {
     let startAngle = 0;
-    return categories.map(category => {
-      const percentage = category.currentAllocation;
+    return data.map(item => {
+      const percentage = item.currentAllocation;
       const endAngle = startAngle + percentageToAngle(percentage);
       const segment: DonutSegment = {
-        category: category.category,
+        name: item.name,
         startAngle,
         endAngle,
-        color: getCategoryColor(category.category),
+        color: getColor(item.name),
         percentage,
       };
       startAngle = endAngle;
       return segment;
     });
-  }, [categories]);
+  }, [data, getColor]);
 
   // Calculate segments for target allocations (inner ring)
   const targetSegments = useMemo(() => {
     let startAngle = 0;
-    return categories.map(category => {
-      const percentage = category.targetAllocation;
+    return data.map(item => {
+      const percentage = item.targetAllocation;
       const endAngle = startAngle + percentageToAngle(percentage);
       const segment: DonutSegment = {
-        category: category.category,
+        name: item.name,
         startAngle,
         endAngle,
-        color: getCategoryColor(category.category),
+        color: getColor(item.name),
         percentage,
       };
       startAngle = endAngle;
       return segment;
     });
-  }, [categories]);
+  }, [data, getColor]);
 
   // Create interactive segments using the helper function
   const createInteractiveSegments = (): React.ReactElement[] => {
-    const segments: React.ReactElement[] = [];
+    const interactiveSegments: React.ReactElement[] = [];
 
     // Outer ring touchable areas (current allocations)
-    categories.forEach((category, index) => {
+    data.forEach((item, index) => {
       const currentSegment = currentSegments[index];
       if (!currentSegment || currentSegment.percentage <= 0) return;
 
-      segments.push(
+      interactiveSegments.push(
         createTouchArea(
           OUTER_RADIUS,
           STROKE_WIDTH,
           currentSegment.startAngle,
           currentSegment.endAngle,
-          category,
-          onCategorySelect,
+          item,
+          onItemSelect,
           'outer',
           index
         )
@@ -187,39 +172,42 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
     });
 
     // Inner ring touchable areas (target allocations)
-    categories.forEach((category, index) => {
+    data.forEach((item, index) => {
       const targetSegment = targetSegments[index];
       if (!targetSegment || targetSegment.percentage <= 0) return;
 
-      segments.push(
+      interactiveSegments.push(
         createTouchArea(
           TARGET_RADIUS,
           TARGET_STROKE_WIDTH,
           targetSegment.startAngle,
           targetSegment.endAngle,
-          category,
-          onCategorySelect,
+          item,
+          onItemSelect,
           'inner',
           index
         )
       );
     });
 
-    return segments;
+    return interactiveSegments;
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      groupingType === 'segments' && styles.segmentsContainer
+    ]}>
       <View style={styles.chartContainer}>
-          <Svg width={CHART_SIZE} height={CHART_SIZE} pointerEvents="none">
+          <Svg width={SVG_SIZE} height={SVG_SIZE} pointerEvents="none">
             {/* Target allocations (inner ring) - visual only */}
             <G>
               {targetSegments.map((segment, index) => {
                 if (segment.percentage <= 0) return null;
                 
-                const category = categories[index];
-                const isSelected = selectedCategory?.category === category.category;
-                const opacity = selectedCategory && !isSelected ? 0.3 : 0.5;
+                const item = data[index];
+                const isSelected = selectedItem?.name === item.name;
+                const opacity = selectedItem && !isSelected ? 0.3 : 0.5;
                 
                 const circumference = 2 * Math.PI * TARGET_RADIUS;
                 const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
@@ -248,9 +236,9 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
               {currentSegments.map((segment, index) => {
                 if (segment.percentage <= 0) return null;
                 
-                const category = categories[index];
-                const isSelected = selectedCategory?.category === category.category;
-                const opacity = selectedCategory && !isSelected ? 0.3 : 1.0;
+                const item = data[index];
+                const isSelected = selectedItem?.name === item.name;
+                const opacity = selectedItem && !isSelected ? 0.3 : 1.0;
                 
                 const circumference = 2 * Math.PI * OUTER_RADIUS;
                 const strokeDasharray = `${(segment.percentage / 100) * circumference} ${circumference}`;
@@ -277,20 +265,20 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
 
           {/* Dynamic center content */}
           <View style={styles.centerLabel}>
-            {selectedCategory ? (
+            {selectedItem ? (
               <>
-                <Text style={styles.selectedCategoryName} numberOfLines={1} adjustsFontSizeToFit>{selectedCategory.category}</Text>
+                <Text style={styles.selectedItemName} numberOfLines={1} adjustsFontSizeToFit>{selectedItem.name}</Text>
                 <Text style={styles.selectedAllocationText}>
-                  {selectedCategory.currentAllocation.toFixed(1)}% → {selectedCategory.targetAllocation.toFixed(1)}%
+                  {selectedItem.currentAllocation.toFixed(1)}% → {selectedItem.targetAllocation.toFixed(1)}%
                 </Text>
                 <Text style={styles.selectedValueText}>
-                  {formatCurrency(selectedCategory.currentValue)}
+                  {formatCurrency(selectedItem.currentValue)}
                 </Text>
                 <Text style={[
                   styles.selectedDeltaText,
-                  { color: selectedCategory.percentageDelta >= 0 ? theme.colors.success : theme.colors.destructive }
+                  { color: selectedItem.percentageDelta >= 0 ? theme.colors.success : theme.colors.destructive }
                 ]}>
-                  {selectedCategory.percentageDelta >= 0 ? '+' : ''}{selectedCategory.percentageDelta.toFixed(1)}%
+                  {selectedItem.percentageDelta >= 0 ? '+' : ''}{selectedItem.percentageDelta.toFixed(1)}%
                 </Text>
               </>
             ) : (
@@ -310,8 +298,8 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
 
           {/* Interactive areas on top */}
           <Svg 
-            width={CHART_SIZE} 
-            height={CHART_SIZE} 
+            width={SVG_SIZE} 
+            height={SVG_SIZE} 
             style={styles.interactiveSvg}
           >
             {createInteractiveSegments()}
@@ -323,12 +311,12 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           <View style={styles.legendRow}>
             <Text style={styles.legendLabel}>Current:</Text>
             <View style={styles.legendDots}>
-              {categories.slice(0, 4).map((category, index) => (
+              {data.map((item, index) => (
                 <View 
                   key={`current-${index}`}
                   style={[
                     styles.legendDot, 
-                    { backgroundColor: getCategoryColor(category.category) }
+                    { backgroundColor: getColor(item.name) }
                   ]} 
                 />
               ))}
@@ -338,13 +326,13 @@ export default function CategoryDonutChart({ categories, selectedCategory, onCat
           <View style={styles.legendRow}>
             <Text style={styles.legendLabel}>Target:</Text>
             <View style={styles.legendDots}>
-              {categories.slice(0, 4).map((category, index) => (
+              {data.map((item, index) => (
                 <View 
                   key={`target-${index}`}
                   style={[
                     styles.legendDot, 
                     { 
-                      backgroundColor: getCategoryColor(category.category),
+                      backgroundColor: getColor(item.name),
                       opacity: 0.5 
                     }
                   ]} 
@@ -368,9 +356,12 @@ const styles = createStyles({
     marginHorizontal: 0,
     paddingHorizontal: 0,
   },
+  segmentsContainer: {
+    marginBottom: theme.spacing.xs / 2, // Add a bit of positive margin
+  },
   chartContainer: {
-    width: CHART_SIZE,
-    height: CHART_SIZE,
+    width: SVG_SIZE,
+    height: SVG_SIZE,
   },
   interactiveSvg: {
     position: 'absolute',
@@ -401,7 +392,7 @@ const styles = createStyles({
     textAlign: 'center',
     marginTop: 2,
   },
-  selectedCategoryName: {
+  selectedItemName: {
     color: theme.colors.foreground,
     ...getTextStyle('lg', 'bold'),
     textAlign: 'center',

@@ -1,28 +1,57 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import GroupingSection, { GroupingType } from '../components/GroupingSection';
-import CategoryDonutChart from '../components/CategoryDonutChart';
-import CategoryLegend from '../components/CategoryLegend';
+import DonutChart from '../components/DonutChart';
+import AllocationLegend from '../components/AllocationLegend';
 import AssetAllocationList from '../components/AssetAllocationList';
-import { Asset, CategoryAllocation } from '../data/types';
+import LoadingScreen from '../components/LoadingScreen';
+import { Asset, MarketAllocation, SegmentAllocation, GenericAllocation } from '../data/types';
 import { apiService } from '../services/api';
-import { aggregateAssetsByCategory } from '../data/utils';
+import { aggregateAssetsByMarket, aggregateAssetsBySegment, marketToGeneric, segmentToGeneric, getMarketColor, getSegmentColor } from '../data/utils';
 
 export default function AllocationsScreen() {
-  const [selectedGrouping, setSelectedGrouping] = useState<GroupingType>('categories');
+  const [selectedGrouping, setSelectedGrouping] = useState<GroupingType>('markets');
   const [positions, setPositions] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryAllocation | null>(null);
+  const [selectedGenericItem, setSelectedGenericItem] = useState<GenericAllocation | null>(null);
 
-  // Calculate category data from positions
-  const categoryData = useMemo(() => {
+  // Calculate market data from positions
+  const marketData = useMemo(() => {
     if (positions.length === 0) return [];
-    return aggregateAssetsByCategory(positions);
+    return aggregateAssetsByMarket(positions);
   }, [positions]);
+
+  // Calculate segment data from positions
+  const segmentData = useMemo(() => {
+    if (positions.length === 0) return [];
+    return aggregateAssetsBySegment(positions);
+  }, [positions]);
+
+  // Convert to generic format for the unified components
+  const genericMarketData = useMemo(() => 
+    marketData.map(marketToGeneric), [marketData]);
+  const genericSegmentData = useMemo(() => 
+    segmentData.map(segmentToGeneric), [segmentData]);
+
+  // Handle selection for unified component
+  const handleGenericItemSelect = (item: GenericAllocation | null) => {
+    setSelectedGenericItem(item);
+  };
+
+  // Get current data and color function based on grouping
+  const currentData = selectedGrouping === 'markets' ? genericMarketData : genericSegmentData;
+  const getColor = selectedGrouping === 'markets' ? getMarketColor : getSegmentColor;
+  const title = selectedGrouping === 'markets' ? 'Markets' : 'Segments';
+
+  // Clear selections when changing grouping
+  const handleGroupingChange = (grouping: GroupingType) => {
+    setSelectedGrouping(grouping);
+    setSelectedGenericItem(null);
+  };
 
   // Data fetching function
   const fetchData = async () => {
@@ -61,11 +90,7 @@ export default function AllocationsScreen() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, styles.loadingContainer]} edges={['top']}>
-        <ActivityIndicator size="large" color={theme.colors.foreground} />
-      </SafeAreaView>
-    );
+    return <LoadingScreen title="Allocations" />;
   }
 
   return (
@@ -87,22 +112,31 @@ export default function AllocationsScreen() {
       >
         <TouchableOpacity 
           style={styles.contentTouchable}
-          onPress={() => setSelectedCategory(null)}
+          onPress={() => setSelectedGenericItem(null)}
           activeOpacity={1}
         >
           <GroupingSection
             selectedGrouping={selectedGrouping}
-            onGroupingChange={setSelectedGrouping}
+            onGroupingChange={handleGroupingChange}
           />
 
-          {selectedGrouping === 'categories' ? (
+          {selectedGrouping === 'markets' || selectedGrouping === 'segments' ? (
             <>
-              <CategoryDonutChart 
-                categories={categoryData}
-                selectedCategory={selectedCategory}
-                onCategorySelect={setSelectedCategory}
+              <DonutChart 
+                data={currentData}
+                selectedItem={selectedGenericItem}
+                onItemSelect={handleGenericItemSelect}
+                getColor={getColor}
+                title={title}
+                groupingType={selectedGrouping}
               />
-              <CategoryLegend categories={categoryData} />
+              <AllocationLegend 
+                data={currentData}
+                getColor={getColor}
+                groupingType={selectedGrouping}
+                selectedItem={selectedGenericItem}
+                onItemSelect={handleGenericItemSelect}
+              />
             </>
           ) : (
             <AssetAllocationList assets={positions} />
