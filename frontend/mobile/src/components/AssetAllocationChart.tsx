@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, Dimensions } from 'react-native';
-import { Svg, Rect, Line, Defs, Mask } from 'react-native-svg';
+import { Svg, Rect, Text as SvgText } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import { Asset } from '../data/types';
@@ -17,8 +17,8 @@ interface ChartRowProps {
   isLast?: boolean;
 }
 
-const BAR_HEIGHT = 6;
-const BAR_SPACING = 2; // Space between current and target bars
+const BAR_HEIGHT = 12; // Increased from 6 to 12
+const BAR_SPACING = 3; // Space between current and target bars
 const CHART_HEIGHT = (BAR_HEIGHT * 2) + BAR_SPACING; // Total height for both bars
 const LOGO_SIZE = 32;
 const LOGO_WIDTH = LOGO_SIZE + 8;
@@ -125,6 +125,32 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
               rx={BAR_HEIGHT / 2}
             />
           )}
+          
+          {/* Current percentage text */}
+          <SvgText
+            x={currentBarWidth + 6}
+            y={2 + BAR_HEIGHT / 2}
+            fontSize="10"
+            fill={currentColor}
+            textAnchor="start"
+            alignmentBaseline="middle"
+            fontWeight="500"
+          >
+            {currentAllocation % 1 === 0 ? currentAllocation.toFixed(0) : currentAllocation.toFixed(1)}%
+          </SvgText>
+          
+          {/* Target percentage text */}
+          <SvgText
+            x={targetBarWidth + 6}
+            y={2 + BAR_HEIGHT + BAR_SPACING + BAR_HEIGHT / 2}
+            fontSize="10"
+            fill={targetColor}
+            textAnchor="start"
+            alignmentBaseline="middle"
+            fontWeight="500"
+          >
+            {targetAllocation % 1 === 0 ? targetAllocation.toFixed(0) : targetAllocation.toFixed(1)}%
+          </SvgText>
         </Svg>
       </View>
     </View>
@@ -134,8 +160,8 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
 export default function AssetAllocationChart({ assets }: AssetAllocationChartProps) {
   const { width: screenWidth } = Dimensions.get('window');
   
-  // Calculate chart width (screen - padding - logo width - spacing)
-  const chartWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_WIDTH - theme.spacing.md;
+  // Calculate chart width (screen - padding - logo width - spacing - label space)
+  const chartWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_WIDTH - theme.spacing.md - 40; // 40px for labels
 
   // Calculate the maximum allocation across all assets (current or target)
   const maxAllocation = useMemo(() => {
