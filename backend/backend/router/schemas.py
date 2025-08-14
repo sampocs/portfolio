@@ -7,7 +7,7 @@ class Position(BaseModel):
 
     asset: str
     market: str
-    sector: str
+    segment: str
     description: str
     current_price: Decimal
     average_price: Decimal

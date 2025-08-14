@@ -32,7 +32,7 @@ class Market(Enum):
     ALTERNATIVES = "Alternatives"
 
 
-class Sector(Enum):
+class Segment(Enum):
     STOCK_ETFS = "Stock ETFs"
     CRYPTO_STOCKS = "Crypto Stocks"
     CRYPTO_TOKENS = "Crypto Tokens"
@@ -56,7 +56,7 @@ class Asset:
     description: str
     target_allocation: Decimal
     market: Market
-    sector: Sector
+    segment: Segment
     platform: Platform
     price_type: PriceType
 
@@ -68,7 +68,7 @@ class Asset:
             description=data["description"],
             target_allocation=Decimal(data["target_allocation"]),
             market=Market(data["market"]),
-            sector=Sector(data["sector"]),
+            segment=Segment(data["segment"]),
             platform=Platform(data["platform"]),
             price_type=PriceType(data["price_type"]),
         )
