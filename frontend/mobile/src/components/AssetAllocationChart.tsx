@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, Image, Dimensions } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, Image, Dimensions, TouchableOpacity } from 'react-native';
 import { Svg, Rect, Text as SvgText } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -15,16 +15,16 @@ interface ChartRowProps {
   maxAllocation: number;
   isFirst?: boolean;
   isLast?: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
 const BAR_HEIGHT = 16; // Increased from 12 to 16
 const BAR_SPACING = 3; // Space between current and target bars
 const CHART_HEIGHT = (BAR_HEIGHT * 2) + BAR_SPACING; // Total height for both bars
 const LOGO_SIZE = 48;
-const LOGO_WIDTH = LOGO_SIZE + 8;
-const ROW_SPACING = 4;
 
-function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = false }: ChartRowProps) {
+function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = false, isExpanded, onToggle }: ChartRowProps) {
   const currentAllocation = parseFloat(asset.current_allocation);
   const targetAllocation = parseFloat(asset.target_allocation);
 
@@ -34,6 +34,15 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
   
   const currentColor = '#07BADA';
   const targetColor = '#8B5CF6';
+
+  // Calculate allocation details for expanded view
+  const currentValue = parseFloat(asset.value);
+  const targetValue = (targetAllocation / 100) * (currentValue / (currentAllocation / 100));
+  const dollarDelta = currentValue - targetValue;
+  const percentageDelta = currentAllocation - targetAllocation;
+  const isOverAllocated = percentageDelta > 0;
+  const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
+  const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
   // Get asset logo
   const getAssetLogo = (assetSymbol: string) => {
@@ -69,7 +78,11 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
   ];
 
   return (
-    <View style={containerStyle}>
+    <TouchableOpacity
+      style={containerStyle}
+      onPress={onToggle}
+      activeOpacity={0.7}
+    >
       {/* Asset logo */}
       <View style={styles.logoContainer}>
         {logoSource ? (
@@ -162,13 +175,42 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
           )}
         </Svg>
         </View>
+        
+        {/* Expanded details */}
+        {isExpanded && (
+          <View style={styles.expandedDetails}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>
+                ${Math.round(currentValue).toLocaleString()} → ${Math.round(targetValue).toLocaleString()}
+              </Text>
+              <View style={[styles.deltaContainer, { backgroundColor: deltaBackgroundColor }]}>
+                <Text style={[styles.deltaText, { color: deltaColor }]}>
+                  {dollarDelta >= 0 ? '+' : '-'}${Math.round(Math.abs(dollarDelta)).toLocaleString()} ({percentageDelta >= 0 ? '+' : '-'}{Math.abs(percentageDelta).toFixed(1)}%)
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 export default function AssetAllocationChart({ assets }: AssetAllocationChartProps) {
   const { width: screenWidth } = Dimensions.get('window');
+  const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set());
+
+  const handleToggleExpand = (assetSymbol: string) => {
+    setExpandedAssets(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(assetSymbol)) {
+        newSet.delete(assetSymbol);
+      } else {
+        newSet.add(assetSymbol);
+      }
+      return newSet;
+    });
+  };
   
   // Calculate chart width (screen - padding - logo width - spacing - label space)
   const chartWidth = screenWidth - (theme.spacing.xl * 2) - LOGO_SIZE - theme.spacing.md - 40; // LOGO_SIZE + 40px for labels
@@ -209,6 +251,8 @@ export default function AssetAllocationChart({ assets }: AssetAllocationChartPro
             maxAllocation={maxAllocation}
             isFirst={index === 0}
             isLast={index === sortedAssets.length - 1}
+            isExpanded={expandedAssets.has(asset.asset)}
+            onToggle={() => handleToggleExpand(asset.asset)}
           />
         ))}
       </View>
@@ -281,5 +325,28 @@ const styles = createStyles({
   emptyText: {
     color: theme.colors.muted,
     ...getTextStyle('md'),
+  },
+  expandedDetails: {
+    marginTop: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  detailLabel: {
+    color: theme.colors.foreground,
+    ...getTextStyle('md'),
+  },
+  deltaContainer: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.sm,
+  },
+  deltaText: {
+    ...getTextStyle('md', 'semibold'),
   },
 });
