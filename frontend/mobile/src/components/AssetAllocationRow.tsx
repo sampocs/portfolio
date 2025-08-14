@@ -35,8 +35,31 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
   const currentBarWidth = Math.min(currentAllocation / MAX_DISPLAY_ALLOCATION, 1) * chartContainerWidth;
   const targetPosition = Math.min(targetAllocation / MAX_DISPLAY_ALLOCATION, 1) * chartContainerWidth;
   
-  // Use consistent blue bar color
-  const barColor = '#06A9C6';
+  // Calculate segments for multi-color bar
+  const isOverAllocated = currentAllocation > targetAllocation;
+  const isUnderAllocated = currentAllocation < targetAllocation;
+  
+  // Base blue bar goes up to the minimum of current or target
+  const blueBarWidth = Math.min(currentBarWidth, targetPosition);
+  
+  // Additional segment based on allocation status
+  let additionalSegmentWidth = 0;
+  let additionalSegmentColor = '';
+  let additionalSegmentStart = 0;
+  
+  if (isOverAllocated) {
+    // Green for excess beyond target
+    additionalSegmentWidth = currentBarWidth - targetPosition;
+    additionalSegmentColor = theme.colors.success; // Green
+    additionalSegmentStart = targetPosition;
+  } else if (isUnderAllocated) {
+    // Red for shortage up to target
+    additionalSegmentWidth = targetPosition - currentBarWidth;
+    additionalSegmentColor = theme.colors.destructive; // Red
+    additionalSegmentStart = currentBarWidth;
+  }
+  
+  const blueColor = '#06A9C6';
 
   // Get asset logo path
   const getAssetLogo = (assetSymbol: string) => {
@@ -65,8 +88,7 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
 
   const logoSource = getAssetLogo(asset.asset);
 
-  // Determine delta colors (same logic as AllocationLegend)
-  const isOverAllocated = percentageDelta > 0;
+  // Determine delta colors (reuse the isOverAllocated from chart logic)
   const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
   const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
@@ -120,14 +142,26 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
                 rx={CHART_HEIGHT / 2}
               />
               
-              {/* Current allocation bar */}
-              {currentBarWidth > 0 && (
+              {/* Blue bar segment (up to target or current, whichever is smaller) */}
+              {blueBarWidth > 0 && (
                 <Rect
                   x={0}
                   y={6}
-                  width={currentBarWidth}
+                  width={blueBarWidth}
                   height={CHART_HEIGHT}
-                  fill={barColor}
+                  fill={blueColor}
+                  rx={CHART_HEIGHT / 2}
+                />
+              )}
+              
+              {/* Additional segment (green for excess, red for shortage) */}
+              {additionalSegmentWidth > 0 && (
+                <Rect
+                  x={additionalSegmentStart}
+                  y={6}
+                  width={additionalSegmentWidth}
+                  height={CHART_HEIGHT}
+                  fill={additionalSegmentColor}
                   rx={CHART_HEIGHT / 2}
                 />
               )}
