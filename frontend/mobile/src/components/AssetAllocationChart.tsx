@@ -130,7 +130,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
           {currentBarWidth > 0 && (
             <SvgText
               x={currentBarWidth + 6}
-              y={2 + BAR_HEIGHT / 2}
+              y={2 + BAR_HEIGHT / 2 + 1}
               fontSize="10"
               fill={currentColor}
               textAnchor="start"
@@ -145,7 +145,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
           {targetBarWidth > 0 && (
             <SvgText
               x={targetBarWidth + 6}
-              y={2 + BAR_HEIGHT + BAR_SPACING + BAR_HEIGHT / 2}
+              y={2 + BAR_HEIGHT + BAR_SPACING + BAR_HEIGHT / 2 + 1}
               fontSize="10"
               fill={targetColor}
               textAnchor="start"
