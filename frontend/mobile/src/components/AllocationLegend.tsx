@@ -103,10 +103,10 @@ export default function AllocationLegend<T extends GenericAllocation>({
 
 const styles = createStyles({
   container: {
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.md - 4, // Reduced by 4px to offset chart size increase
   },
   segmentsContainer: {
-    marginTop: theme.spacing.xs, // Reduced top margin for segments
+    marginTop: theme.spacing.xs - 4, // Reduced by 4px to offset chart size increase
   },
   sectionTitle: {
     color: theme.colors.foreground,

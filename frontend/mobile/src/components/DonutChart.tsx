@@ -27,9 +27,11 @@ const CHART_SIZE = 250;
 const STROKE_WIDTH = 22;
 const TARGET_STROKE_WIDTH = 18;
 
+// SVG dimensions (larger than chart to prevent clipping)
+const SVG_SIZE = CHART_SIZE + 8; // 4px padding on each side
 // Derived constants - automatically calculated
-const CENTER_X = CHART_SIZE / 2;
-const CENTER_Y = CHART_SIZE / 2;
+const CENTER_X = SVG_SIZE / 2;
+const CENTER_Y = SVG_SIZE / 2;
 // Keep original radius values but make them dynamic if needed
 const OUTER_RADIUS = 115;
 const TARGET_RADIUS = 85;
@@ -197,7 +199,7 @@ export default function DonutChart<T extends GenericAllocation>({
       groupingType === 'segments' && styles.segmentsContainer
     ]}>
       <View style={styles.chartContainer}>
-          <Svg width={CHART_SIZE} height={CHART_SIZE} pointerEvents="none">
+          <Svg width={SVG_SIZE} height={SVG_SIZE} pointerEvents="none">
             {/* Target allocations (inner ring) - visual only */}
             <G>
               {targetSegments.map((segment, index) => {
@@ -296,8 +298,8 @@ export default function DonutChart<T extends GenericAllocation>({
 
           {/* Interactive areas on top */}
           <Svg 
-            width={CHART_SIZE} 
-            height={CHART_SIZE} 
+            width={SVG_SIZE} 
+            height={SVG_SIZE} 
             style={styles.interactiveSvg}
           >
             {createInteractiveSegments()}
@@ -358,8 +360,8 @@ const styles = createStyles({
     marginBottom: theme.spacing.xs / 2, // Add a bit of positive margin
   },
   chartContainer: {
-    width: CHART_SIZE,
-    height: CHART_SIZE,
+    width: SVG_SIZE,
+    height: SVG_SIZE,
   },
   interactiveSvg: {
     position: 'absolute',

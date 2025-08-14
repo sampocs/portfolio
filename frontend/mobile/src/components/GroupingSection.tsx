@@ -64,7 +64,7 @@ export default function GroupingSection({ selectedGrouping, onGroupingChange }: 
 const styles = createStyles({
   container: {
     flexDirection: 'row',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.sm - 4, // Reduced by 4px to offset chart size increase
   },
   button: {
     paddingHorizontal: theme.spacing.md,
