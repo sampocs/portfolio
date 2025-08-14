@@ -102,8 +102,8 @@ const styles = createStyles({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.card,
     borderRadius: 0,
     marginBottom: 0,
@@ -122,48 +122,47 @@ const styles = createStyles({
   },
   leftSection: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flex: 1,
   },
   colorIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: theme.spacing.md,
-    marginTop: 2, // Align with the first line of text
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: theme.spacing.lg,
   },
   nameAndPercentageContainer: {
     flex: 1,
   },
   itemName: {
     color: theme.colors.foreground,
-    ...getTextStyle('sm', 'semibold'),
-    marginBottom: 2,
+    ...getTextStyle('md', 'semibold'),
+    marginBottom: 4,
   },
   allocationText: {
     color: theme.colors.muted,
-    ...getTextStyle('xs'),
+    ...getTextStyle('sm'),
   },
   rightSection: {
     alignItems: 'flex-end',
     flex: 1.2, // Slightly reduced since we moved percentages to left
   },
   valueSection: {
-    marginBottom: 3,
+    marginBottom: 6,
   },
   valueText: {
     color: theme.colors.foreground,
-    ...getTextStyle('xs'),
+    ...getTextStyle('sm'),
   },
   deltaSection: {
     alignItems: 'flex-end',
   },
   deltaContainer: {
-    paddingHorizontal: theme.spacing.xs,
-    paddingVertical: 3,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
     borderRadius: theme.borderRadius.sm,
   },
   deltaText: {
-    ...getTextStyle('xs', 'semibold'),
+    ...getTextStyle('sm', 'semibold'),
   },
 });
