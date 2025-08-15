@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -67,11 +68,20 @@ function AppContent() {
 
 export default function App() {
   return (
-    <DataProvider>
-      <NavigationContainer>
-        <AppContent />
-        <StatusBar style="light" />
-      </NavigationContainer>
-    </DataProvider>
+    <View style={styles.rootContainer}>
+      <DataProvider>
+        <NavigationContainer>
+          <AppContent />
+          <StatusBar style="light" />
+        </NavigationContainer>
+      </DataProvider>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: '#0B0022',
+  },
+});
