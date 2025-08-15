@@ -6,6 +6,14 @@ import { StorageService } from '../services/storage';
 
 export type DataMode = 'live' | 'demo';
 
+/**
+ * DataContext - Central state management for portfolio data
+ * 
+ * Manages authentication state, data modes (live vs demo), and provides
+ * computed properties for positions data based on current mode.
+ * Handles data persistence and smart caching for optimal performance.
+ */
+
 interface DataContextType {
   positions: Asset[]; // Computed property based on current mode
   isLoading: boolean;
@@ -81,47 +89,45 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
-  // Switch to demo mode and mark onboarding completed
+  /**
+   * Switch to demo mode and complete onboarding
+   */
   const switchToDemo = async () => {
     setDataMode('demo');
-    await StorageService.storeDataMode('demo'); // Save preference
+    await StorageService.storeDataMode('demo');
     await StorageService.setOnboardingCompleted();
     setHasCompletedOnboarding(true);
-    console.log('Switched to demo mode and completed onboarding');
   };
 
-  // Smart switch to live mode with authentication check
+  /**
+   * Switch to live mode with authentication and data validation
+   */
   const switchToLive = async (): Promise<{ success: boolean; needsAuth?: boolean }> => {
     setError(null);
     
-    // Check if authenticated first
     const hasValidAuth = await StorageService.isAuthenticated();
     if (!hasValidAuth) {
-      console.log('No valid authentication found - need to authenticate');
       return { success: false, needsAuth: true };
     }
     
     if (liveData.length > 0) {
-      // We have cached live data - instant switch
+      // Use cached data for instant switch
       setDataMode('live');
-      await StorageService.storeDataMode('live'); // Save preference
-      console.log('Switched to live mode with cached data');
+      await StorageService.storeDataMode('live');
       return { success: true };
     } else {
-      // No cached data - need to fetch and show loading
-      console.log('Switching to live mode - fetching fresh data');
+      // Fetch fresh data with loading state
       setIsLoading(true);
-      setDataMode('live'); // Switch mode first so UI shows live mode
+      setDataMode('live');
       
       try {
-        await fetchLiveData(false); // false = not a refresh, so it will use isLoading
-        await StorageService.storeDataMode('live'); // Save preference
+        await fetchLiveData(false);
+        await StorageService.storeDataMode('live');
         return { success: true };
       } catch (error) {
         console.error('Error fetching live data during switch:', error);
-        // Switch back to demo mode on error
         setDataMode('demo');
-        await StorageService.storeDataMode('demo'); // Save demo preference on error
+        await StorageService.storeDataMode('demo');
         return { success: false };
       }
     }
@@ -154,18 +160,15 @@ export function DataProvider({ children }: DataProviderProps) {
           setHasCompletedOnboarding(true);
         }
         
-        console.log('Authenticated user, restored data mode:', preferredMode);
       } else if (completedOnboarding) {
         // User completed onboarding but not authenticated - use stored preference or default to demo
         const preferredMode = storedDataMode || 'demo';
         setDataMode(preferredMode);
         setIsLoading(false);
-        console.log('User completed onboarding, restored data mode:', preferredMode);
       } else {
         // New user - stay in live mode but don't fetch data
         // App.tsx will show WelcomeScreen for onboarding
         setIsLoading(false);
-        console.log('New user, will show welcome screen for onboarding');
       }
     };
     

@@ -6,6 +6,13 @@ import { createStyles, getTextStyle } from '../styles/utils';
 import { apiService } from '../services/api';
 import { StorageService } from '../services/storage';
 
+/**
+ * WelcomeScreen - Initial onboarding screen for new users
+ * 
+ * Allows users to either authenticate with an invite code for live data
+ * or proceed to demo mode for exploration without authentication.
+ */
+
 interface WelcomeScreenProps {
   onAuthenticationSuccess: () => void;
   onDemoMode: () => void;

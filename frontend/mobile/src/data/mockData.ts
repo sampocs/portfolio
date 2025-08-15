@@ -1,5 +1,13 @@
 import { Asset, PerformanceData } from "./types";
 import { calculateCurrentAllocations } from "./utils";
+import { DATA, CHART } from "../constants";
+
+/**
+ * Mock Data Generator
+ * 
+ * Provides realistic mock data for demonstration purposes,
+ * including asset positions and historical performance data.
+ */
 
 const rawMockPositions: Asset[] = [
   {
@@ -190,14 +198,17 @@ const rawMockPositions: Asset[] = [
 export const mockPositions: Asset[] =
   calculateCurrentAllocations(rawMockPositions);
 
-// Generate 120 days of performance data ending at the correct total value (139,652.52)
+/**
+ * Generate realistic performance data with market-like volatility
+ * Creates a dataset that ends with the exact total value from positions
+ */
 const generatePerformanceData = (): PerformanceData[] => {
   const data: PerformanceData[] = [];
-  const finalValue = 139652.52;
-  const finalCost = 118296.62;
-  const startValue = 95000; // Starting portfolio value
-  const startCost = 95000; // Starting cost basis
-  const days = 120;
+  const finalValue = DATA.FINAL_PORTFOLIO_VALUE;
+  const finalCost = DATA.FINAL_PORTFOLIO_COST;
+  const startValue = DATA.STARTING_PORTFOLIO_VALUE;
+  const startCost = DATA.STARTING_PORTFOLIO_VALUE;
+  const days = DATA.MOCK_DATA_DAYS;
   
   // Generate dates starting 120 days ago
   const startDate = new Date();
@@ -213,13 +224,19 @@ const generatePerformanceData = (): PerformanceData[] => {
     const baseValueGrowth = startValue + (finalValue - startValue) * progress;
     const baseCostGrowth = startCost + (finalCost - startCost) * progress;
     
-    // Add some realistic market volatility (sinusoidal waves + random)
-    const shortTermVolatility = Math.sin(i * 0.2) * 2000 + Math.sin(i * 0.05) * 5000;
-    const randomVolatility = (Math.random() - 0.5) * 3000;
-    const marketCorrection = i > 60 && i < 80 ? -8000 * Math.sin((i - 60) / 20 * Math.PI) : 0;
+    // Add realistic market volatility using configurable parameters
+    const { VOLATILITY } = CHART;
+    const shortTermVolatility = 
+      Math.sin(i * VOLATILITY.SHORT_TERM_MULTIPLIER) * VOLATILITY.SHORT_TERM_AMPLITUDE + 
+      Math.sin(i * VOLATILITY.MEDIUM_TERM_MULTIPLIER) * VOLATILITY.MEDIUM_TERM_AMPLITUDE;
+    const randomVolatility = (Math.random() - 0.5) * VOLATILITY.RANDOM_AMPLITUDE;
+    const marketCorrection = i > VOLATILITY.CORRECTION_START_DAY && i < VOLATILITY.CORRECTION_END_DAY 
+      ? -VOLATILITY.CORRECTION_AMPLITUDE * Math.sin((i - VOLATILITY.CORRECTION_START_DAY) / 
+        (VOLATILITY.CORRECTION_END_DAY - VOLATILITY.CORRECTION_START_DAY) * Math.PI) 
+      : 0;
     
     const adjustedValue = Math.max(
-      baseCostGrowth * 0.85, // Never go below 85% of cost basis
+      baseCostGrowth * (DATA.MIN_PORTFOLIO_VALUE_PERCENTAGE / 100),
       baseValueGrowth + shortTermVolatility + randomVolatility + marketCorrection
     );
     

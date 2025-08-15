@@ -3,6 +3,7 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
+import { TIMING, UI } from '../constants';
 import CategorySelector from '../components/CategorySelector';
 import Summary from '../components/Summary';
 import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
@@ -16,7 +17,9 @@ import { calculatePortfolioSummary } from '../data/utils';
 import { Asset, PerformanceData } from '../data/types';
 import { mockPerformanceData } from '../data/mockData';
 
-// Format date from YYYY-MM-DD to "Aug 7, 2025"
+/**
+ * Format date from YYYY-MM-DD to readable format
+ */
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { 
@@ -26,6 +29,12 @@ const formatDate = (dateString: string): string => {
   });
 };
 
+/**
+ * PortfolioScreen - Main portfolio view showing assets, performance, and controls
+ * 
+ * Displays user's portfolio summary, performance chart, and asset list.
+ * Includes hidden long-press functionality to switch between live and demo data modes.
+ */
 export default function PortfolioScreen() {
   const [selectedCategories, setSelectedCategories] = useState({
     stocks: true,
@@ -109,14 +118,19 @@ export default function PortfolioScreen() {
     setSelectedDataPoint(dataPoint);
   };
 
-  // Long press gesture handlers for header
+  /**
+   * Handle long press gesture start - triggers data mode modal after delay
+   */
   const handleHeaderPressIn = () => {
     const timer = setTimeout(() => {
       setIsModalVisible(true);
-    }, 2000); // 2 second long press
+    }, TIMING.LONG_PRESS_DURATION);
     setLongPressTimer(timer);
   };
 
+  /**
+   * Handle long press gesture end - cancels timer if released early
+   */
   const handleHeaderPressOut = () => {
     if (longPressTimer) {
       clearTimeout(longPressTimer);
@@ -331,7 +345,7 @@ export default function PortfolioScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TouchableOpacity
         style={styles.header}
-        activeOpacity={0.5}
+        activeOpacity={UI.TOUCHABLE_OPACITY_ACTIVE}
         onPressIn={handleHeaderPressIn}
         onPressOut={handleHeaderPressOut}
       >

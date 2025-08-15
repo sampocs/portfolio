@@ -2,16 +2,31 @@ import React from 'react';
 import { View, Text, Modal, TouchableOpacity, Pressable } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
+import { DataMode } from '../contexts/DataContext';
+
+/**
+ * DataModeModal - Confirmation dialog for switching between data modes
+ * 
+ * Provides a simple modal to confirm switching between live and demo data modes.
+ * Text automatically adapts based on current mode for better user experience.
+ */
 
 interface DataModeModalProps {
   visible: boolean;
-  currentMode: 'live' | 'demo';
+  currentMode: DataMode;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
+/**
+ * Generate dynamic text based on current data mode
+ */
+const getActionText = (currentMode: DataMode): string => {
+  return currentMode === 'live' ? 'Switch to Demo Mode' : 'Switch to Live Mode';
+};
+
 export default function DataModeModal({ visible, currentMode, onConfirm, onCancel }: DataModeModalProps) {
-  const actionText = currentMode === 'live' ? 'Switch to Demo Mode' : 'Switch to Live Mode';
+  const actionText = getActionText(currentMode);
 
   return (
     <Modal

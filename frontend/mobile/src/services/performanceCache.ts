@@ -1,9 +1,15 @@
 import { PerformanceData, Asset } from "../data/types";
 import { apiService } from "./api";
+import { TIMING } from "../constants";
 
-// Cache configuration
-const CACHE_DURATION_MINUTES = 60; // Cache for 1 hour
-const MAX_CONCURRENT_REQUESTS = 5; // Maximum concurrent background requests
+/**
+ * PerformanceCacheManager - Intelligent caching for performance data
+ * 
+ * Provides smart caching with background preloading, request deduplication,
+ * and priority-based queue management for optimal performance.
+ */
+
+const MAX_CONCURRENT_REQUESTS = 5;
 
 // Types for cache management
 interface CacheKey {
@@ -41,14 +47,14 @@ class PerformanceCacheManager {
   private isCacheValid(entry: CacheEntry): boolean {
     const now = Date.now();
     const ageMinutes = (now - entry.timestamp) / (1000 * 60);
-    return ageMinutes < CACHE_DURATION_MINUTES;
+    return ageMinutes < TIMING.CACHE_EXPIRY_MINUTES;
   }
 
   // Get cached data if available and valid
   private getCachedData(cacheKey: string): PerformanceData[] | null {
     const entry = this.cache.get(cacheKey);
     if (entry && this.isCacheValid(entry)) {
-      console.log(`Cache hit for ${cacheKey}`);
+      // Cache hit
       return entry.data;
     }
     return null;
@@ -61,7 +67,7 @@ class PerformanceCacheManager {
       timestamp: Date.now(),
       key: cacheKey
     });
-    console.log(`Cached data for ${cacheKey}`);
+    // Data cached successfully
   }
 
   // Process the request queue with priority handling
@@ -222,12 +228,10 @@ class PerformanceCacheManager {
   // Preload performance data in background
   async preloadPerformanceData(positions: Asset[]): Promise<void> {
     if (this.preloadInProgress) {
-      console.log('Preload already in progress, skipping');
       return;
     }
 
     this.preloadInProgress = true;
-    console.log('Starting background preload of performance data');
 
     const durations = ['1W', '1M', 'YTD', '1Y']; // Skip 'ALL' as it's loaded initially
     const allDurations = ['ALL', ...durations]; // Include ALL for market combinations
@@ -249,21 +253,21 @@ class PerformanceCacheManager {
       });
     });
 
-    console.log(`Preloading ${preloadTasks.length} combinations (${allDurations.length} durations × ${marketCombinations.length} market filters)`);
+    // Preloading combinations in background
 
     // Queue all preload tasks with low priority
     const preloadPromises = preloadTasks.map(task => {
       const marketDesc = task.assets ? `[${task.assets.length} assets]` : 'all markets';
       return this.getPerformanceData(task.granularity, task.assets, 'low')
         .catch(error => {
-          console.log(`Background preload failed for ${task.granularity} ${marketDesc}:`, error);
+          // Background preload failed - continue with other tasks
           // Don't throw - we don't want to fail the entire preload
         });
     });
 
     try {
       await Promise.allSettled(preloadPromises);
-      console.log('Background preload completed');
+      // Background preload completed
     } catch (error) {
       console.error('Error during background preload:', error);
     } finally {
@@ -274,7 +278,7 @@ class PerformanceCacheManager {
   // Clear cache (useful for debugging or forced refresh)
   clearCache(): void {
     this.cache.clear();
-    console.log('Performance cache cleared');
+    // Cache cleared
   }
 
   // Check if specific data is available in cache (synchronous)
