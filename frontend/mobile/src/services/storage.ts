@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_KEY_STORAGE_KEY = 'PORTFOLIO_API_KEY';
+const ONBOARDING_COMPLETED_KEY = 'PORTFOLIO_ONBOARDING_COMPLETED';
 
 export class StorageService {
   // Store API key in AsyncStorage
@@ -40,5 +41,36 @@ export class StorageService {
   static async isAuthenticated(): Promise<boolean> {
     const apiKey = await StorageService.getApiKey();
     return apiKey !== null && apiKey.length > 0;
+  }
+
+  // Mark onboarding as completed
+  static async setOnboardingCompleted(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
+      console.log('Onboarding marked as completed');
+    } catch (error) {
+      console.error('Error setting onboarding completed:', error);
+    }
+  }
+
+  // Check if user has completed onboarding
+  static async hasCompletedOnboarding(): Promise<boolean> {
+    try {
+      const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
+      return completed === 'true';
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      return false;
+    }
+  }
+
+  // Clear onboarding status (for testing/reset)
+  static async clearOnboardingStatus(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(ONBOARDING_COMPLETED_KEY);
+      console.log('Onboarding status cleared');
+    } catch (error) {
+      console.error('Error clearing onboarding status:', error);
+    }
   }
 }

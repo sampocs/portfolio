@@ -15,15 +15,15 @@ const Tab = createBottomTabNavigator();
 
 // Main app content component (inside DataProvider)
 function AppContent() {
-  const { isAuthenticated, isCheckingAuth, setAuthenticated, switchToDemo, dataMode } = useData();
+  const { isAuthenticated, isCheckingAuth, hasCompletedOnboarding, setAuthenticated, switchToDemo } = useData();
 
   // Show loading screen while checking authentication
   if (isCheckingAuth) {
     return <LoadingScreen title="Loading..." />;
   }
 
-  // Show welcome screen if not authenticated AND not in demo mode
-  if (!isAuthenticated && dataMode !== 'demo') {
+  // Show welcome screen for new users (haven't completed onboarding)
+  if (!hasCompletedOnboarding) {
     return (
       <WelcomeScreen
         onAuthenticationSuccess={() => setAuthenticated(true)}

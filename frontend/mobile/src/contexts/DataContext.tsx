@@ -14,8 +14,9 @@ interface DataContextType {
   dataMode: DataMode;
   isAuthenticated: boolean;
   isCheckingAuth: boolean;
+  hasCompletedOnboarding: boolean;
   refreshData: () => Promise<void>;
-  switchToDemo: () => void;
+  switchToDemo: () => Promise<void>;
   switchToLive: () => Promise<{ success: boolean; needsAuth?: boolean }>;
   setAuthenticated: (authenticated: boolean) => Promise<void>;
 }
@@ -47,6 +48,7 @@ export function DataProvider({ children }: DataProviderProps) {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   
   // Computed property: return appropriate data based on current mode
   const positions = dataMode === 'live' ? liveData : demoData;
@@ -79,10 +81,12 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
-  // Simple instant switch to demo mode
-  const switchToDemo = () => {
+  // Switch to demo mode and mark onboarding completed
+  const switchToDemo = async () => {
     setDataMode('demo');
-    console.log('Switched to demo mode');
+    await StorageService.setOnboardingCompleted();
+    setHasCompletedOnboarding(true);
+    console.log('Switched to demo mode and completed onboarding');
   };
 
   // Smart switch to live mode with authentication check
@@ -119,25 +123,38 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
-  // Check authentication status on app start
+  // Check authentication and onboarding status on app start
   useEffect(() => {
-    const checkAuthStatus = async () => {
+    const checkAppStatus = async () => {
       const hasValidAuth = await StorageService.isAuthenticated();
+      const completedOnboarding = await StorageService.hasCompletedOnboarding();
+      
       setIsAuthenticated(hasValidAuth);
+      setHasCompletedOnboarding(completedOnboarding);
       setIsCheckingAuth(false);
       
       if (hasValidAuth) {
-        // User is authenticated, fetch live data
+        // User is authenticated, fetch live data and mark onboarding completed
+        setDataMode('live');
         await fetchLiveData();
-      } else {
-        // User not authenticated, start in demo mode
+        if (!completedOnboarding) {
+          await StorageService.setOnboardingCompleted();
+          setHasCompletedOnboarding(true);
+        }
+      } else if (completedOnboarding) {
+        // User completed onboarding but not authenticated - show demo mode
         setDataMode('demo');
         setIsLoading(false);
-        console.log('User not authenticated, starting in demo mode');
+        console.log('User completed onboarding, showing demo mode');
+      } else {
+        // New user - stay in live mode but don't fetch data
+        // App.tsx will show WelcomeScreen for onboarding
+        setIsLoading(false);
+        console.log('New user, will show welcome screen for onboarding');
       }
     };
     
-    checkAuthStatus();
+    checkAppStatus();
   }, []);
 
   // Function to update authentication status (called from WelcomeScreen)
@@ -145,9 +162,11 @@ export function DataProvider({ children }: DataProviderProps) {
     setIsAuthenticated(authenticated);
     
     if (authenticated) {
-      // Switch to live mode and fetch data
+      // Switch to live mode, fetch data, and mark onboarding completed
       setDataMode('live');
       await fetchLiveData();
+      await StorageService.setOnboardingCompleted();
+      setHasCompletedOnboarding(true);
     }
   };
 
@@ -159,6 +178,7 @@ export function DataProvider({ children }: DataProviderProps) {
     dataMode,
     isAuthenticated,
     isCheckingAuth,
+    hasCompletedOnboarding,
     refreshData,
     switchToDemo,
     switchToLive,
