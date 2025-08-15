@@ -84,6 +84,7 @@ export function DataProvider({ children }: DataProviderProps) {
   // Switch to demo mode and mark onboarding completed
   const switchToDemo = async () => {
     setDataMode('demo');
+    await StorageService.storeDataMode('demo'); // Save preference
     await StorageService.setOnboardingCompleted();
     setHasCompletedOnboarding(true);
     console.log('Switched to demo mode and completed onboarding');
@@ -103,6 +104,7 @@ export function DataProvider({ children }: DataProviderProps) {
     if (liveData.length > 0) {
       // We have cached live data - instant switch
       setDataMode('live');
+      await StorageService.storeDataMode('live'); // Save preference
       console.log('Switched to live mode with cached data');
       return { success: true };
     } else {
@@ -113,39 +115,52 @@ export function DataProvider({ children }: DataProviderProps) {
       
       try {
         await fetchLiveData(false); // false = not a refresh, so it will use isLoading
+        await StorageService.storeDataMode('live'); // Save preference
         return { success: true };
       } catch (error) {
         console.error('Error fetching live data during switch:', error);
         // Switch back to demo mode on error
         setDataMode('demo');
+        await StorageService.storeDataMode('demo'); // Save demo preference on error
         return { success: false };
       }
     }
   };
 
-  // Check authentication and onboarding status on app start
+  // Check authentication, onboarding status, and data mode preference on app start
   useEffect(() => {
     const checkAppStatus = async () => {
       const hasValidAuth = await StorageService.isAuthenticated();
       const completedOnboarding = await StorageService.hasCompletedOnboarding();
+      const storedDataMode = await StorageService.getDataMode();
       
       setIsAuthenticated(hasValidAuth);
       setHasCompletedOnboarding(completedOnboarding);
       setIsCheckingAuth(false);
       
       if (hasValidAuth) {
-        // User is authenticated, fetch live data and mark onboarding completed
-        setDataMode('live');
-        await fetchLiveData();
+        // User is authenticated - use stored data mode preference or default to live
+        const preferredMode = storedDataMode || 'live';
+        setDataMode(preferredMode);
+        
+        if (preferredMode === 'live') {
+          await fetchLiveData();
+        } else {
+          setIsLoading(false);
+        }
+        
         if (!completedOnboarding) {
           await StorageService.setOnboardingCompleted();
           setHasCompletedOnboarding(true);
         }
+        
+        console.log('Authenticated user, restored data mode:', preferredMode);
       } else if (completedOnboarding) {
-        // User completed onboarding but not authenticated - show demo mode
-        setDataMode('demo');
+        // User completed onboarding but not authenticated - use stored preference or default to demo
+        const preferredMode = storedDataMode || 'demo';
+        setDataMode(preferredMode);
         setIsLoading(false);
-        console.log('User completed onboarding, showing demo mode');
+        console.log('User completed onboarding, restored data mode:', preferredMode);
       } else {
         // New user - stay in live mode but don't fetch data
         // App.tsx will show WelcomeScreen for onboarding
@@ -164,6 +179,7 @@ export function DataProvider({ children }: DataProviderProps) {
     if (authenticated) {
       // Switch to live mode, fetch data, and mark onboarding completed
       setDataMode('live');
+      await StorageService.storeDataMode('live'); // Save preference
       await fetchLiveData();
       await StorageService.setOnboardingCompleted();
       setHasCompletedOnboarding(true);

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_KEY_STORAGE_KEY = 'PORTFOLIO_API_KEY';
 const ONBOARDING_COMPLETED_KEY = 'PORTFOLIO_ONBOARDING_COMPLETED';
+const DATA_MODE_KEY = 'PORTFOLIO_DATA_MODE';
 
 export class StorageService {
   // Store API key in AsyncStorage
@@ -71,6 +72,37 @@ export class StorageService {
       console.log('Onboarding status cleared');
     } catch (error) {
       console.error('Error clearing onboarding status:', error);
+    }
+  }
+
+  // Store user's preferred data mode
+  static async storeDataMode(mode: 'live' | 'demo'): Promise<void> {
+    try {
+      await AsyncStorage.setItem(DATA_MODE_KEY, mode);
+      console.log('Data mode stored:', mode);
+    } catch (error) {
+      console.error('Error storing data mode:', error);
+    }
+  }
+
+  // Retrieve user's preferred data mode
+  static async getDataMode(): Promise<'live' | 'demo' | null> {
+    try {
+      const mode = await AsyncStorage.getItem(DATA_MODE_KEY);
+      return mode as 'live' | 'demo' | null;
+    } catch (error) {
+      console.error('Error retrieving data mode:', error);
+      return null;
+    }
+  }
+
+  // Clear data mode preference (for testing/reset)
+  static async clearDataMode(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(DATA_MODE_KEY);
+      console.log('Data mode preference cleared');
+    } catch (error) {
+      console.error('Error clearing data mode:', error);
     }
   }
 }
