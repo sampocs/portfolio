@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -8,6 +8,7 @@ import Summary from '../components/Summary';
 import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
 import AssetList from '../components/AssetList';
 import LoadingScreen from '../components/LoadingScreen';
+import DataModeModal from '../components/DataModeModal';
 import { useData } from '../contexts/DataContext';
 import { performanceCacheManager } from '../services/performanceCache';
 import { calculatePortfolioSummary } from '../data/utils';
@@ -32,6 +33,10 @@ export default function PortfolioScreen() {
 
   // State for chart interaction
   const [selectedDataPoint, setSelectedDataPoint] = useState<PerformanceData | null>(null);
+  
+  // State for modal
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Use shared positions data from context
   const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData } = useData();
@@ -100,6 +105,41 @@ export default function PortfolioScreen() {
   const handleDataPointSelected = (dataPoint: PerformanceData | null) => {
     setSelectedDataPoint(dataPoint);
   };
+
+  // Long press gesture handlers for header
+  const handleHeaderPressIn = () => {
+    const timer = setTimeout(() => {
+      setIsModalVisible(true);
+    }, 2000); // 2 second long press
+    setLongPressTimer(timer);
+  };
+
+  const handleHeaderPressOut = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  // Modal handlers
+  const handleModalConfirm = () => {
+    setIsModalVisible(false);
+    // TODO: Implement data mode switching later
+    console.log('Confirm pressed - will implement later');
+  };
+
+  const handleModalCancel = () => {
+    setIsModalVisible(false);
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [longPressTimer]);
 
   // Get filtered asset symbols based on selected categories
   const getFilteredAssetSymbols = (positions: Asset[]): string[] | undefined => {
@@ -235,9 +275,14 @@ export default function PortfolioScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+      <TouchableOpacity
+        style={styles.header}
+        activeOpacity={0.8}
+        onPressIn={handleHeaderPressIn}
+        onPressOut={handleHeaderPressOut}
+      >
         <Text style={styles.headerText}>Portfolio</Text>
-      </View>
+      </TouchableOpacity>
       <ScrollView 
         style={styles.scrollContent}
         refreshControl={
@@ -277,6 +322,12 @@ export default function PortfolioScreen() {
           selectedCategories={selectedCategories}
         />
       </ScrollView>
+      
+      <DataModeModal
+        visible={isModalVisible}
+        onConfirm={handleModalConfirm}
+        onCancel={handleModalCancel}
+      />
     </SafeAreaView>
   );
 }
