@@ -13,6 +13,7 @@ interface DataContextType {
   dataMode: DataMode;
   refreshData: () => Promise<void>;
   switchToDemo: () => void;
+  switchToLive: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -76,6 +77,30 @@ export function DataProvider({ children }: DataProviderProps) {
     console.log('Switched to demo mode');
   };
 
+  // Smart switch to live mode with caching
+  const switchToLive = async () => {
+    setError(null);
+    
+    if (liveData.length > 0) {
+      // We have cached live data - instant switch
+      setDataMode('live');
+      console.log('Switched to live mode with cached data');
+    } else {
+      // No cached data - need to fetch and show loading
+      console.log('Switching to live mode - fetching fresh data');
+      setIsLoading(true);
+      setDataMode('live'); // Switch mode first so UI shows live mode
+      
+      try {
+        await fetchLiveData(false); // false = not a refresh, so it will use isLoading
+      } catch (error) {
+        console.error('Error fetching live data during switch:', error);
+        // Could optionally switch back to demo mode here on error
+        // setDataMode('demo');
+      }
+    }
+  };
+
   // Initial data load (always start in live mode)
   useEffect(() => {
     fetchLiveData();
@@ -89,6 +114,7 @@ export function DataProvider({ children }: DataProviderProps) {
     dataMode,
     refreshData,
     switchToDemo,
+    switchToLive,
   };
 
   return (

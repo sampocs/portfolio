@@ -40,7 +40,7 @@ export default function PortfolioScreen() {
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Use shared positions data from context
-  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo } = useData();
+  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo, switchToLive } = useData();
 
   // Local state for performance data and chart-specific loading
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
@@ -123,12 +123,14 @@ export default function PortfolioScreen() {
   };
 
   // Modal handlers
-  const handleModalConfirm = () => {
+  const handleModalConfirm = async () => {
     setIsModalVisible(false);
     
-    // For now, only switch to demo mode (we'll add back and forth later)
+    // Bidirectional switching
     if (dataMode === 'live') {
       switchToDemo();
+    } else {
+      await switchToLive();
     }
   };
 
