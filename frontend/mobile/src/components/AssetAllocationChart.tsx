@@ -19,7 +19,7 @@ interface ChartRowProps {
   onToggle: () => void;
 }
 
-const BAR_HEIGHT = 16; // Increased from 12 to 16
+const BAR_HEIGHT = 12; // Reduced from 16 to 12 for thinner bars
 const BAR_SPACING = 3; // Space between current and target bars
 const CHART_HEIGHT = (BAR_HEIGHT * 2) + BAR_SPACING; // Total height for both bars
 const LOGO_SIZE = 56;
