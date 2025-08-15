@@ -32,13 +32,15 @@ export default function WelcomeScreen({ onAuthenticationSuccess, onDemoMode }: W
         // Store the API key and proceed to live mode
         await StorageService.storeApiKey(inviteCode.trim());
         onAuthenticationSuccess();
+        // Keep loading state - don't set setIsLoading(false) on success
+        // The loading will persist until this screen transitions away
       } else {
         setError(result.message || 'Invalid invite code');
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Authentication error:', error);
       setError('Authentication failed. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
