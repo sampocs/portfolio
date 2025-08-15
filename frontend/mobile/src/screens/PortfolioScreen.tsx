@@ -9,6 +9,7 @@ import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorth
 import AssetList from '../components/AssetList';
 import LoadingScreen from '../components/LoadingScreen';
 import DataModeModal from '../components/DataModeModal';
+import WelcomeScreen from './WelcomeScreen';
 import { useData } from '../contexts/DataContext';
 import { performanceCacheManager } from '../services/performanceCache';
 import { calculatePortfolioSummary } from '../data/utils';
@@ -38,9 +39,10 @@ export default function PortfolioScreen() {
   // State for modal
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
 
   // Use shared positions data from context
-  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo, switchToLive } = useData();
+  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo, switchToLive, setAuthenticated } = useData();
 
   // Local state for performance data and chart-specific loading
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
@@ -130,12 +132,28 @@ export default function PortfolioScreen() {
     if (dataMode === 'live') {
       switchToDemo();
     } else {
-      await switchToLive();
+      // Try to switch to live mode
+      const result = await switchToLive();
+      if (!result.success && result.needsAuth) {
+        // User needs to authenticate - show welcome screen
+        setShowWelcomeScreen(true);
+      }
     }
   };
 
   const handleModalCancel = () => {
     setIsModalVisible(false);
+  };
+
+  // Welcome screen handlers (for re-authentication)
+  const handleAuthenticationSuccess = async () => {
+    setShowWelcomeScreen(false);
+    await setAuthenticated(true);
+  };
+
+  const handleWelcomeDemoMode = () => {
+    setShowWelcomeScreen(false);
+    // Already in demo mode, so just stay there
   };
 
   // Cleanup timer on unmount
@@ -290,6 +308,16 @@ export default function PortfolioScreen() {
 
   if (positionsLoading) {
     return <LoadingScreen title="Portfolio" />;
+  }
+
+  // Show welcome screen for re-authentication if needed
+  if (showWelcomeScreen) {
+    return (
+      <WelcomeScreen
+        onAuthenticationSuccess={handleAuthenticationSuccess}
+        onDemoMode={handleWelcomeDemoMode}
+      />
+    );
   }
 
   return (
