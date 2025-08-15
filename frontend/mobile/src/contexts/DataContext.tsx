@@ -73,8 +73,8 @@ export function DataProvider({ children }: DataProviderProps) {
   };
 
   const refreshData = async () => {
-    // Only refresh if in live mode
-    if (dataMode === 'live') {
+    // Only refresh if in live mode AND authenticated
+    if (dataMode === 'live' && isAuthenticated) {
       await fetchLiveData(true);
     }
   };

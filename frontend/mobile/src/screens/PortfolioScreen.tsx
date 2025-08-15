@@ -42,7 +42,7 @@ export default function PortfolioScreen() {
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
 
   // Use shared positions data from context
-  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo, switchToLive, setAuthenticated } = useData();
+  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo, switchToLive, setAuthenticated, isAuthenticated } = useData();
 
   // Local state for performance data and chart-specific loading
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
@@ -211,11 +211,16 @@ export default function PortfolioScreen() {
 
   const handleRefresh = async () => {
     try {
-      // Refresh positions through context and performance data
-      await Promise.all([
-        refreshData(), // This refreshes positions
-        fetchPerformanceData(selectedGranularity, true) // This refreshes performance data
-      ]);
+      // Only refresh in live mode and when authenticated
+      if (dataMode === 'live' && isAuthenticated) {
+        await Promise.all([
+          refreshData(), // This refreshes positions
+          fetchPerformanceData(selectedGranularity, true) // This refreshes performance data
+        ]);
+      } else {
+        // In demo mode, just refresh the performance data (which uses mock data)
+        await fetchPerformanceData(selectedGranularity, true);
+      }
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
@@ -253,8 +258,10 @@ export default function PortfolioScreen() {
     const loadPerformanceData = async () => {
       if (positions.length > 0 && isInitialLoad) {
         try {
-          // Start background preloading after positions are loaded
-          performanceCacheManager.preloadPerformanceData(positions);
+          // Start background preloading after positions are loaded (only in live mode AND authenticated)
+          if (dataMode === 'live' && isAuthenticated) {
+            performanceCacheManager.preloadPerformanceData(positions);
+          }
           
           // Fetch initial performance data
           await fetchPerformanceData();
@@ -267,7 +274,7 @@ export default function PortfolioScreen() {
     };
 
     loadPerformanceData();
-  }, [positions, isInitialLoad]);
+  }, [positions, isInitialLoad, dataMode, isAuthenticated]);
 
   // React to data mode changes - instantly switch performance data
   useEffect(() => {
