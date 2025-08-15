@@ -1,0 +1,11 @@
+{
+  "cli": {
+    "version": ">= 13.2.1"
+  },
+  "build": {
+    "production": {}
+  },
+  "submit": {
+    "production": {}
+  }
+}
