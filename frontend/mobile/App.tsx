@@ -10,7 +10,7 @@ import AllocationsScreen from './src/screens/AllocationsScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import { DataProvider, useData } from './src/contexts/DataContext';
 import { theme } from './src/styles/theme';
-import LoadingScreen from './src/components/LoadingScreen';
+import SkeletonLoadingScreen from './src/components/SkeletonLoadingScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -20,7 +20,7 @@ function AppContent() {
 
   // Show loading screen while checking authentication
   if (isCheckingAuth) {
-    return <LoadingScreen title="Loading..." />;
+    return <SkeletonLoadingScreen title="Loading..." />;
   }
 
   // Show welcome screen for new users (haven't completed onboarding)
