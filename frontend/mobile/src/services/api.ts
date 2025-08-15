@@ -91,14 +91,14 @@ class ApiService {
   /**
    * Fetch performance data for specified granularity and assets
    */
-  async getPerformance(
+  async getPerformanceData(
     granularity: string,
-    assets?: string[]
+    assetSymbols?: string[]
   ): Promise<PerformanceData[]> {
     let endpoint = `/performance/${granularity}`;
-    if (assets && assets.length > 0) {
-      const assetsParam = assets.join(",");
-      endpoint += `?assets=${encodeURIComponent(assetsParam)}`;
+    if (assetSymbols && assetSymbols.length > 0) {
+      const assetsQueryParam = assetSymbols.join(",");
+      endpoint += `?assets=${encodeURIComponent(assetsQueryParam)}`;
     }
 
     return await this.makeRequest<PerformanceData[]>(endpoint);

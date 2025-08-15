@@ -3,18 +3,18 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
-import GroupingSection, { GroupingType } from '../components/GroupingSection';
-import DonutChart from '../components/DonutChart';
+import AllocationGroupingSelector, { AllocationGroupingType } from '../components/AllocationGroupingSelector';
+import AllocationDonutChart from '../components/AllocationDonutChart';
 import AllocationLegend from '../components/AllocationLegend';
 import AssetAllocationList from '../components/AssetAllocationList';
 import AssetChartLegend from '../components/AssetChartLegend';
-import LoadingScreen from '../components/LoadingScreen';
+import SkeletonLoadingScreen from '../components/SkeletonLoadingScreen';
 import { useData } from '../contexts/DataContext';
 import { GenericAllocation } from '../data/types';
 import { aggregateAssetsByMarket, aggregateAssetsBySegment, marketToGeneric, segmentToGeneric, getMarketColor, getSegmentColor } from '../data/utils';
 
 export default function AllocationsScreen() {
-  const [selectedGrouping, setSelectedGrouping] = useState<GroupingType>('markets');
+  const [selectedGrouping, setSelectedGrouping] = useState<AllocationGroupingType>('markets');
   const [selectedGenericItem, setSelectedGenericItem] = useState<GenericAllocation | null>(null);
   const [localRefreshing, setLocalRefreshing] = useState(false);
   
@@ -67,7 +67,7 @@ export default function AllocationsScreen() {
 
   // Loading state
   if (isLoading) {
-    return <LoadingScreen title="Allocations" />;
+    return <SkeletonLoadingScreen title="Allocations" />;
   }
 
   return (
@@ -92,14 +92,14 @@ export default function AllocationsScreen() {
           onPress={() => setSelectedGenericItem(null)}
           activeOpacity={1}
         >
-          <GroupingSection
+          <AllocationGroupingSelector
             selectedGrouping={selectedGrouping}
             onGroupingChange={handleGroupingChange}
           />
 
           {selectedGrouping === 'markets' || selectedGrouping === 'segments' ? (
             <>
-              <DonutChart 
+              <AllocationDonutChart 
                 data={currentData}
                 selectedItem={selectedGenericItem}
                 onItemSelect={handleGenericItemSelect}

@@ -214,43 +214,43 @@ const generatePerformanceData = (): PerformanceData[] => {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
   
-  for (let i = 0; i <= days; i++) {
+  for (let dayIndex = 0; dayIndex <= days; dayIndex++) {
     const currentDate = new Date(startDate);
-    currentDate.setDate(startDate.getDate() + i);
+    currentDate.setDate(startDate.getDate() + dayIndex);
     
-    const progress = i / days;
+    const progressRatio = dayIndex / days;
     
     // Create realistic market progression with some volatility
-    const baseValueGrowth = startValue + (finalValue - startValue) * progress;
-    const baseCostGrowth = startCost + (finalCost - startCost) * progress;
+    const baseValueGrowth = startValue + (finalValue - startValue) * progressRatio;
+    const baseCostGrowth = startCost + (finalCost - startCost) * progressRatio;
     
     // Add realistic market volatility using configurable parameters
     const { VOLATILITY } = CHART;
     const shortTermVolatility = 
-      Math.sin(i * VOLATILITY.SHORT_TERM_MULTIPLIER) * VOLATILITY.SHORT_TERM_AMPLITUDE + 
-      Math.sin(i * VOLATILITY.MEDIUM_TERM_MULTIPLIER) * VOLATILITY.MEDIUM_TERM_AMPLITUDE;
+      Math.sin(dayIndex * VOLATILITY.SHORT_TERM_MULTIPLIER) * VOLATILITY.SHORT_TERM_AMPLITUDE + 
+      Math.sin(dayIndex * VOLATILITY.MEDIUM_TERM_MULTIPLIER) * VOLATILITY.MEDIUM_TERM_AMPLITUDE;
     const randomVolatility = (Math.random() - 0.5) * VOLATILITY.RANDOM_AMPLITUDE;
-    const marketCorrection = i > VOLATILITY.CORRECTION_START_DAY && i < VOLATILITY.CORRECTION_END_DAY 
-      ? -VOLATILITY.CORRECTION_AMPLITUDE * Math.sin((i - VOLATILITY.CORRECTION_START_DAY) / 
+    const marketCorrectionVolatility = dayIndex > VOLATILITY.CORRECTION_START_DAY && dayIndex < VOLATILITY.CORRECTION_END_DAY 
+      ? -VOLATILITY.CORRECTION_AMPLITUDE * Math.sin((dayIndex - VOLATILITY.CORRECTION_START_DAY) / 
         (VOLATILITY.CORRECTION_END_DAY - VOLATILITY.CORRECTION_START_DAY) * Math.PI) 
       : 0;
     
     const adjustedValue = Math.max(
       baseCostGrowth * (DATA.MIN_PORTFOLIO_VALUE_PERCENTAGE / 100),
-      baseValueGrowth + shortTermVolatility + randomVolatility + marketCorrection
+      baseValueGrowth + shortTermVolatility + randomVolatility + marketCorrectionVolatility
     );
     
     // Ensure the final day matches exactly
-    const value = i === days ? finalValue : adjustedValue;
-    const cost = i === days ? finalCost : baseCostGrowth;
+    const dailyValue = dayIndex === days ? finalValue : adjustedValue;
+    const dailyCost = dayIndex === days ? finalCost : baseCostGrowth;
     
-    const returns = ((value - cost) / cost * 100);
+    const dailyReturnsPercentage = ((dailyValue - dailyCost) / dailyCost * 100);
     
     data.push({
       date: currentDate.toISOString().split('T')[0],
-      cost: cost.toFixed(2),
-      value: value.toFixed(2),
-      returns: returns.toFixed(2),
+      cost: dailyCost.toFixed(2),
+      value: dailyValue.toFixed(2),
+      returns: dailyReturnsPercentage.toFixed(2),
     });
   }
   

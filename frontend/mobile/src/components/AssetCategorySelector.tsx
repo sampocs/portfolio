@@ -3,12 +3,18 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
-interface CategorySelectorProps {
+interface AssetCategorySelectorProps {
   selectedCategories: { stocks: boolean; crypto: boolean; alternatives: boolean };
   onCategoryToggle: (category: 'stocks' | 'crypto' | 'alternatives') => void;
 }
 
-export default function CategorySelector({ selectedCategories, onCategoryToggle }: CategorySelectorProps) {
+/**
+ * AssetCategorySelector - Toggle buttons for filtering portfolio by asset categories
+ * 
+ * Allows users to filter their portfolio view by selecting/deselecting
+ * different asset categories (stocks, crypto, alternatives).
+ */
+export default function AssetCategorySelector({ selectedCategories, onCategoryToggle }: AssetCategorySelectorProps) {
   return (
     <View style={styles.container}>
       <TouchableOpacity

@@ -114,7 +114,7 @@ class PerformanceCacheManager {
 
     try {
       const assetSymbols = request.cacheKey.assetSymbols ? JSON.parse(request.cacheKey.assetSymbols) : undefined;
-      const data = await apiService.getPerformance(request.cacheKey.granularity, assetSymbols);
+      const data = await apiService.getPerformanceData(request.cacheKey.granularity, assetSymbols);
       
       this.setCachedData(cacheKey, data);
       request.resolve(data);

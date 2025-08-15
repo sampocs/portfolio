@@ -4,11 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import { TIMING, UI } from '../constants';
-import CategorySelector from '../components/CategorySelector';
-import Summary from '../components/Summary';
+import AssetCategorySelector from '../components/AssetCategorySelector';
+import PortfolioSummary from '../components/PortfolioSummary';
 import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
 import AssetList from '../components/AssetList';
-import LoadingScreen from '../components/LoadingScreen';
+import SkeletonLoadingScreen from '../components/SkeletonLoadingScreen';
 import DataModeModal from '../components/DataModeModal';
 import WelcomeScreen from './WelcomeScreen';
 import { useData } from '../contexts/DataContext';
@@ -328,7 +328,7 @@ export default function PortfolioScreen() {
   };
 
   if (positionsLoading) {
-    return <LoadingScreen title="Portfolio" />;
+    return <SkeletonLoadingScreen title="Portfolio" />;
   }
 
   // Show welcome screen for re-authentication if needed
@@ -363,11 +363,11 @@ export default function PortfolioScreen() {
           />
         }
       >
-        <CategorySelector
+        <AssetCategorySelector
           selectedCategories={selectedCategories}
           onCategoryToggle={handleCategoryToggle}
         />
-        <Summary
+        <PortfolioSummary
           totalValue={summaryData.totalValue}
           totalReturn={summaryData.totalReturn}
           totalReturnPercent={summaryData.totalReturnPercent}

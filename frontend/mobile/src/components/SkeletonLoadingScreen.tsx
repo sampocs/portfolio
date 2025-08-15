@@ -4,17 +4,18 @@ import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import { TIMING, UI, COLORS } from '../constants';
 
-interface LoadingScreenProps {
+interface SkeletonLoadingScreenProps {
   title: string;
 }
 
 /**
- * LoadingScreen - Displays skeleton UI while content is loading
+ * SkeletonLoadingScreen - Displays animated skeleton UI while content is loading
  * 
- * Shows animated placeholders that match the structure of either
- * the Portfolio or Allocations screen based on the title prop.
+ * Shows animated placeholder elements that match the structure of either
+ * the Portfolio or Allocations screen based on the title prop. Uses pulsing
+ * animations to provide visual feedback during data loading.
  */
-export default function LoadingScreen({ title }: LoadingScreenProps) {
+export default function SkeletonLoadingScreen({ title }: SkeletonLoadingScreenProps) {
   const pulseAnim = useRef(new Animated.Value(UI.LOADING_OPACITY_MIN)).current;
 
   useEffect(() => {
