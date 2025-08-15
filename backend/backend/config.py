@@ -117,6 +117,7 @@ class Config(BaseSettings):
 
     finhub_api_token: str = Field(alias="FINHUB_API_TOKEN")
     alpha_vantage_api_token: str = Field(alias="ALPHA_VANTAGE_API_TOKEN")
+    coingecko_api_token: str = Field(alias="COINGECKO_API_TOKEN")
 
     finhub_live_price_api: str = Field(default="https://finnhub.io/api/v1/quote")
     coingecko_live_price_api: str = Field(default="https://api.coingecko.com/api/v3/simple/price")
