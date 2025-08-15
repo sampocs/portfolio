@@ -76,7 +76,7 @@ IBEAM_PORT=8000
 
 **Crypto:**
 
-- Coingecko free tier
+- Coingecko with API key
 - https://api.coingecko.com/api/v3/coins/{token-name}/market_chart?vs_currency=usd&days={N}&interval=daily
 - Where `{token-name}` is `bitcoin`, `ethereum`, and `solana` and `{N}` is the number of days to look back
 

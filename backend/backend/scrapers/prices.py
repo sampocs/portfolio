@@ -80,9 +80,10 @@ def _get_current_stock_prices() -> dict[str, Decimal]:
 
 def _get_current_crypto_prices() -> dict[str, Decimal]:
     """Gets the current market price for each crypt token"""
+    headers = {"x-cg-pro-api-key": config.coingecko_api_token}
     params = {"ids": ",".join(config.coingecko_ids.values()), "vs_currencies": "usd"}
 
-    response = requests.get(config.coingecko_live_price_api, params=params)
+    response = requests.get(config.coingecko_live_price_api, params=params, headers=headers)
     response_data: dict = response.json()
 
     if not all(config.coingecko_ids[asset] in response_data for asset in config.crypto_tokens):
