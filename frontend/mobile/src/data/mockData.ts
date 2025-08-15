@@ -190,71 +190,54 @@ const rawMockPositions: Asset[] = [
 export const mockPositions: Asset[] =
   calculateCurrentAllocations(rawMockPositions);
 
-export const mockPerformanceData: PerformanceData[] = [
-  {
-    date: "2025-08-01",
-    cost: "280000.00",
-    value: "280000.00",
-    returns: "0.00",
-  },
-  {
-    date: "2025-08-02",
-    cost: "285000.00",
-    value: "268500.00",
-    returns: "-5.79",
-  },
-  {
-    date: "2025-08-03",
-    cost: "290000.00",
-    value: "263200.00",
-    returns: "-9.24",
-  },
-  {
-    date: "2025-08-04",
-    cost: "295000.00",
-    value: "267350.00",
-    returns: "-9.37",
-  },
-  {
-    date: "2025-08-05",
-    cost: "300000.00",
-    value: "291000.00",
-    returns: "-3.00",
-  },
-  {
-    date: "2025-08-06",
-    cost: "305000.00",
-    value: "317550.00",
-    returns: "4.11",
-  },
-  {
-    date: "2025-08-07",
-    cost: "310000.00",
-    value: "337700.00",
-    returns: "8.94",
-  },
-  {
-    date: "2025-08-08",
-    cost: "315000.00",
-    value: "361200.00",
-    returns: "14.67",
-  },
-  {
-    date: "2025-08-09",
-    cost: "320000.00",
-    value: "387200.00",
-    returns: "21.00",
-  },
-  {
-    date: "2025-08-10",
-    cost: "325000.00",
-    value: "403750.00",
-    returns: "24.23",
-  },
-  {
-    date: "2025-08-11",
-    cost: "330000.00",
-    value: "429000.00",
-    returns: "30.00",
-  },
-];
+// Generate 120 days of performance data ending at the correct total value (139,652.52)
+const generatePerformanceData = (): PerformanceData[] => {
+  const data: PerformanceData[] = [];
+  const finalValue = 139652.52;
+  const finalCost = 118296.62;
+  const startValue = 95000; // Starting portfolio value
+  const startCost = 95000; // Starting cost basis
+  const days = 120;
+  
+  // Generate dates starting 120 days ago
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  for (let i = 0; i <= days; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+    
+    const progress = i / days;
+    
+    // Create realistic market progression with some volatility
+    const baseValueGrowth = startValue + (finalValue - startValue) * progress;
+    const baseCostGrowth = startCost + (finalCost - startCost) * progress;
+    
+    // Add some realistic market volatility (sinusoidal waves + random)
+    const shortTermVolatility = Math.sin(i * 0.2) * 2000 + Math.sin(i * 0.05) * 5000;
+    const randomVolatility = (Math.random() - 0.5) * 3000;
+    const marketCorrection = i > 60 && i < 80 ? -8000 * Math.sin((i - 60) / 20 * Math.PI) : 0;
+    
+    const adjustedValue = Math.max(
+      baseCostGrowth * 0.85, // Never go below 85% of cost basis
+      baseValueGrowth + shortTermVolatility + randomVolatility + marketCorrection
+    );
+    
+    // Ensure the final day matches exactly
+    const value = i === days ? finalValue : adjustedValue;
+    const cost = i === days ? finalCost : baseCostGrowth;
+    
+    const returns = ((value - cost) / cost * 100);
+    
+    data.push({
+      date: currentDate.toISOString().split('T')[0],
+      cost: cost.toFixed(2),
+      value: value.toFixed(2),
+      returns: returns.toFixed(2),
+    });
+  }
+  
+  return data;
+};
+
+export const mockPerformanceData: PerformanceData[] = generatePerformanceData();
