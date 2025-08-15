@@ -5,12 +5,13 @@ import { createStyles, getTextStyle } from '../styles/utils';
 
 interface DataModeModalProps {
   visible: boolean;
+  currentMode: 'live' | 'demo';
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export default function DataModeModal({ visible, onConfirm, onCancel }: DataModeModalProps) {
-  const actionText = 'Switch to Demo Mode'; // For now, just hardcode this
+export default function DataModeModal({ visible, currentMode, onConfirm, onCancel }: DataModeModalProps) {
+  const actionText = currentMode === 'live' ? 'Switch to Demo Mode' : 'Switch to Live Mode';
 
   return (
     <Modal

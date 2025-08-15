@@ -13,6 +13,7 @@ import { useData } from '../contexts/DataContext';
 import { performanceCacheManager } from '../services/performanceCache';
 import { calculatePortfolioSummary } from '../data/utils';
 import { Asset, PerformanceData } from '../data/types';
+import { mockPerformanceData } from '../data/mockData';
 
 // Format date from YYYY-MM-DD to "Aug 7, 2025"
 const formatDate = (dateString: string): string => {
@@ -39,7 +40,7 @@ export default function PortfolioScreen() {
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Use shared positions data from context
-  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData } = useData();
+  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo } = useData();
 
   // Local state for performance data and chart-specific loading
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
@@ -124,8 +125,11 @@ export default function PortfolioScreen() {
   // Modal handlers
   const handleModalConfirm = () => {
     setIsModalVisible(false);
-    // TODO: Implement data mode switching later
-    console.log('Confirm pressed - will implement later');
+    
+    // For now, only switch to demo mode (we'll add back and forth later)
+    if (dataMode === 'live') {
+      switchToDemo();
+    }
   };
 
   const handleModalCancel = () => {
@@ -166,7 +170,13 @@ export default function PortfolioScreen() {
   // Performance data fetching function (positions now come from context)
   const fetchPerformanceData = async (granularity: string = selectedGranularity, isUserInitiated: boolean = true) => {
     try {
-      // Get filtered asset symbols for performance query
+      if (dataMode === 'demo') {
+        // Use mock data instantly when in demo mode
+        setPerformanceData(mockPerformanceData);
+        return;
+      }
+      
+      // Get filtered asset symbols for performance query (live mode)
       const assetSymbols = getFilteredAssetSymbols(positions);
       
       // Use cache manager with priority based on whether it's user-initiated
@@ -239,6 +249,13 @@ export default function PortfolioScreen() {
     loadPerformanceData();
   }, [positions, isInitialLoad]);
 
+  // React to data mode changes - instantly switch performance data
+  useEffect(() => {
+    if (positions.length > 0) {
+      fetchPerformanceData(selectedGranularity, true);
+    }
+  }, [dataMode]);
+
 
   // Filter assets based on selected categories (same logic as AssetList)
   const filteredPositions = positions.filter(asset => {
@@ -277,7 +294,7 @@ export default function PortfolioScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <TouchableOpacity
         style={styles.header}
-        activeOpacity={0.8}
+        activeOpacity={0.5}
         onPressIn={handleHeaderPressIn}
         onPressOut={handleHeaderPressOut}
       >
@@ -325,6 +342,7 @@ export default function PortfolioScreen() {
       
       <DataModeModal
         visible={isModalVisible}
+        currentMode={dataMode}
         onConfirm={handleModalConfirm}
         onCancel={handleModalCancel}
       />
