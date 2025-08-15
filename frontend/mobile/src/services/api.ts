@@ -1,34 +1,41 @@
 import { Asset, PerformanceData } from "../data/types";
-import { mockPositions, mockPerformanceData } from "../data/mockData";
+import { StorageService } from "./storage";
+import { API } from "../constants";
 
-// Configuration
-const USE_MOCK_DATA = true; // Set to false to use real API
-const API_BASE_URL = "https://portfolio-backend-production-29dc.up.railway.app";
+/**
+ * ApiService - Handles all API communication with the backend
+ * 
+ * Provides methods for authentication, fetching positions data,
+ * and retrieving performance metrics with proper error handling.
+ */
 
-// Get API token from environment variable
-const getApiToken = (): string | null => {
-  // In Expo, environment variables must be prefixed with EXPO_PUBLIC_
+/**
+ * Get API token from storage or environment variable fallback
+ */
+const getApiToken = async (): Promise<string | null> => {
+  const storedToken = await StorageService.getApiKey();
+  if (storedToken) {
+    return storedToken;
+  }
+  
+  // Fallback to environment variable for development
   return process.env.EXPO_PUBLIC_FASTAPI_SECRET || null;
 };
 
-// API service class
 class ApiService {
-  private async makeRequest<T>(endpoint: string): Promise<T> {
-    if (USE_MOCK_DATA) {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      throw new Error("Using mock data - API request not made");
+  /**
+   * Make authenticated API request
+   */
+  private async makeRequest<T>(endpoint: string, token?: string): Promise<T> {
+    const apiToken = token || await getApiToken();
+    if (!apiToken) {
+      throw new Error("No API token available");
     }
 
-    const token = getApiToken();
-    if (!token) {
-      throw new Error("FASTAPI_SECRET environment variable not set");
-    }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${API.BASE_URL}${endpoint}`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json",
       },
     });
@@ -42,48 +49,60 @@ class ApiService {
     return response.json();
   }
 
-  async getPositions(): Promise<Asset[]> {
+  /**
+   * Authenticate user with invite code
+   */
+  async authenticate(inviteCode: string): Promise<{ success: boolean; message?: string }> {
     try {
-      return await this.makeRequest<Asset[]>("/positions");
+      await this.makeRequest<any>("/authenticate", inviteCode);
+      return { success: true };
     } catch (error) {
-      if (USE_MOCK_DATA) {
-        console.log("Using mock positions data");
-        return mockPositions;
+      console.error("Authentication failed:", error);
+      
+      if (error instanceof Error) {
+        if (error.message.includes("401")) {
+          return { success: false, message: "Invalid invite code" };
+        }
+        if (error.message.includes("403")) {
+          return { success: false, message: "Access denied" };
+        }
+        if (error.message.includes("429")) {
+          return { success: false, message: "Too many attempts. Please try again later." };
+        }
+        if (error.message.includes("500")) {
+          return { success: false, message: "Server error. Please try again." };
+        }
       }
-      console.error("Failed to fetch positions:", error);
-      throw error;
+      
+      return { 
+        success: false, 
+        message: "Authentication failed. Please check your invite code and try again." 
+      };
     }
   }
 
-  async getPerformance(
-    granularity: string,
-    assets?: string[]
-  ): Promise<PerformanceData[]> {
-    try {
-      let endpoint = `/performance/${granularity}`;
-      if (assets && assets.length > 0) {
-        const assetsParam = assets.join(",");
-        endpoint += `?assets=${encodeURIComponent(assetsParam)}`;
-      }
+  /**
+   * Fetch user's current asset positions
+   */
+  async getPositions(): Promise<Asset[]> {
+    return await this.makeRequest<Asset[]>("/positions");
+  }
 
-      return await this.makeRequest<PerformanceData[]>(endpoint);
-    } catch (error) {
-      if (USE_MOCK_DATA) {
-        console.log(
-          `Using mock performance data for ${granularity}${
-            assets ? ` with assets: ${assets.join(", ")}` : ""
-          }`
-        );
-        return mockPerformanceData;
-      }
-      console.error(
-        `Failed to fetch performance data for ${granularity}:`,
-        error
-      );
-      throw error;
+  /**
+   * Fetch performance data for specified granularity and assets
+   */
+  async getPerformanceData(
+    granularity: string,
+    assetSymbols?: string[]
+  ): Promise<PerformanceData[]> {
+    let endpoint = `/performance/${granularity}`;
+    if (assetSymbols && assetSymbols.length > 0) {
+      const assetsQueryParam = assetSymbols.join(",");
+      endpoint += `?assets=${encodeURIComponent(assetsQueryParam)}`;
     }
+
+    return await this.makeRequest<PerformanceData[]>(endpoint);
   }
 }
 
 export const apiService = new ApiService();
-export { USE_MOCK_DATA };

@@ -47,9 +47,11 @@ def _get_previous_crypto_price(asset: str, target_dates: list[str]) -> dict[str,
     utc_tz = datetime.timezone.utc
     date_to_unix = {date: _close_date_to_unix(date) for date in target_dates}
 
+    headers = {"x-cg-pro-api-key": config.coingecko_api_token}
     params = {"vs_currency": "usd", "days": len(target_dates) + 1, "interval": "daily"}
     coingecko_id = config.coingecko_ids[asset]
-    response = requests.get(config.coingecko_prev_close_api.format(coingecko_id), params=params)
+
+    response = requests.get(config.coingecko_prev_close_api.format(coingecko_id), params=params, headers=headers)
     response_data: dict = response.json()
 
     if "prices" not in response_data:

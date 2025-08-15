@@ -1,5 +1,13 @@
 import { Asset, PerformanceData } from "./types";
 import { calculateCurrentAllocations } from "./utils";
+import { DATA, CHART } from "../constants";
+
+/**
+ * Mock Data Generator
+ * 
+ * Provides realistic mock data for demonstration purposes,
+ * including asset positions and historical performance data.
+ */
 
 const rawMockPositions: Asset[] = [
   {
@@ -190,71 +198,63 @@ const rawMockPositions: Asset[] = [
 export const mockPositions: Asset[] =
   calculateCurrentAllocations(rawMockPositions);
 
-export const mockPerformanceData: PerformanceData[] = [
-  {
-    date: "2025-08-01",
-    cost: "280000.00",
-    value: "280000.00",
-    returns: "0.00",
-  },
-  {
-    date: "2025-08-02",
-    cost: "285000.00",
-    value: "268500.00",
-    returns: "-5.79",
-  },
-  {
-    date: "2025-08-03",
-    cost: "290000.00",
-    value: "263200.00",
-    returns: "-9.24",
-  },
-  {
-    date: "2025-08-04",
-    cost: "295000.00",
-    value: "267350.00",
-    returns: "-9.37",
-  },
-  {
-    date: "2025-08-05",
-    cost: "300000.00",
-    value: "291000.00",
-    returns: "-3.00",
-  },
-  {
-    date: "2025-08-06",
-    cost: "305000.00",
-    value: "317550.00",
-    returns: "4.11",
-  },
-  {
-    date: "2025-08-07",
-    cost: "310000.00",
-    value: "337700.00",
-    returns: "8.94",
-  },
-  {
-    date: "2025-08-08",
-    cost: "315000.00",
-    value: "361200.00",
-    returns: "14.67",
-  },
-  {
-    date: "2025-08-09",
-    cost: "320000.00",
-    value: "387200.00",
-    returns: "21.00",
-  },
-  {
-    date: "2025-08-10",
-    cost: "325000.00",
-    value: "403750.00",
-    returns: "24.23",
-  },
-  {
-    date: "2025-08-11",
-    cost: "330000.00",
-    value: "429000.00",
-    returns: "30.00",
-  },
-];
+/**
+ * Generate realistic performance data with market-like volatility
+ * Creates a dataset that ends with the exact total value from positions
+ */
+const generatePerformanceData = (): PerformanceData[] => {
+  const data: PerformanceData[] = [];
+  const finalValue = DATA.FINAL_PORTFOLIO_VALUE;
+  const finalCost = DATA.FINAL_PORTFOLIO_COST;
+  const startValue = DATA.STARTING_PORTFOLIO_VALUE;
+  const startCost = DATA.STARTING_PORTFOLIO_VALUE;
+  const days = DATA.MOCK_DATA_DAYS;
+  
+  // Generate dates starting 120 days ago
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  for (let dayIndex = 0; dayIndex <= days; dayIndex++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + dayIndex);
+    
+    const progressRatio = dayIndex / days;
+    
+    // Create realistic market progression with some volatility
+    const baseValueGrowth = startValue + (finalValue - startValue) * progressRatio;
+    const baseCostGrowth = startCost + (finalCost - startCost) * progressRatio;
+    
+    // Add realistic market volatility using configurable parameters
+    const { VOLATILITY } = CHART;
+    const shortTermVolatility = 
+      Math.sin(dayIndex * VOLATILITY.SHORT_TERM_MULTIPLIER) * VOLATILITY.SHORT_TERM_AMPLITUDE + 
+      Math.sin(dayIndex * VOLATILITY.MEDIUM_TERM_MULTIPLIER) * VOLATILITY.MEDIUM_TERM_AMPLITUDE;
+    const randomVolatility = (Math.random() - 0.5) * VOLATILITY.RANDOM_AMPLITUDE;
+    const marketCorrectionVolatility = dayIndex > VOLATILITY.CORRECTION_START_DAY && dayIndex < VOLATILITY.CORRECTION_END_DAY 
+      ? -VOLATILITY.CORRECTION_AMPLITUDE * Math.sin((dayIndex - VOLATILITY.CORRECTION_START_DAY) / 
+        (VOLATILITY.CORRECTION_END_DAY - VOLATILITY.CORRECTION_START_DAY) * Math.PI) 
+      : 0;
+    
+    const adjustedValue = Math.max(
+      baseCostGrowth * (DATA.MIN_PORTFOLIO_VALUE_PERCENTAGE / 100),
+      baseValueGrowth + shortTermVolatility + randomVolatility + marketCorrectionVolatility
+    );
+    
+    // Ensure the final day matches exactly
+    const dailyValue = dayIndex === days ? finalValue : adjustedValue;
+    const dailyCost = dayIndex === days ? finalCost : baseCostGrowth;
+    
+    const dailyReturnsPercentage = ((dailyValue - dailyCost) / dailyCost * 100);
+    
+    data.push({
+      date: currentDate.toISOString().split('T')[0],
+      cost: dailyCost.toFixed(2),
+      value: dailyValue.toFixed(2),
+      returns: dailyReturnsPercentage.toFixed(2),
+    });
+  }
+  
+  return data;
+};
+
+export const mockPerformanceData: PerformanceData[] = generatePerformanceData();

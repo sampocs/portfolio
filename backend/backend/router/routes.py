@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
-from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi import Query
 from sqlalchemy.orm import Session
@@ -24,9 +23,9 @@ def health_check():
     return "ok"
 
 
-@router.get("/portfolio.csv", response_class=PlainTextResponse)
-async def get_portfolio_csv(_: HTTPAuthorizationCredentials = Depends(verify_token)):
-    return "ticker,quantity,price\nBTC,0.1,30000"
+@router.get("/authenticate")
+def authenticate(_: HTTPAuthorizationCredentials = Depends(verify_token)):
+    return "ok"
 
 
 @router.get("/trades")

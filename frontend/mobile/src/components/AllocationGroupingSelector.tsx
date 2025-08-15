@@ -3,14 +3,20 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
-export type GroupingType = 'markets' | 'segments' | 'assets';
+export type AllocationGroupingType = 'markets' | 'segments' | 'assets';
 
-interface GroupingSectionProps {
-  selectedGrouping: GroupingType;
-  onGroupingChange: (grouping: GroupingType) => void;
+interface AllocationGroupingSelectorProps {
+  selectedGrouping: AllocationGroupingType;
+  onGroupingChange: (grouping: AllocationGroupingType) => void;
 }
 
-export default function GroupingSection({ selectedGrouping, onGroupingChange }: GroupingSectionProps) {
+/**
+ * AllocationGroupingSelector - Toggle buttons for choosing allocation display mode
+ * 
+ * Allows users to switch between different ways of viewing their portfolio allocations:
+ * by markets (stocks, crypto, alternatives), segments (specific categories), or individual assets.
+ */
+export default function AllocationGroupingSelector({ selectedGrouping, onGroupingChange }: AllocationGroupingSelectorProps) {
   return (
     <View style={styles.container}>
       <TouchableOpacity

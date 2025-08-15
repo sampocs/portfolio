@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
-import CategorySelector from '../components/CategorySelector';
-import Summary from '../components/Summary';
+import { TIMING, UI } from '../constants';
+import AssetCategorySelector from '../components/AssetCategorySelector';
+import PortfolioSummary from '../components/PortfolioSummary';
 import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
 import AssetList from '../components/AssetList';
-import LoadingScreen from '../components/LoadingScreen';
+import SkeletonLoadingScreen from '../components/SkeletonLoadingScreen';
+import DataModeModal from '../components/DataModeModal';
+import WelcomeScreen from './WelcomeScreen';
 import { useData } from '../contexts/DataContext';
 import { performanceCacheManager } from '../services/performanceCache';
 import { calculatePortfolioSummary } from '../data/utils';
 import { Asset, PerformanceData } from '../data/types';
+import { mockPerformanceData } from '../data/mockData';
 
-// Format date from YYYY-MM-DD to "Aug 7, 2025"
+/**
+ * Format date from YYYY-MM-DD to readable format
+ */
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { 
@@ -23,6 +29,12 @@ const formatDate = (dateString: string): string => {
   });
 };
 
+/**
+ * PortfolioScreen - Main portfolio view showing assets, performance, and controls
+ * 
+ * Displays user's portfolio summary, performance chart, and asset list.
+ * Includes hidden long-press functionality to switch between live and demo data modes.
+ */
 export default function PortfolioScreen() {
   const [selectedCategories, setSelectedCategories] = useState({
     stocks: true,
@@ -32,9 +44,14 @@ export default function PortfolioScreen() {
 
   // State for chart interaction
   const [selectedDataPoint, setSelectedDataPoint] = useState<PerformanceData | null>(null);
+  
+  // State for modal
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
 
   // Use shared positions data from context
-  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData } = useData();
+  const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo, switchToLive, setAuthenticated, isAuthenticated } = useData();
 
   // Local state for performance data and chart-specific loading
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
@@ -101,6 +118,67 @@ export default function PortfolioScreen() {
     setSelectedDataPoint(dataPoint);
   };
 
+  /**
+   * Handle long press gesture start - triggers data mode modal after delay
+   */
+  const handleHeaderPressIn = () => {
+    const timer = setTimeout(() => {
+      setIsModalVisible(true);
+    }, TIMING.LONG_PRESS_DURATION);
+    setLongPressTimer(timer);
+  };
+
+  /**
+   * Handle long press gesture end - cancels timer if released early
+   */
+  const handleHeaderPressOut = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  // Modal handlers
+  const handleModalConfirm = async () => {
+    setIsModalVisible(false);
+    
+    // Bidirectional switching
+    if (dataMode === 'live') {
+      switchToDemo();
+    } else {
+      // Try to switch to live mode
+      const result = await switchToLive();
+      if (!result.success && result.needsAuth) {
+        // User needs to authenticate - show welcome screen
+        setShowWelcomeScreen(true);
+      }
+    }
+  };
+
+  const handleModalCancel = () => {
+    setIsModalVisible(false);
+  };
+
+  // Welcome screen handlers (for re-authentication)
+  const handleAuthenticationSuccess = async () => {
+    setShowWelcomeScreen(false);
+    await setAuthenticated(true);
+  };
+
+  const handleWelcomeDemoMode = () => {
+    setShowWelcomeScreen(false);
+    // Already in demo mode, so just stay there
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [longPressTimer]);
+
   // Get filtered asset symbols based on selected categories
   const getFilteredAssetSymbols = (positions: Asset[]): string[] | undefined => {
     // If all categories are selected, don't filter (get all assets)
@@ -126,7 +204,13 @@ export default function PortfolioScreen() {
   // Performance data fetching function (positions now come from context)
   const fetchPerformanceData = async (granularity: string = selectedGranularity, isUserInitiated: boolean = true) => {
     try {
-      // Get filtered asset symbols for performance query
+      if (dataMode === 'demo') {
+        // Use mock data instantly when in demo mode
+        setPerformanceData(mockPerformanceData);
+        return;
+      }
+      
+      // Get filtered asset symbols for performance query (live mode)
       const assetSymbols = getFilteredAssetSymbols(positions);
       
       // Use cache manager with priority based on whether it's user-initiated
@@ -141,11 +225,16 @@ export default function PortfolioScreen() {
 
   const handleRefresh = async () => {
     try {
-      // Refresh positions through context and performance data
-      await Promise.all([
-        refreshData(), // This refreshes positions
-        fetchPerformanceData(selectedGranularity, true) // This refreshes performance data
-      ]);
+      // Only refresh in live mode and when authenticated
+      if (dataMode === 'live' && isAuthenticated) {
+        await Promise.all([
+          refreshData(), // This refreshes positions
+          fetchPerformanceData(selectedGranularity, true) // This refreshes performance data
+        ]);
+      } else {
+        // In demo mode, just refresh the performance data (which uses mock data)
+        await fetchPerformanceData(selectedGranularity, true);
+      }
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
@@ -183,8 +272,10 @@ export default function PortfolioScreen() {
     const loadPerformanceData = async () => {
       if (positions.length > 0 && isInitialLoad) {
         try {
-          // Start background preloading after positions are loaded
-          performanceCacheManager.preloadPerformanceData(positions);
+          // Start background preloading after positions are loaded (only in live mode AND authenticated)
+          if (dataMode === 'live' && isAuthenticated) {
+            performanceCacheManager.preloadPerformanceData(positions);
+          }
           
           // Fetch initial performance data
           await fetchPerformanceData();
@@ -197,7 +288,14 @@ export default function PortfolioScreen() {
     };
 
     loadPerformanceData();
-  }, [positions, isInitialLoad]);
+  }, [positions, isInitialLoad, dataMode, isAuthenticated]);
+
+  // React to data mode changes - instantly switch performance data
+  useEffect(() => {
+    if (positions.length > 0) {
+      fetchPerformanceData(selectedGranularity, true);
+    }
+  }, [dataMode]);
 
 
   // Filter assets based on selected categories (same logic as AssetList)
@@ -230,14 +328,29 @@ export default function PortfolioScreen() {
   };
 
   if (positionsLoading) {
-    return <LoadingScreen title="Portfolio" />;
+    return <SkeletonLoadingScreen title="Portfolio" />;
+  }
+
+  // Show welcome screen for re-authentication if needed
+  if (showWelcomeScreen) {
+    return (
+      <WelcomeScreen
+        onAuthenticationSuccess={handleAuthenticationSuccess}
+        onDemoMode={handleWelcomeDemoMode}
+      />
+    );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+      <TouchableOpacity
+        style={styles.header}
+        activeOpacity={UI.TOUCHABLE_OPACITY_ACTIVE}
+        onPressIn={handleHeaderPressIn}
+        onPressOut={handleHeaderPressOut}
+      >
         <Text style={styles.headerText}>Portfolio</Text>
-      </View>
+      </TouchableOpacity>
       <ScrollView 
         style={styles.scrollContent}
         refreshControl={
@@ -250,11 +363,11 @@ export default function PortfolioScreen() {
           />
         }
       >
-        <CategorySelector
+        <AssetCategorySelector
           selectedCategories={selectedCategories}
           onCategoryToggle={handleCategoryToggle}
         />
-        <Summary
+        <PortfolioSummary
           totalValue={summaryData.totalValue}
           totalReturn={summaryData.totalReturn}
           totalReturnPercent={summaryData.totalReturnPercent}
@@ -277,6 +390,13 @@ export default function PortfolioScreen() {
           selectedCategories={selectedCategories}
         />
       </ScrollView>
+      
+      <DataModeModal
+        visible={isModalVisible}
+        currentMode={dataMode}
+        onConfirm={handleModalConfirm}
+        onCancel={handleModalCancel}
+      />
     </SafeAreaView>
   );
 }

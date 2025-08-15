@@ -3,14 +3,20 @@ import { View, Text } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency, formatPercentage } from '../styles/utils';
 
-interface SummaryProps {
+interface PortfolioSummaryProps {
   totalValue: number;
   totalReturn: number;
   totalReturnPercent: number;
   selectedDate?: string;
 }
 
-export default function Summary({ totalValue, totalReturn, totalReturnPercent, selectedDate }: SummaryProps) {
+/**
+ * PortfolioSummary - Displays portfolio's total worth and performance metrics
+ * 
+ * Shows the total portfolio value, absolute and percentage returns,
+ * with optional selected date for point-in-time data display.
+ */
+export default function PortfolioSummary({ totalValue, totalReturn, totalReturnPercent, selectedDate }: PortfolioSummaryProps) {
   const isPositiveReturn = totalReturn >= 0;
   
   return (

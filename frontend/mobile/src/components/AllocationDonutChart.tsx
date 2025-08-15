@@ -5,7 +5,7 @@ import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
 import { GenericAllocation } from '../data/types';
 
-interface DonutChartProps<T extends GenericAllocation> {
+interface AllocationDonutChartProps<T extends GenericAllocation> {
   data: T[];
   selectedItem: T | null;
   onItemSelect: (item: T | null) => void;
@@ -13,6 +13,13 @@ interface DonutChartProps<T extends GenericAllocation> {
   title: string; // "Markets" or "Segments"
   groupingType?: 'markets' | 'segments';
 }
+
+/**
+ * AllocationDonutChart - Interactive donut chart for portfolio allocation visualization
+ * 
+ * Displays portfolio allocations as an interactive donut chart with hover states
+ * and selection functionality. Supports both market and segment groupings.
+ */
 
 interface DonutSegment {
   name: string;
@@ -100,14 +107,14 @@ const createTouchArea = <T extends GenericAllocation>(
   );
 };
 
-export default function DonutChart<T extends GenericAllocation>({ 
+export default function AllocationDonutChart<T extends GenericAllocation>({ 
   data, 
   selectedItem, 
   onItemSelect, 
   getColor,
   title,
   groupingType = 'markets'
-}: DonutChartProps<T>) {
+}: AllocationDonutChartProps<T>) {
 
   // Calculate total portfolio value for center display
   const totalPortfolioValue = data.reduce((sum, item) => sum + item.currentValue, 0);

@@ -2,25 +2,33 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
+import { TIMING, UI, COLORS } from '../constants';
 
-interface LoadingScreenProps {
-  title: string; // "Portfolio" or "Allocations"
+interface SkeletonLoadingScreenProps {
+  title: string;
 }
 
-export default function LoadingScreen({ title }: LoadingScreenProps) {
-  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+/**
+ * SkeletonLoadingScreen - Displays animated skeleton UI while content is loading
+ * 
+ * Shows animated placeholder elements that match the structure of either
+ * the Portfolio or Allocations screen based on the title prop. Uses pulsing
+ * animations to provide visual feedback during data loading.
+ */
+export default function SkeletonLoadingScreen({ title }: SkeletonLoadingScreenProps) {
+  const pulseAnim = useRef(new Animated.Value(UI.LOADING_OPACITY_MIN)).current;
 
   useEffect(() => {
     const createPulseAnimation = () => {
       return Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 0.8,
-          duration: 1000,
+          toValue: UI.LOADING_OPACITY_MAX,
+          duration: TIMING.PULSE_ANIMATION_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
-          toValue: 0.3,
-          duration: 1000,
+          toValue: UI.LOADING_OPACITY_MIN,
+          duration: TIMING.PULSE_ANIMATION_DURATION,
           useNativeDriver: true,
         }),
       ]);
@@ -103,6 +111,8 @@ export default function LoadingScreen({ title }: LoadingScreenProps) {
   );
 }
 
+// Use centralized skeleton color constant
+
 const styles = createStyles({
   container: {
     flex: 1,
@@ -133,8 +143,8 @@ const styles = createStyles({
   },
   button: {
     width: 80,
-    height: 32,
-    backgroundColor: theme.colors.card,
+    height: UI.CATEGORY_BUTTON_HEIGHT,
+    backgroundColor: COLORS.SKELETON,
     borderRadius: 20,
   },
 
@@ -146,26 +156,26 @@ const styles = createStyles({
   summaryLabel: {
     width: 100,
     height: 16,
-    backgroundColor: theme.colors.card,
+    backgroundColor: COLORS.SKELETON,
     borderRadius: 4,
     marginBottom: theme.spacing.xs,
   },
   summaryValue: {
     width: 200,
     height: 32,
-    backgroundColor: theme.colors.card,
+    backgroundColor: COLORS.SKELETON,
     borderRadius: 4,
     marginBottom: theme.spacing.xs,
   },
   summarySubtext: {
     width: 150,
     height: 16,
-    backgroundColor: theme.colors.card,
+    backgroundColor: COLORS.SKELETON,
     borderRadius: 4,
   },
   chartPlaceholder: {
-    height: 200,
-    backgroundColor: theme.colors.card,
+    height: UI.CHART_HEIGHT,
+    backgroundColor: COLORS.SKELETON,
     borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.lg,
   },
@@ -177,35 +187,35 @@ const styles = createStyles({
   },
   durationButton: {
     width: 50,
-    height: 28,
-    backgroundColor: theme.colors.card,
+    height: UI.DURATION_BUTTON_HEIGHT,
+    backgroundColor: COLORS.SKELETON,
     borderRadius: 14,
   },
   assetListSection: {
     gap: theme.spacing.sm,
   },
   assetRow: {
-    height: 60,
-    backgroundColor: theme.colors.card,
+    height: UI.ASSET_ROW_HEIGHT,
+    backgroundColor: COLORS.SKELETON,
     borderRadius: theme.borderRadius.md,
   },
 
   // Allocations-specific placeholders
   donutChartPlaceholder: {
-    width: 258, // Match SVG_SIZE from DonutChart
-    height: 258,
-    backgroundColor: theme.colors.card,
-    borderRadius: 129, // Half of width for circle
+    width: UI.DONUT_CHART_SIZE,
+    height: UI.DONUT_CHART_SIZE,
+    backgroundColor: COLORS.SKELETON,
+    borderRadius: UI.DONUT_CHART_SIZE / 2,
     alignSelf: 'center',
     marginVertical: theme.spacing.xs,
   },
   legendSection: {
-    marginTop: theme.spacing.md - 4, // Match AllocationLegend margin
+    marginTop: theme.spacing.md - 4,
     gap: 0,
   },
   legendRow: {
-    height: 72, // Match AllocationLegend row height
-    backgroundColor: theme.colors.card,
+    height: UI.LEGEND_ROW_HEIGHT,
+    backgroundColor: COLORS.SKELETON,
     borderRadius: 0,
   },
 });
