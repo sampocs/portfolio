@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
@@ -49,7 +49,8 @@ export default function WelcomeScreen({ onAuthenticationSuccess, onDemoMode }: W
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.content}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Welcome to Portfolio</Text>
           <Text style={styles.subtitle}>Enter your invite code to get started</Text>
@@ -93,7 +94,8 @@ export default function WelcomeScreen({ onAuthenticationSuccess, onDemoMode }: W
             <Text style={styles.secondaryButtonText}>Try Demo Mode</Text>
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

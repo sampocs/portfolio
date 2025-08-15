@@ -48,9 +48,27 @@ class ApiService {
       return { success: true };
     } catch (error) {
       console.error("Authentication failed:", error);
+      
+      // Handle specific HTTP status codes
+      if (error instanceof Error) {
+        if (error.message.includes("401")) {
+          return { success: false, message: "Invalid invite code" };
+        }
+        if (error.message.includes("403")) {
+          return { success: false, message: "Access denied" };
+        }
+        if (error.message.includes("429")) {
+          return { success: false, message: "Too many attempts. Please try again later." };
+        }
+        if (error.message.includes("500")) {
+          return { success: false, message: "Server error. Please try again." };
+        }
+      }
+      
+      // Default fallback message
       return { 
         success: false, 
-        message: error instanceof Error ? error.message : "Authentication failed" 
+        message: "Authentication failed. Please check your invite code and try again." 
       };
     }
   }
