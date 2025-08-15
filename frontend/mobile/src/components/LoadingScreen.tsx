@@ -103,6 +103,9 @@ export default function LoadingScreen({ title }: LoadingScreenProps) {
   );
 }
 
+// Custom lighter skeleton color for better contrast
+const skeletonColor = '#404040'; // Much lighter gray for better visibility
+
 const styles = createStyles({
   container: {
     flex: 1,
@@ -134,7 +137,7 @@ const styles = createStyles({
   button: {
     width: 80,
     height: 32,
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: 20,
   },
 
@@ -146,26 +149,26 @@ const styles = createStyles({
   summaryLabel: {
     width: 100,
     height: 16,
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: 4,
     marginBottom: theme.spacing.xs,
   },
   summaryValue: {
     width: 200,
     height: 32,
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: 4,
     marginBottom: theme.spacing.xs,
   },
   summarySubtext: {
     width: 150,
     height: 16,
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: 4,
   },
   chartPlaceholder: {
     height: 200,
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.lg,
   },
@@ -178,7 +181,7 @@ const styles = createStyles({
   durationButton: {
     width: 50,
     height: 28,
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: 14,
   },
   assetListSection: {
@@ -186,7 +189,7 @@ const styles = createStyles({
   },
   assetRow: {
     height: 60,
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: theme.borderRadius.md,
   },
 
@@ -194,7 +197,7 @@ const styles = createStyles({
   donutChartPlaceholder: {
     width: 258, // Match SVG_SIZE from DonutChart
     height: 258,
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: 129, // Half of width for circle
     alignSelf: 'center',
     marginVertical: theme.spacing.xs,
@@ -205,7 +208,7 @@ const styles = createStyles({
   },
   legendRow: {
     height: 72, // Match AllocationLegend row height
-    backgroundColor: theme.colors.card,
+    backgroundColor: skeletonColor,
     borderRadius: 0,
   },
 });
