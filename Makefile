@@ -31,3 +31,9 @@ pip-freeze:
 copy-data:
 	@rm -rf ../porfolio-data/prices/ ../porfolio-data/trades/
 	@cp -r data/* ../portfolio-data/
+
+build-app:
+	@eas build --platform ios
+
+deploy-app:
+	@eas submit --platform ios
