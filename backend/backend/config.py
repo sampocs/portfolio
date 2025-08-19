@@ -75,18 +75,25 @@ class Asset:
     segment: Segment
     platform: Platform
     price_type: PriceType
+    contract_id: str | None
 
     @classmethod
     def from_dict(cls, data: dict) -> "Asset":
         """Create an Asset instance from a dictionary with validation."""
+        platform = Platform(data["platform"])
+        contract_id = data.get("contract_id")
+        if platform == Platform.IBKR:
+            assert contract_id, "IBKR assets must have a contract ID"
+
         return cls(
             asset=data["asset"],
             description=data["description"],
             target_allocation=Decimal(data["target_allocation"]),
             market=Market(data["market"]),
             segment=Segment(data["segment"]),
-            platform=Platform(data["platform"]),
+            platform=platform,
             price_type=PriceType(data["price_type"]),
+            contract_id=contract_id,
         )
 
 

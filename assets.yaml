@@ -7,6 +7,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: VT.svg
+    contract_id: 52197301
   - asset: VOO
     description: Large Cap
     target_allocation: 13
@@ -15,6 +16,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: VOO.svg
+    contract_id: 136155102
   - asset: VO
     description: Mid Cap
     target_allocation: 6
@@ -23,6 +25,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: VO.svg
+    contract_id: 27638087
   - asset: VB
     description: "Small Cap"
     target_allocation: 10
@@ -31,6 +34,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: VB.svg
+    contract_id: 27638105
   - asset: VXUS
     description: International
     target_allocation: 2
@@ -39,6 +43,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: VXUS.svg
+    contract_id: 83512168
   - asset: VWO
     description: "Emerging"
     target_allocation: 2
@@ -47,6 +52,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: VWO.svg
+    contract_id: 27684033
   - asset: COIN
     description: "Coinbase"
     target_allocation: 5
@@ -55,6 +61,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: COIN.svg
+    contract_id: 481691285
   - asset: HOOD
     description: "Robinhood"
     target_allocation: 5
@@ -63,6 +70,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: HOOD.svg
+    contract_id: 504546674
   - asset: AAAU
     description: "Gold"
     target_allocation: 5
@@ -71,6 +79,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: AAAU.svg
+    contract_id: 458886642
   - asset: VNQ
     description: "Real Estate"
     target_allocation: 2
@@ -79,6 +88,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: VNQ.svg
+    contract_id: 31230302
   - asset: BTC
     description: Bitcoin
     target_allocation: 12
