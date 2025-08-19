@@ -4,6 +4,7 @@ from backend.scrapers import prices
 from backend.config import logger
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from config import InvalidPriceResponse
 
 
 def _get_date_range(start_date: datetime.date, end_date: datetime.date) -> list[str]:
@@ -36,8 +37,12 @@ def _fill_historical_prices(db: Session):
     # Cap the number of dates at 3 to avoid tripping the rate limit
     target_dates = target_dates[:3]
 
-    previous_prices = prices.get_previous_asset_prices(db, target_dates)
-    crud.store_historical_prices(db, previous_prices)
+    try:
+        previous_prices = prices.get_previous_asset_prices(db, target_dates)
+        crud.store_historical_prices(db, previous_prices)
+    except InvalidPriceResponse as e:
+        e.log_error()
+        raise
 
 
 def _fill_historical_positions(db: Session):
