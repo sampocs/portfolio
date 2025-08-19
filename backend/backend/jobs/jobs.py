@@ -4,7 +4,7 @@ from backend.scrapers import prices
 from backend.config import logger
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from config import InvalidPriceResponse
+from backend.config import InvalidPriceResponse
 
 
 def _get_date_range(start_date: datetime.date, end_date: datetime.date) -> list[str]:

@@ -127,9 +127,9 @@ class Config(BaseSettings):
     coingecko_api_token: str = Field(alias="COINGECKO_API_TOKEN")
 
     finhub_live_price_api: str = Field(default="https://finnhub.io/api/v1/quote")
-    coingecko_live_price_api: str = Field(default="https://api.coingecko.com/api/v3/simple/price")
+    coingecko_live_price_api: str = Field(default="https://pro-api.coingecko.com/api/v3/simple/price")
     alpha_prev_close_api: str = Field(default="https://www.alphavantage.co/query")
-    coingecko_prev_close_api: str = Field(default="https://api.coingecko.com/api/v3/coins/{}/market_chart")
+    coingecko_prev_close_api: str = Field(default="https://pro-api.coingecko.com/api/v3/coins/{}/market_chart")
 
     price_cache_ttl_min: int = Field(default=5)
 
