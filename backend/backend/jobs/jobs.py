@@ -34,9 +34,6 @@ def _fill_historical_prices(db: Session):
     target_dates = _get_date_range(start_date=start_date, end_date=end_date)
     logger.info(f"Filling historical prices from {start_date} to {end_date}...")
 
-    # Cap the number of dates at 3 to avoid tripping the rate limit
-    target_dates = target_dates[:3]
-
     try:
         previous_prices = prices.get_previous_asset_prices(db, target_dates)
         crud.store_historical_prices(db, previous_prices)
