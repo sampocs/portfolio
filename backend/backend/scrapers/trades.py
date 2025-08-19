@@ -8,10 +8,10 @@ from backend.database import models
 from coinbase.rest import RESTClient
 
 
-def get_recent_ibkr_trades(start_date: str) -> list[models.Trade]:
+def get_recent_ibkr_trades(start_date: datetime.date) -> list[models.Trade]:
     """
     Scrapes recent IBKR trades
-    :param start_date: First date to query orders from, inclusively, in isoformat
+    :param start_date: First date to query orders from, inclusively
     """
     client = IbkrClient(**config.ibind_client_params)
 
@@ -24,7 +24,7 @@ def get_recent_ibkr_trades(start_date: str) -> list[models.Trade]:
         assert contract_id, f"Contract ID not provided for {asset_info.asset}"
 
         current_date = datetime.date.today()
-        days = (current_date - datetime.date.fromisoformat(start_date)).days + 1
+        days = (current_date - start_date).days + 1
 
         transactions_raw = client.transaction_history(config.ibkr_account_id, contract_id, "USD", days)  # type: ignore
         assert transactions_raw.data and transactions_raw.data["transactions"]  # type: ignore
@@ -36,7 +36,7 @@ def get_recent_ibkr_trades(start_date: str) -> list[models.Trade]:
 
             action = str(transaction["type"]).upper()
             quantity = Decimal(str(transaction["qty"]))
-            cost = Decimal(str(transaction["amt"]))
+            cost = abs(Decimal(str(transaction["amt"])))
             price = Decimal(str(transaction["pr"]))
             date = parser.parse(str(transaction["date"]).replace("00:00:00 EDT ", "")).date().isoformat()
             fees = Decimal("0.0035") * quantity
@@ -63,15 +63,15 @@ def get_recent_ibkr_trades(start_date: str) -> list[models.Trade]:
     return trades
 
 
-def get_recent_coinbase_trades(start_date: str) -> list[models.Trade]:
+def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:
     """
     Scrapes recent coinbase trades since the last specified date
-    :param start_date: First date to query orders from, inclusively, in isoformat
+    :param start_date: First date to query orders from, inclusively
     """
     client = RESTClient(api_key=config.coinbase_api_key, api_secret=config.coinbase_api_secret)
 
     trades = []
-    orders = client.list_orders(order_status=["FILLED"], start_date=start_date)
+    orders = client.list_orders(order_status=["FILLED"], start_date=f"{start_date.isoformat()}T00:00:00.000000000Z")
     for order in orders["orders"]:
         if order["product_id"] not in [f"{asset}-USD" for asset in config.crypto_tokens]:
             continue

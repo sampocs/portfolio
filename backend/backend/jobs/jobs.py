@@ -1,6 +1,6 @@
 import datetime
 from backend.database import crud, models
-from backend.scrapers import prices
+from backend.scrapers import prices, trades
 from backend.config import logger
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -86,9 +86,19 @@ def index_recent_trades(db: Session):
     """
     Checks for any recent crypto or stock trades and saves them in the database
     """
-    logger.info("Checking for recent stock trades...")
-    logger.info("No new stock trades found")
-    logger.info("Checking for recent crypto trades...")
-    logger.info("No new crypto trades found")
-    # TODO
-    return
+    last_trade_date = db.query(func.max(models.Trade.date)).scalar()
+    assert last_trade_date, "No trades present, please seed DB first"
+
+    logger.info(f"Checking for stock trades since {last_trade_date}...")
+    stock_trades = trades.get_recent_ibkr_trades(start_date=last_trade_date)
+    logger.info(f"Found {len(stock_trades)} stock trades")
+
+    logger.info(f"Checking for crypto trades since {last_trade_date}...")
+    crypto_trades = trades.get_recent_coinbase_trades(start_date=last_trade_date)
+    logger.info(f"Found {len(crypto_trades)} stock trades")
+
+    logger.info("Writing trades to DB")
+    all_trades = stock_trades + crypto_trades
+    crud.store_trades(db, all_trades)
+
+    logger.info("Done")

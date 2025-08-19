@@ -158,10 +158,15 @@ def store_positions(db: Session, positions: list[models.Position]):
 
 
 def store_historical_positions(db: Session, historical_positions: list[models.HistoricalPosition]):
-    """
-    Stores historical positiosn in the DB
-    """
+    """Stores historical positiosn in the DB"""
     db.bulk_save_objects(historical_positions)
+    db.commit()
+
+
+def store_trades(db: Session, trades: list[models.Trade]):
+    """Stores trades in the DB"""
+    for trade in trades:
+        db.merge(trade)
     db.commit()
 
 
