@@ -93,7 +93,7 @@ class Asset:
             segment=Segment(data["segment"]),
             platform=platform,
             price_type=PriceType(data["price_type"]),
-            contract_id=contract_id,
+            contract_id=str(contract_id) if contract_id else None,
         )
 
 
