@@ -178,10 +178,10 @@ class Config(BaseSettings):
         if set(fp_fields.values()) != provided_fp_fields and set(contents_fields.values()) != provided_contents_fields:
             raise ValueError(
                 "OAuth is enabled but missing required environment variables for either file path or contents."
-                + f" Required File path fields: {', '.join(fp_fields.values())}"
-                + f" Required Contents fields: {', '.join(contents_fields.values())}"
-                + f" Provided File path fields: {', '.join(provided_fp_fields)}"
-                + f" Provided Contents fields: {', '.join(provided_contents_fields)}"
+                + f"\nRequired File path fields: {', '.join(fp_fields.values())}"
+                + f"\nRequired Contents fields: {', '.join(contents_fields.values())}"
+                + f"\nProvided File path fields: {', '.join(provided_fp_fields)}"
+                + f"\nProvided Contents fields: {', '.join(provided_contents_fields)}"
             )
 
         return self
