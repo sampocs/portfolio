@@ -153,8 +153,11 @@ class Config(BaseSettings):
                 "ibind_oauth1a_dh_prime": "IBIND_OAUTH1A_DH_PRIME",
             }
 
-        # Check required OAuth fields first
         missing_fields = [env_name for field_name, env_name in oauth_fields.items() if not getattr(self, field_name)]
+        if missing_fields:
+            raise ValueError(
+                f"OAuth is enabled but missing required environment variables: {', '.join(missing_fields)}"
+            )
 
         # Check that either file path fields OR contents fields are set
         fp_fields = {
@@ -171,13 +174,12 @@ class Config(BaseSettings):
         contents_fields_set = all(getattr(self, field_name) for field_name in contents_fields.keys())
 
         if not fp_fields_set and not contents_fields_set:
-            missing_key_fields = list(fp_fields.values()) + list(contents_fields.values())
-            missing_fields.extend(missing_key_fields)
+            missing_fields = list(fp_fields.values()) + list(contents_fields.values())
             missing_fields.append("(Must set either file path fields OR contents fields)")
 
-        if missing_fields:
             raise ValueError(
-                f"OAuth is enabled but missing required environment variables: {', '.join(missing_fields)}"
+                "OAuth is enabled but missing required environment variables for either file path or contents: "
+                + ", ".join(missing_fields)
             )
 
         return self
