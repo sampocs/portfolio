@@ -158,13 +158,13 @@ class Config(BaseSettings):
 
         # Check that either file path fields OR contents fields are set
         fp_fields = {
-            "_ibind_oauth1a_encryption_key_fp": "IBIND_OAUTH1A_ENCRYPTION_KEY_FP",
-            "_ibind_oauth1a_signature_key_fp": "IBIND_OAUTH1A_SIGNATURE_KEY_FP",
+            "ibind_oauth1a_encryption_key_fp": "IBIND_OAUTH1A_ENCRYPTION_KEY_FP",
+            "ibind_oauth1a_signature_key_fp": "IBIND_OAUTH1A_SIGNATURE_KEY_FP",
         }
 
         contents_fields = {
-            "_ibind_oauth1a_encryption_key_contents": "IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS",
-            "_ibind_oauth1a_signature_key_contents": "IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS",
+            "ibind_oauth1a_encryption_key_contents": "IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS",
+            "ibind_oauth1a_signature_key_contents": "IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS",
         }
 
         fp_fields_set = all(getattr(self, field_name) for field_name in fp_fields.keys())
