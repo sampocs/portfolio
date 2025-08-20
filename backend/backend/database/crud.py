@@ -17,12 +17,13 @@ def get_all_positions(db: Session):
     return db.query(models.Position).all()
 
 
-def build_positions_from_trades(db: Session, end_date: str) -> list[models.Position]:
+def build_positions_from_trades(db: Session, end_date: str | None = None) -> list[models.Position]:
     """
     Builds the current portfolio positions from the trade history on the specified dates
     Dates are inclusive on both ends
     Returns a list of Position objects, one for each asset
     """
+    end_date = end_date or datetime.date.today().isoformat()
     trades = db.query(models.Trade).where(models.Trade.date <= end_date).order_by(models.Trade.date)
 
     # Group trades by asset
@@ -165,6 +166,9 @@ def store_historical_positions(db: Session, historical_positions: list[models.Hi
 
 def store_trades(db: Session, trades: list[models.Trade]):
     """Stores trades in the DB"""
+    if not trades:
+        return
+
     for trade in trades:
         db.merge(trade)
     db.commit()

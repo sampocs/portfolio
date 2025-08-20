@@ -101,4 +101,8 @@ def index_recent_trades(db: Session):
     all_trades = stock_trades + crypto_trades
     crud.store_trades(db, all_trades)
 
+    logger.info("Updating current position")
+    positions = crud.build_positions_from_trades(db)
+    crud.store_positions(db, positions)
+
     logger.info("Done")
