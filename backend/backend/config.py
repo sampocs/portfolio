@@ -112,11 +112,11 @@ class Config(BaseSettings):
     ibind_use_oauth: bool = Field(alias="IBIND_USE_OAUTH", default=False)
     ibind_oauth1a_consumer_key: str = Field(alias="IBIND_OAUTH1A_CONSUMER_KEY", default="")
 
-    _ibind_oauth1a_encryption_key_contents: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENT", default="")
-    _ibind_oauth1a_signature_key_contents: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_CONTENT", default="")
+    ibind_oauth1a_encryption_key_contents: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENT", default="")
+    ibind_oauth1a_signature_key_contents: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_CONTENT", default="")
 
-    _ibind_oauth1a_encryption_key_fp: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_FP", default="")
-    _ibind_oauth1a_signature_key_fp: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_FP", default="")
+    ibind_oauth1a_encryption_key_fp: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_FP", default="")
+    ibind_oauth1a_signature_key_fp: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_FP", default="")
 
     ibind_oauth1a_access_token: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN", default="")
     ibind_oauth1a_access_token_secret: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN_SECRET", default="")
@@ -210,10 +210,10 @@ class Config(BaseSettings):
         if not self.ibind_use_oauth:
             return ""
 
-        if self._ibind_oauth1a_encryption_key_fp:
-            return self._ibind_oauth1a_encryption_key_fp
+        if self.ibind_oauth1a_encryption_key_fp:
+            return self.ibind_oauth1a_encryption_key_fp
 
-        return self._create_temp_key_file(self._ibind_oauth1a_encryption_key_contents, "_encryption.key")
+        return self._create_temp_key_file(self.ibind_oauth1a_encryption_key_contents, "_encryption.key")
 
     @cached_property
     def ibind_signature_key_fp(self) -> str:
@@ -221,10 +221,10 @@ class Config(BaseSettings):
         if not self.ibind_use_oauth:
             return ""
 
-        if self._ibind_oauth1a_signature_key_fp:
-            return self._ibind_oauth1a_signature_key_fp
+        if self.ibind_oauth1a_signature_key_fp:
+            return self.ibind_oauth1a_signature_key_fp
 
-        return self._create_temp_key_file(self._ibind_oauth1a_signature_key_contents, "_signature.key")
+        return self._create_temp_key_file(self.ibind_oauth1a_signature_key_contents, "_signature.key")
 
     @property
     def ibind_oauth_config(self) -> OAuth1aConfig:
