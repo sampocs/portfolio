@@ -14,6 +14,6 @@ def get_scheduler() -> AsyncIOScheduler:
     """
     scheduler = AsyncIOScheduler()
     with connection.SessionLocal() as db:
-        scheduler.add_job(jobs.fill_prices_and_positions, "cron", args=[db], hour=5, minute=0, timezone=TIMEZONE)
+        scheduler.add_job(jobs.fill_prices_and_positions, "cron", args=[db], hour=10, minute=30, timezone=TIMEZONE)
         scheduler.add_job(jobs.index_recent_trades, "interval", args=[db], minutes=10)
     return scheduler
