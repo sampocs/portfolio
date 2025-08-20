@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from functools import cached_property
 import yaml
 from decimal import Decimal
+import tempfile
+import os
 
 PROJECT_HOME = Path(__file__).parent.parent.parent
 ENV_FILE = ".env"
@@ -98,6 +100,8 @@ class Asset:
 
 
 class Config(BaseSettings):
+    local: bool = Field(alias="LOCAL", default=False)
+
     project_home: Path = Field(default=PROJECT_HOME)
     assets_config: Path = Field(default=PROJECT_HOME / ASSETS_FILE)
 
@@ -109,8 +113,10 @@ class Config(BaseSettings):
 
     ibind_use_oauth: bool = Field(alias="IBIND_USE_OAUTH", default=False)
     ibind_oauth1a_consumer_key: str = Field(alias="IBIND_OAUTH1A_CONSUMER_KEY", default="")
-    ibind_oauth1a_encryption_key_fp: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_FP", default="")
-    ibind_oauth1a_signature_key_fp: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_FP", default="")
+
+    ibind_oauth1a_encryption_key_content: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENT", default="")
+    ibind_oauth1a_signature_key_content: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_CONTENT", default="")
+
     ibind_oauth1a_access_token: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN", default="")
     ibind_oauth1a_access_token_secret: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN_SECRET", default="")
     ibind_oauth1a_dh_prime: str = Field(alias="IBIND_OAUTH1A_DH_PRIME", default="")
@@ -141,12 +147,27 @@ class Config(BaseSettings):
         if self.ibind_use_oauth:
             oauth_fields = {
                 "ibind_oauth1a_consumer_key": "IBIND_OAUTH1A_CONSUMER_KEY",
-                "ibind_oauth1a_encryption_key_fp": "IBIND_OAUTH1A_ENCRYPTION_KEY_FP",
-                "ibind_oauth1a_signature_key_fp": "IBIND_OAUTH1A_SIGNATURE_KEY_FP",
                 "ibind_oauth1a_access_token": "IBIND_OAUTH1A_ACCESS_TOKEN",
                 "ibind_oauth1a_access_token_secret": "IBIND_OAUTH1A_ACCESS_TOKEN_SECRET",
                 "ibind_oauth1a_dh_prime": "IBIND_OAUTH1A_DH_PRIME",
             }
+
+            if self.local:
+                oauth_fields = dict(
+                    **oauth_fields,
+                    **{
+                        "ibind_oauth1a_encryption_key_fp": "IBIND_OAUTH1A_ENCRYPTION_KEY_FP",
+                        "ibind_oauth1a_signature_key_fp": "IBIND_OAUTH1A_SIGNATURE_KEY_FP",
+                    },
+                )
+            else:
+                oauth_fields = dict(
+                    **oauth_fields,
+                    **{
+                        "ibind_oauth1a_encryption_key_contents": "IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS",
+                        "ibind_oauth1a_signature_key_contents": "IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS",
+                    },
+                )
 
             missing_fields = [
                 env_name for field_name, env_name in oauth_fields.items() if not getattr(self, field_name)
@@ -165,6 +186,44 @@ class Config(BaseSettings):
         _ = self.assets
         return self
 
+    def _create_temp_key_file(self, content: str, suffix: str) -> str:
+        """Create a temporary file with the key content"""
+        if not content:
+            raise ValueError(f"Key content is empty for {suffix}")
+
+        temp_fd, temp_path = tempfile.mkstemp(suffix=suffix, prefix="oauth_key_")
+        try:
+            with os.fdopen(temp_fd, 'w') as temp_file:
+                temp_file.write(content)
+        except Exception:
+            # Clean up if writing fails
+            os.unlink(temp_path)
+            raise
+
+        return temp_path
+
+    @cached_property
+    def ibind_oauth1a_encryption_key_fp(self) -> str:
+        """Get path to encryption key file, creating temporary file if needed"""
+        if not self.ibind_use_oauth:
+            return ""
+
+        if self.local:
+            return os.environ["IBIND_OAUTH1A_ENCRYPTION_KEY_FP"]
+
+        return self._create_temp_key_file(self.ibind_oauth1a_encryption_key_content, "_encryption.key")
+
+    @cached_property
+    def ibind_oauth1a_signature_key_fp(self) -> str:
+        """Get path to signature key file, creating temporary file if needed"""
+        if not self.ibind_use_oauth:
+            return ""
+
+        if self.local:
+            return os.environ["IBIND_OAUTH1A_SIGNATURE_KEY_FP"]
+
+        return self._create_temp_key_file(self.ibind_oauth1a_signature_key_content, "_signature.key")
+
     @property
     def ibind_oauth_config(self) -> OAuth1aConfig:
         """Get OAuth configuration. Should only be called when OAuth is enabled"""
@@ -173,8 +232,8 @@ class Config(BaseSettings):
 
         return OAuth1aConfig(
             consumer_key=self.ibind_oauth1a_consumer_key,
-            encryption_key_fp=str(PROJECT_HOME / self.ibind_oauth1a_encryption_key_fp),
-            signature_key_fp=str(PROJECT_HOME / self.ibind_oauth1a_signature_key_fp),
+            encryption_key_fp=self.ibind_oauth1a_encryption_key_fp,
+            signature_key_fp=self.ibind_oauth1a_signature_key_fp,
             access_token=self.ibind_oauth1a_access_token,
             access_token_secret=self.ibind_oauth1a_access_token_secret,
             dh_prime=self.ibind_oauth1a_dh_prime,
