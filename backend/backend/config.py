@@ -170,16 +170,18 @@ class Config(BaseSettings):
             "ibind_oauth1a_signature_key_contents": "IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS",
         }
 
-        fp_fields_set = all(getattr(self, field_name) for field_name in fp_fields.keys())
-        contents_fields_set = all(getattr(self, field_name) for field_name in contents_fields.keys())
+        provided_fp_fields = {env_name for field_name, env_name in fp_fields.items() if getattr(self, field_name)}
+        provided_contents_fields = {
+            env_name for field_name, env_name in contents_fields.items() if getattr(self, field_name)
+        }
 
-        if not fp_fields_set and not contents_fields_set:
-            missing_fields = list(fp_fields.values()) + list(contents_fields.values())
-            missing_fields.append("(Must set either file path fields OR contents fields)")
-
+        if set(fp_fields.values()) != provided_fp_fields and set(contents_fields.values()) != provided_contents_fields:
             raise ValueError(
-                "OAuth is enabled but missing required environment variables for either file path or contents: "
-                + ", ".join(missing_fields)
+                "OAuth is enabled but missing required environment variables for either file path or contents."
+                + f" Required File path fields: {', '.join(fp_fields.values())}"
+                + f" Required Contents fields: {', '.join(contents_fields.values())}"
+                + f" Provided File path fields: {', '.join(provided_fp_fields)}"
+                + f" Provided Contents fields: {', '.join(provided_contents_fields)}"
             )
 
         return self
