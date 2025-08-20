@@ -100,8 +100,6 @@ class Asset:
 
 
 class Config(BaseSettings):
-    local: bool = Field(alias="LOCAL", default=False)
-
     project_home: Path = Field(default=PROJECT_HOME)
     assets_config: Path = Field(default=PROJECT_HOME / ASSETS_FILE)
 
@@ -114,8 +112,11 @@ class Config(BaseSettings):
     ibind_use_oauth: bool = Field(alias="IBIND_USE_OAUTH", default=False)
     ibind_oauth1a_consumer_key: str = Field(alias="IBIND_OAUTH1A_CONSUMER_KEY", default="")
 
-    ibind_oauth1a_encryption_key_content: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENT", default="")
-    ibind_oauth1a_signature_key_content: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_CONTENT", default="")
+    _ibind_oauth1a_encryption_key_contents: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENT", default="")
+    _ibind_oauth1a_signature_key_contents: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_CONTENT", default="")
+
+    _ibind_oauth1a_encryption_key_fp: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_FP", default="")
+    _ibind_oauth1a_signature_key_fp: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_FP", default="")
 
     ibind_oauth1a_access_token: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN", default="")
     ibind_oauth1a_access_token_secret: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN_SECRET", default="")
@@ -152,31 +153,32 @@ class Config(BaseSettings):
                 "ibind_oauth1a_dh_prime": "IBIND_OAUTH1A_DH_PRIME",
             }
 
-            if self.local:
-                oauth_fields = dict(
-                    **oauth_fields,
-                    **{
-                        "ibind_oauth1a_encryption_key_fp": "IBIND_OAUTH1A_ENCRYPTION_KEY_FP",
-                        "ibind_oauth1a_signature_key_fp": "IBIND_OAUTH1A_SIGNATURE_KEY_FP",
-                    },
-                )
-            else:
-                oauth_fields = dict(
-                    **oauth_fields,
-                    **{
-                        "ibind_oauth1a_encryption_key_contents": "IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS",
-                        "ibind_oauth1a_signature_key_contents": "IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS",
-                    },
-                )
+        # Check required OAuth fields first
+        missing_fields = [env_name for field_name, env_name in oauth_fields.items() if not getattr(self, field_name)]
 
-            missing_fields = [
-                env_name for field_name, env_name in oauth_fields.items() if not getattr(self, field_name)
-            ]
+        # Check that either file path fields OR contents fields are set
+        fp_fields = {
+            "_ibind_oauth1a_encryption_key_fp": "IBIND_OAUTH1A_ENCRYPTION_KEY_FP",
+            "_ibind_oauth1a_signature_key_fp": "IBIND_OAUTH1A_SIGNATURE_KEY_FP",
+        }
 
-            if missing_fields:
-                raise ValueError(
-                    f"OAuth is enabled but missing required environment variables: {', '.join(missing_fields)}"
-                )
+        contents_fields = {
+            "_ibind_oauth1a_encryption_key_contents": "IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS",
+            "_ibind_oauth1a_signature_key_contents": "IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS",
+        }
+
+        fp_fields_set = all(getattr(self, field_name) for field_name in fp_fields.keys())
+        contents_fields_set = all(getattr(self, field_name) for field_name in contents_fields.keys())
+
+        if not fp_fields_set and not contents_fields_set:
+            missing_key_fields = list(fp_fields.values()) + list(contents_fields.values())
+            missing_fields.extend(missing_key_fields)
+            missing_fields.append("(Must set either file path fields OR contents fields)")
+
+        if missing_fields:
+            raise ValueError(
+                f"OAuth is enabled but missing required environment variables: {', '.join(missing_fields)}"
+            )
 
         return self
 
@@ -203,26 +205,26 @@ class Config(BaseSettings):
         return temp_path
 
     @cached_property
-    def ibind_oauth1a_encryption_key_fp(self) -> str:
+    def ibind_encryption_key_fp(self) -> str:
         """Get path to encryption key file, creating temporary file if needed"""
         if not self.ibind_use_oauth:
             return ""
 
-        if self.local:
-            return os.environ["IBIND_OAUTH1A_ENCRYPTION_KEY_FP"]
+        if self._ibind_oauth1a_encryption_key_fp:
+            return self._ibind_oauth1a_encryption_key_fp
 
-        return self._create_temp_key_file(self.ibind_oauth1a_encryption_key_content, "_encryption.key")
+        return self._create_temp_key_file(self._ibind_oauth1a_encryption_key_contents, "_encryption.key")
 
     @cached_property
-    def ibind_oauth1a_signature_key_fp(self) -> str:
+    def ibind_signature_key_fp(self) -> str:
         """Get path to signature key file, creating temporary file if needed"""
         if not self.ibind_use_oauth:
             return ""
 
-        if self.local:
-            return os.environ["IBIND_OAUTH1A_SIGNATURE_KEY_FP"]
+        if self._ibind_oauth1a_signature_key_fp:
+            return self._ibind_oauth1a_signature_key_fp
 
-        return self._create_temp_key_file(self.ibind_oauth1a_signature_key_content, "_signature.key")
+        return self._create_temp_key_file(self._ibind_oauth1a_signature_key_contents, "_signature.key")
 
     @property
     def ibind_oauth_config(self) -> OAuth1aConfig:
@@ -232,8 +234,8 @@ class Config(BaseSettings):
 
         return OAuth1aConfig(
             consumer_key=self.ibind_oauth1a_consumer_key,
-            encryption_key_fp=self.ibind_oauth1a_encryption_key_fp,
-            signature_key_fp=self.ibind_oauth1a_signature_key_fp,
+            encryption_key_fp=self.ibind_encryption_key_fp,
+            signature_key_fp=self.ibind_signature_key_fp,
             access_token=self.ibind_oauth1a_access_token,
             access_token_secret=self.ibind_oauth1a_access_token_secret,
             dh_prime=self.ibind_oauth1a_dh_prime,
