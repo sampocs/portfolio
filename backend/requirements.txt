@@ -12,3 +12,5 @@ pycryptodome==3.23.0
 pyyaml==6.0.2
 tqdm==4.67.1
 apscheduler==3.11.0
+coinbase==2.1.0
+coinbase-advanced-py==1.8.2
