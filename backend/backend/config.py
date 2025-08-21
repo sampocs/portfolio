@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from functools import cached_property
 import yaml
 from decimal import Decimal
+import tempfile
+import os
 
 PROJECT_HOME = Path(__file__).parent.parent.parent
 ENV_FILE = ".env"
@@ -109,8 +111,13 @@ class Config(BaseSettings):
 
     ibind_use_oauth: bool = Field(alias="IBIND_USE_OAUTH", default=False)
     ibind_oauth1a_consumer_key: str = Field(alias="IBIND_OAUTH1A_CONSUMER_KEY", default="")
+
+    ibind_oauth1a_encryption_key_contents: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS", default="")
+    ibind_oauth1a_signature_key_contents: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS", default="")
+
     ibind_oauth1a_encryption_key_fp: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_FP", default="")
     ibind_oauth1a_signature_key_fp: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_FP", default="")
+
     ibind_oauth1a_access_token: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN", default="")
     ibind_oauth1a_access_token_secret: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN_SECRET", default="")
     ibind_oauth1a_dh_prime: str = Field(alias="IBIND_OAUTH1A_DH_PRIME", default="")
@@ -141,21 +148,41 @@ class Config(BaseSettings):
         if self.ibind_use_oauth:
             oauth_fields = {
                 "ibind_oauth1a_consumer_key": "IBIND_OAUTH1A_CONSUMER_KEY",
-                "ibind_oauth1a_encryption_key_fp": "IBIND_OAUTH1A_ENCRYPTION_KEY_FP",
-                "ibind_oauth1a_signature_key_fp": "IBIND_OAUTH1A_SIGNATURE_KEY_FP",
                 "ibind_oauth1a_access_token": "IBIND_OAUTH1A_ACCESS_TOKEN",
                 "ibind_oauth1a_access_token_secret": "IBIND_OAUTH1A_ACCESS_TOKEN_SECRET",
                 "ibind_oauth1a_dh_prime": "IBIND_OAUTH1A_DH_PRIME",
             }
 
-            missing_fields = [
-                env_name for field_name, env_name in oauth_fields.items() if not getattr(self, field_name)
-            ]
+        missing_fields = [env_name for field_name, env_name in oauth_fields.items() if not getattr(self, field_name)]
+        if missing_fields:
+            raise ValueError(
+                f"OAuth is enabled but missing required environment variables: {', '.join(missing_fields)}"
+            )
 
-            if missing_fields:
-                raise ValueError(
-                    f"OAuth is enabled but missing required environment variables: {', '.join(missing_fields)}"
-                )
+        # Check that either file path fields OR contents fields are set
+        fp_fields = {
+            "ibind_oauth1a_encryption_key_fp": "IBIND_OAUTH1A_ENCRYPTION_KEY_FP",
+            "ibind_oauth1a_signature_key_fp": "IBIND_OAUTH1A_SIGNATURE_KEY_FP",
+        }
+
+        contents_fields = {
+            "ibind_oauth1a_encryption_key_contents": "IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS",
+            "ibind_oauth1a_signature_key_contents": "IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS",
+        }
+
+        provided_fp_fields = {env_name for field_name, env_name in fp_fields.items() if getattr(self, field_name)}
+        provided_contents_fields = {
+            env_name for field_name, env_name in contents_fields.items() if getattr(self, field_name)
+        }
+
+        if set(fp_fields.values()) != provided_fp_fields and set(contents_fields.values()) != provided_contents_fields:
+            raise ValueError(
+                "OAuth is enabled but missing required environment variables for either file path or contents."
+                + f"\nRequired File path fields: {', '.join(fp_fields.values())}"
+                + f"\nRequired Contents fields: {', '.join(contents_fields.values())}"
+                + f"\nProvided File path fields: {', '.join(provided_fp_fields)}"
+                + f"\nProvided Contents fields: {', '.join(provided_contents_fields)}"
+            )
 
         return self
 
@@ -165,6 +192,44 @@ class Config(BaseSettings):
         _ = self.assets
         return self
 
+    def _create_temp_key_file(self, content: str, suffix: str) -> str:
+        """Create a temporary file with the key content"""
+        if not content:
+            raise ValueError(f"Key content is empty for {suffix}")
+
+        temp_fd, temp_path = tempfile.mkstemp(suffix=suffix, prefix="oauth_key_")
+        try:
+            with os.fdopen(temp_fd, 'w') as temp_file:
+                temp_file.write(content)
+        except Exception:
+            # Clean up if writing fails
+            os.unlink(temp_path)
+            raise
+
+        return temp_path
+
+    @cached_property
+    def ibind_encryption_key_fp(self) -> str:
+        """Get path to encryption key file, creating temporary file if needed"""
+        if not self.ibind_use_oauth:
+            return ""
+
+        if self.ibind_oauth1a_encryption_key_fp:
+            return self.ibind_oauth1a_encryption_key_fp
+
+        return self._create_temp_key_file(self.ibind_oauth1a_encryption_key_contents, "_encryption.key")
+
+    @cached_property
+    def ibind_signature_key_fp(self) -> str:
+        """Get path to signature key file, creating temporary file if needed"""
+        if not self.ibind_use_oauth:
+            return ""
+
+        if self.ibind_oauth1a_signature_key_fp:
+            return self.ibind_oauth1a_signature_key_fp
+
+        return self._create_temp_key_file(self.ibind_oauth1a_signature_key_contents, "_signature.key")
+
     @property
     def ibind_oauth_config(self) -> OAuth1aConfig:
         """Get OAuth configuration. Should only be called when OAuth is enabled"""
@@ -173,8 +238,8 @@ class Config(BaseSettings):
 
         return OAuth1aConfig(
             consumer_key=self.ibind_oauth1a_consumer_key,
-            encryption_key_fp=str(PROJECT_HOME / self.ibind_oauth1a_encryption_key_fp),
-            signature_key_fp=str(PROJECT_HOME / self.ibind_oauth1a_signature_key_fp),
+            encryption_key_fp=self.ibind_encryption_key_fp,
+            signature_key_fp=self.ibind_signature_key_fp,
             access_token=self.ibind_oauth1a_access_token,
             access_token_secret=self.ibind_oauth1a_access_token_secret,
             dh_prime=self.ibind_oauth1a_dh_prime,
