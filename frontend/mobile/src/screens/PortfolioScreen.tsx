@@ -170,6 +170,11 @@ export default function PortfolioScreen() {
     // Already in demo mode, so just stay there
   };
 
+  const handleSyncPress = () => {
+    // TODO: Implement sync functionality
+    console.log('Sync button pressed');
+  };
+
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
@@ -366,6 +371,7 @@ export default function PortfolioScreen() {
         <AssetCategorySelector
           selectedCategories={selectedCategories}
           onCategoryToggle={handleCategoryToggle}
+          onSyncPress={handleSyncPress}
         />
         <PortfolioSummary
           totalValue={summaryData.totalValue}

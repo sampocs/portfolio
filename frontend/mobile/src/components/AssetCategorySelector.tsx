@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { RefreshCcw } from 'lucide-react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
 interface AssetCategorySelectorProps {
   selectedCategories: { stocks: boolean; crypto: boolean; alternatives: boolean };
   onCategoryToggle: (category: 'stocks' | 'crypto' | 'alternatives') => void;
+  onSyncPress?: () => void;
 }
 
 /**
@@ -14,53 +16,68 @@ interface AssetCategorySelectorProps {
  * Allows users to filter their portfolio view by selecting/deselecting
  * different asset categories (stocks, crypto, alternatives).
  */
-export default function AssetCategorySelector({ selectedCategories, onCategoryToggle }: AssetCategorySelectorProps) {
+export default function AssetCategorySelector({ selectedCategories, onCategoryToggle, onSyncPress }: AssetCategorySelectorProps) {
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[
-          styles.button,
-          selectedCategories.stocks && styles.selectedButton
-        ]}
-        onPress={() => onCategoryToggle('stocks')}
-      >
-        <Text style={[
-          styles.buttonText,
-          selectedCategories.stocks && styles.selectedButtonText
-        ]}>
-          Stocks
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.categoriesContainer}>
+        <TouchableOpacity
+          style={[
+            styles.button,
+            selectedCategories.stocks && styles.selectedButton
+          ]}
+          onPress={() => onCategoryToggle('stocks')}
+        >
+          <Text style={[
+            styles.buttonText,
+            selectedCategories.stocks && styles.selectedButtonText
+          ]}>
+            Stocks
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.button,
+            selectedCategories.crypto && styles.selectedButton
+          ]}
+          onPress={() => onCategoryToggle('crypto')}
+        >
+          <Text style={[
+            styles.buttonText,
+            selectedCategories.crypto && styles.selectedButtonText
+          ]}>
+            Crypto
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.button,
+            selectedCategories.alternatives && styles.selectedButton
+          ]}
+          onPress={() => onCategoryToggle('alternatives')}
+        >
+          <Text style={[
+            styles.buttonText,
+            selectedCategories.alternatives && styles.selectedButtonText
+          ]}>
+            Alternatives
+          </Text>
+        </TouchableOpacity>
+      </View>
       
-      <TouchableOpacity
-        style={[
-          styles.button,
-          selectedCategories.crypto && styles.selectedButton
-        ]}
-        onPress={() => onCategoryToggle('crypto')}
-      >
-        <Text style={[
-          styles.buttonText,
-          selectedCategories.crypto && styles.selectedButtonText
-        ]}>
-          Crypto
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[
-          styles.button,
-          selectedCategories.alternatives && styles.selectedButton
-        ]}
-        onPress={() => onCategoryToggle('alternatives')}
-      >
-        <Text style={[
-          styles.buttonText,
-          selectedCategories.alternatives && styles.selectedButtonText
-        ]}>
-          Alternatives
-        </Text>
-      </TouchableOpacity>
+      {onSyncPress && (
+        <TouchableOpacity
+          style={styles.syncButton}
+          onPress={onSyncPress}
+          activeOpacity={0.7}
+        >
+          <RefreshCcw 
+            size={20} 
+            color={theme.colors.foreground} 
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -68,7 +85,12 @@ export default function AssetCategorySelector({ selectedCategories, onCategoryTo
 const styles = createStyles({
   container: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: theme.spacing.xl,
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
   },
   button: {
     paddingHorizontal: theme.spacing.md,
@@ -88,5 +110,9 @@ const styles = createStyles({
   },
   selectedButtonText: {
     color: theme.colors.foreground,
+  },
+  syncButton: {
+    padding: theme.spacing.xs,
+    borderRadius: 8,
   },
 });
