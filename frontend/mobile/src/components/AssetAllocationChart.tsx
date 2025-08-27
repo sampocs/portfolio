@@ -34,7 +34,7 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
   
   // Determine colors based on allocation performance
   const meetsOrExceedsTarget = currentAllocation >= targetAllocation;
-  const currentColor = meetsOrExceedsTarget ? theme.colors.success : theme.colors.destructive;
+  const currentColor = meetsOrExceedsTarget ? theme.colors.success : theme.colors.allocationUnderTarget;
   const targetColor = theme.colors.allocationTarget;
 
   // Calculate allocation details for expanded view

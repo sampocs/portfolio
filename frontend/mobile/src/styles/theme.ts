@@ -10,6 +10,7 @@ export const colors = {
   success: "#34D86C",
   successBackground: "#00351D",
   allocationTarget: "#07BADA",
+  allocationUnderTarget: "#FF5C6F",
 };
 
 export const typography = {

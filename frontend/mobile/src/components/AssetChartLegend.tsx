@@ -10,7 +10,7 @@ export default function AssetChartLegend() {
         <View style={styles.legendItem}>
           <View style={styles.currentIndicators}>
             <View style={[styles.colorIndicator, { backgroundColor: theme.colors.success }]} />
-            <View style={[styles.colorIndicator, styles.secondIndicator, { backgroundColor: theme.colors.destructive }]} />
+            <View style={[styles.colorIndicator, styles.secondIndicator, { backgroundColor: theme.colors.allocationUnderTarget }]} />
           </View>
           <Text style={styles.labelText}>Current</Text>
         </View>

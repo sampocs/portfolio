@@ -37,7 +37,7 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
   
   // Determine allocation status and colors
   const meetsOrExceedsTarget = currentAllocation >= targetAllocation;
-  const currentBarColor = meetsOrExceedsTarget ? theme.colors.success : theme.colors.destructive;
+  const currentBarColor = meetsOrExceedsTarget ? theme.colors.success : theme.colors.allocationUnderTarget;
 
   // Get asset logo path
   const getAssetLogo = (assetSymbol: string) => {
