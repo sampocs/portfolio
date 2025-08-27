@@ -26,18 +26,19 @@ class ApiService {
   /**
    * Make authenticated API request
    */
-  private async makeRequest<T>(endpoint: string, token?: string): Promise<T> {
+  private async makeRequest<T>(endpoint: string, token?: string, method: string = "GET", body?: any): Promise<T> {
     const apiToken = token || await getApiToken();
     if (!apiToken) {
       throw new Error("No API token available");
     }
 
     const response = await fetch(`${API.BASE_URL}${endpoint}`, {
-      method: "GET",
+      method,
       headers: {
         Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json",
       },
+      body: body ? JSON.stringify(body) : undefined,
     });
 
     if (!response.ok) {
@@ -102,6 +103,38 @@ class ApiService {
     }
 
     return await this.makeRequest<PerformanceData[]>(endpoint);
+  }
+
+  /**
+   * Trigger manual sync of trades from brokers
+   */
+  async syncTrades(): Promise<{ status: string; error?: string }> {
+    try {
+      const response = await this.makeRequest<{ status: string; error?: string }>("/sync", undefined, "POST");
+      return response;
+    } catch (error) {
+      console.error("Sync trades failed:", error);
+      
+      if (error instanceof Error) {
+        if (error.message.includes("429")) {
+          return { 
+            status: "failed", 
+            error: "Sync rate limited. Please wait before trying again." 
+          };
+        }
+        if (error.message.includes("500")) {
+          return { 
+            status: "failed", 
+            error: "Server error during sync. Please try again later." 
+          };
+        }
+      }
+      
+      return { 
+        status: "failed", 
+        error: "Failed to sync trades. Please try again." 
+      };
+    }
   }
 }
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { RefreshCcw } from 'lucide-react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency, formatPercentage } from '../styles/utils';
@@ -10,6 +10,7 @@ interface PortfolioSummaryProps {
   totalReturnPercent: number;
   selectedDate?: string;
   onSyncPress?: () => void;
+  isSyncing?: boolean;
 }
 
 /**
@@ -18,8 +19,30 @@ interface PortfolioSummaryProps {
  * Shows the total portfolio value, absolute and percentage returns,
  * with optional selected date for point-in-time data display.
  */
-export default function PortfolioSummary({ totalValue, totalReturn, totalReturnPercent, selectedDate, onSyncPress }: PortfolioSummaryProps) {
+export default function PortfolioSummary({ totalValue, totalReturn, totalReturnPercent, selectedDate, onSyncPress, isSyncing = false }: PortfolioSummaryProps) {
   const isPositiveReturn = totalReturn >= 0;
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isSyncing) {
+      const spinAnimation = Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      );
+      spinAnimation.start();
+      return () => spinAnimation.stop();
+    } else {
+      spinValue.setValue(0);
+    }
+  }, [isSyncing]);
+
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
   
   return (
     <View style={styles.container}>
@@ -32,14 +55,17 @@ export default function PortfolioSummary({ totalValue, totalReturn, totalReturnP
         </View>
         {onSyncPress && (
           <TouchableOpacity
-            style={styles.syncButton}
-            onPress={onSyncPress}
-            activeOpacity={0.7}
+            style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
+            onPress={isSyncing ? undefined : onSyncPress}
+            activeOpacity={isSyncing ? 1 : 0.7}
+            disabled={isSyncing}
           >
-            <RefreshCcw 
-              size={28} 
-              color={theme.colors.muted} 
-            />
+            <Animated.View style={isSyncing ? { transform: [{ rotate: spin }] } : undefined}>
+              <RefreshCcw 
+                size={28} 
+                color={theme.colors.muted}
+              />
+            </Animated.View>
           </TouchableOpacity>
         )}
       </View>
@@ -141,5 +167,8 @@ const styles = createStyles({
     borderRadius: 8,
     alignSelf: 'center',
     marginBottom: theme.spacing.xs, // Offset to align with center of large value text
+  },
+  syncButtonDisabled: {
+    opacity: 0.6,
   },
 });

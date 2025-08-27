@@ -16,6 +16,7 @@ import { performanceCacheManager } from '../services/performanceCache';
 import { calculatePortfolioSummary } from '../data/utils';
 import { Asset, PerformanceData } from '../data/types';
 import { mockPerformanceData } from '../data/mockData';
+import { apiService } from '../services/api';
 
 /**
  * Format date from YYYY-MM-DD to readable format
@@ -49,6 +50,9 @@ export default function PortfolioScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
+  
+  // State for sync functionality
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Use shared positions data from context
   const { positions, isLoading: positionsLoading, isRefreshing: positionsRefreshing, refreshData, dataMode, switchToDemo, switchToLive, setAuthenticated, isAuthenticated } = useData();
@@ -170,9 +174,31 @@ export default function PortfolioScreen() {
     // Already in demo mode, so just stay there
   };
 
-  const handleSyncPress = () => {
-    // TODO: Implement sync functionality
-    console.log('Sync button pressed');
+  const handleSyncPress = async () => {
+    // Only sync in live mode
+    if (dataMode !== 'live' || !isAuthenticated) {
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const result = await apiService.syncTrades();
+      
+      if (result.status === 'success') {
+        // Refresh positions data after successful sync
+        await refreshData();
+      } else {
+        // Show alert for failure cases
+        console.error('Sync failed:', result.error);
+        // TODO: Replace with proper alert/toast
+        alert(`Sync failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error during sync:', error);
+      alert('Failed to sync trades. Please try again.');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Cleanup timer on unmount
@@ -378,6 +404,7 @@ export default function PortfolioScreen() {
           totalReturnPercent={summaryData.totalReturnPercent}
           selectedDate={summaryData.selectedDate}
           onSyncPress={handleSyncPress}
+          isSyncing={isSyncing}
         />
         <TotalWorthChart
           data={performanceData}
