@@ -35,7 +35,7 @@ export default function PortfolioSummary({ totalValue, totalReturn, totalReturnP
             activeOpacity={0.7}
           >
             <RefreshCcw 
-              size={20} 
+              size={28} 
               color={theme.colors.muted} 
             />
           </TouchableOpacity>
@@ -133,5 +133,7 @@ const styles = createStyles({
     padding: theme.spacing.xs,
     marginLeft: theme.spacing.sm,
     borderRadius: 8,
+    alignSelf: 'center',
+    marginBottom: theme.spacing.xs, // Offset to align with center of large value text
   },
 });
