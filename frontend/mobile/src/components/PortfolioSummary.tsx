@@ -26,8 +26,10 @@ export default function PortfolioSummary({ totalValue, totalReturn, totalReturnP
       <Text style={styles.label}>Total Worth</Text>
       
       <View style={styles.valueContainer}>
-        <Text style={styles.totalValue}>{formatCurrency(totalValue).replace('$', '')}</Text>
-        <Text style={styles.currency}>USD</Text>
+        <View style={styles.valueAndCurrency}>
+          <Text style={styles.totalValue}>{formatCurrency(totalValue).replace('$', '')}</Text>
+          <Text style={styles.currency}>USD</Text>
+        </View>
         {onSyncPress && (
           <TouchableOpacity
             style={styles.syncButton}
@@ -84,6 +86,7 @@ const styles = createStyles({
   valueContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    justifyContent: 'space-between',
     marginBottom: theme.spacing.sm,
   },
   totalValue: {
@@ -129,9 +132,12 @@ const styles = createStyles({
     color: theme.colors.muted,
     ...getTextStyle('sm'),
   },
+  valueAndCurrency: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
   syncButton: {
     padding: theme.spacing.xs,
-    marginLeft: theme.spacing.sm,
     borderRadius: 8,
     alignSelf: 'center',
     marginBottom: theme.spacing.xs, // Offset to align with center of large value text
