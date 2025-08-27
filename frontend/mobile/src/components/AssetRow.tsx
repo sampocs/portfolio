@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import { Asset } from '../data/types';
@@ -8,6 +8,7 @@ interface AssetRowProps {
   asset: Asset;
   isFirst?: boolean;
   isLast?: boolean;
+  onPress?: (asset: Asset) => void;
 }
 
 // Asset image mapping
@@ -27,7 +28,7 @@ const assetImages: { [key: string]: any } = {
   'SOL': require('../../assets/images/SOL.png'),
 };
 
-export default function AssetRow({ asset, isFirst = false, isLast = false }: AssetRowProps) {
+export default function AssetRow({ asset, isFirst = false, isLast = false, onPress }: AssetRowProps) {
   // Get image source from mapping
   const imageSource = assetImages[asset.asset];
   
@@ -78,8 +79,20 @@ export default function AssetRow({ asset, isFirst = false, isLast = false }: Ass
     !isLast && styles.separatorContainer,
   ];
 
+  const handlePress = () => {
+    if (onPress) {
+      onPress(asset);
+    }
+  };
+
+  const Component = onPress ? TouchableOpacity : View;
+  const touchableProps = onPress ? {
+    onPress: handlePress,
+    activeOpacity: 0.7,
+  } : {};
+
   return (
-    <View style={containerStyle}>
+    <Component style={containerStyle} {...touchableProps}>
       <View style={styles.leftSection}>
         {imageSource ? (
           <Image 
@@ -118,7 +131,7 @@ export default function AssetRow({ asset, isFirst = false, isLast = false }: Ass
           </View>
         </View>
       </View>
-    </View>
+    </Component>
   );
 }
 
