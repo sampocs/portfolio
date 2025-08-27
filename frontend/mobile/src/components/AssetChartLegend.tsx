@@ -4,18 +4,18 @@ import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
 export default function AssetChartLegend() {
-  const currentColor = theme.colors.allocationCurrent;
-  const targetColor = theme.colors.allocationTarget;
-
   return (
     <View style={styles.container}>
       <View style={styles.legendRow}>
         <View style={styles.legendItem}>
-          <View style={[styles.colorIndicator, { backgroundColor: currentColor }]} />
+          <View style={styles.currentIndicators}>
+            <View style={[styles.colorIndicator, { backgroundColor: theme.colors.success }]} />
+            <View style={[styles.colorIndicator, styles.secondIndicator, { backgroundColor: theme.colors.allocationUnderTarget }]} />
+          </View>
           <Text style={styles.labelText}>Current</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.colorIndicator, { backgroundColor: targetColor }]} />
+          <View style={[styles.colorIndicator, { backgroundColor: theme.colors.allocationTarget }]} />
           <Text style={styles.labelText}>Target</Text>
         </View>
       </View>
@@ -47,5 +47,13 @@ const styles = createStyles({
   labelText: {
     color: theme.colors.foreground,
     ...getTextStyle('sm', 'medium'),
+  },
+  currentIndicators: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: theme.spacing.xs,
+  },
+  secondIndicator: {
+    marginLeft: -2, // Slight overlap for compact display
   },
 });

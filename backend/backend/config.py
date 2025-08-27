@@ -139,6 +139,7 @@ class Config(BaseSettings):
     coingecko_prev_close_api: str = Field(default="https://pro-api.coingecko.com/api/v3/coins/{}/market_chart")
 
     price_cache_ttl_min: int = Field(default=5)
+    trades_cache_ttl_min: int = Field(default=10)
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow")
 

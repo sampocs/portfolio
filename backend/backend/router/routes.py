@@ -1,3 +1,4 @@
+import datetime
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi import Query
@@ -5,8 +6,11 @@ from sqlalchemy.orm import Session
 from backend.database import connection, crud
 from backend.config import config, VALID_DURATIONS
 from backend.router import transforms
+from backend.jobs import jobs
 
 router = APIRouter()
+
+_last_indexed_trades = datetime.datetime.now() - datetime.timedelta(minutes=config.trades_cache_ttl_min)
 
 
 def verify_token(request: Request):
@@ -62,3 +66,22 @@ async def get_performance(
         )
 
     return transforms.get_performance(db, duration, asset_list)
+
+
+@router.post("/sync")
+async def sync_trades(
+    _: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)
+):
+    """Returns all trades"""
+    global _last_indexed_trades
+
+    if (datetime.datetime.now() - _last_indexed_trades) < datetime.timedelta(minutes=config.trades_cache_ttl_min):
+        return {"status": "failed", "error": "rate limit exceeded"}
+
+    try:
+        jobs.index_recent_trades(db)
+        _last_indexed_trades = datetime.datetime.now()
+        return {"status": "success"}
+
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}

@@ -32,7 +32,9 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
   const currentBarWidth = (currentAllocation / maxAllocation) * chartWidth;
   const targetBarWidth = (targetAllocation / maxAllocation) * chartWidth;
   
-  const currentColor = theme.colors.allocationCurrent;
+  // Determine colors based on allocation performance
+  const meetsOrExceedsTarget = currentAllocation >= targetAllocation;
+  const currentColor = meetsOrExceedsTarget ? theme.colors.success : theme.colors.allocationUnderTarget;
   const targetColor = theme.colors.allocationTarget;
 
   // Calculate allocation details for expanded view
@@ -40,9 +42,8 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
   const targetValue = (targetAllocation / 100) * (currentValue / (currentAllocation / 100));
   const dollarDelta = currentValue - targetValue;
   const percentageDelta = currentAllocation - targetAllocation;
-  const isOverAllocated = percentageDelta > 0;
-  const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
-  const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
+  const deltaColor = meetsOrExceedsTarget ? theme.colors.success : theme.colors.destructive;
+  const deltaBackgroundColor = meetsOrExceedsTarget ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
   // Get asset logo
   const getAssetLogo = (assetSymbol: string) => {

@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { RefreshCcw } from 'lucide-react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency, formatPercentage } from '../styles/utils';
 
@@ -8,6 +9,8 @@ interface PortfolioSummaryProps {
   totalReturn: number;
   totalReturnPercent: number;
   selectedDate?: string;
+  onSyncPress?: () => void;
+  isSyncing?: boolean;
 }
 
 /**
@@ -16,16 +19,55 @@ interface PortfolioSummaryProps {
  * Shows the total portfolio value, absolute and percentage returns,
  * with optional selected date for point-in-time data display.
  */
-export default function PortfolioSummary({ totalValue, totalReturn, totalReturnPercent, selectedDate }: PortfolioSummaryProps) {
+export default function PortfolioSummary({ totalValue, totalReturn, totalReturnPercent, selectedDate, onSyncPress, isSyncing = false }: PortfolioSummaryProps) {
   const isPositiveReturn = totalReturn >= 0;
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isSyncing) {
+      const spinAnimation = Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      );
+      spinAnimation.start();
+      return () => spinAnimation.stop();
+    } else {
+      spinValue.setValue(0);
+    }
+  }, [isSyncing]);
+
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
   
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Total Worth</Text>
       
       <View style={styles.valueContainer}>
-        <Text style={styles.totalValue}>{formatCurrency(totalValue).replace('$', '')}</Text>
-        <Text style={styles.currency}>USD</Text>
+        <View style={styles.valueAndCurrency}>
+          <Text style={styles.totalValue}>{formatCurrency(totalValue).replace('$', '')}</Text>
+          <Text style={styles.currency}>USD</Text>
+        </View>
+        {onSyncPress && (
+          <TouchableOpacity
+            style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
+            onPress={isSyncing ? undefined : onSyncPress}
+            activeOpacity={isSyncing ? 1 : 0.7}
+            disabled={isSyncing}
+          >
+            <Animated.View style={isSyncing ? { transform: [{ rotate: spin }] } : undefined}>
+              <RefreshCcw 
+                size={28} 
+                color={theme.colors.muted}
+              />
+            </Animated.View>
+          </TouchableOpacity>
+        )}
       </View>
       
       <View style={styles.returnsContainer}>
@@ -70,6 +112,7 @@ const styles = createStyles({
   valueContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    justifyContent: 'space-between',
     marginBottom: theme.spacing.sm,
   },
   totalValue: {
@@ -114,5 +157,18 @@ const styles = createStyles({
   selectedDate: {
     color: theme.colors.muted,
     ...getTextStyle('sm'),
+  },
+  valueAndCurrency: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  syncButton: {
+    padding: theme.spacing.xs,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginBottom: theme.spacing.xs, // Offset to align with center of large value text
+  },
+  syncButtonDisabled: {
+    opacity: 0.6,
   },
 });

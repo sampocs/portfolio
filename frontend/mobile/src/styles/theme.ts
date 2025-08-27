@@ -9,9 +9,8 @@ export const colors = {
   destructiveBackground: "#48070F",
   success: "#34D86C",
   successBackground: "#00351D",
-  // Asset allocation chart colors
-  allocationCurrent: "#12D5F8",
-  allocationTarget: "#BA9EFA",
+  allocationTarget: "#61E3FA",
+  allocationUnderTarget: "#FF5C6F",
 };
 
 export const typography = {
