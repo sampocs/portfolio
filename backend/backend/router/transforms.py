@@ -82,3 +82,14 @@ def get_performance(db: Session, duration: str, assets: list[str]) -> list[schem
         )
         for snapshot in query.all()
     ]
+
+
+def get_asset_prices(db: Session, asset: str) -> schemas.AssetPriceHistory:
+    """Returns the historical price history of the asset"""
+    live_price = crud.get_live_price(db, asset)
+    historical_prices = crud.get_historical_prices(db, asset)
+
+    return schemas.AssetPriceHistory(
+        live_price=live_price,
+        historical_prices=[schemas.HistoricalPrice(date=str(p.date), price=p.price) for p in historical_prices],
+    )

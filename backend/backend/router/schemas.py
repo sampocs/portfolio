@@ -31,3 +31,22 @@ class Performance(BaseModel):
     cost: Decimal
     value: Decimal
     returns: Decimal
+
+
+class HistoricalPrice(BaseModel):
+    """
+    Defines the schema for individual historical price entries.
+    """
+
+    date: str
+    price: Decimal
+
+
+class AssetPriceHistory(BaseModel):
+    """
+    Defines the schema for the /prices API response which returns
+    the live and historical prices
+    """
+
+    live_price: Decimal
+    historical_prices: list[HistoricalPrice]
