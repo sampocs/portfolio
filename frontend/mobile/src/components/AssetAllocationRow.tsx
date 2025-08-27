@@ -35,31 +35,9 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
   const currentBarWidth = Math.min(currentAllocation / MAX_DISPLAY_ALLOCATION, 1) * chartContainerWidth;
   const targetPosition = Math.min(targetAllocation / MAX_DISPLAY_ALLOCATION, 1) * chartContainerWidth;
   
-  // Calculate segments for multi-color bar
-  const isOverAllocated = currentAllocation > targetAllocation;
-  const isUnderAllocated = currentAllocation < targetAllocation;
-  
-  // Base blue bar goes up to the minimum of current or target
-  const blueBarWidth = Math.min(currentBarWidth, targetPosition);
-  
-  // Additional segment based on allocation status
-  let additionalSegmentWidth = 0;
-  let additionalSegmentColor = '';
-  let additionalSegmentStart = 0;
-  
-  if (isOverAllocated) {
-    // Green for excess beyond target
-    additionalSegmentWidth = currentBarWidth - targetPosition;
-    additionalSegmentColor = theme.colors.success; // Green
-    additionalSegmentStart = targetPosition;
-  } else if (isUnderAllocated) {
-    // Red for shortage up to target
-    additionalSegmentWidth = targetPosition - currentBarWidth;
-    additionalSegmentColor = theme.colors.destructive; // Red
-    additionalSegmentStart = currentBarWidth;
-  }
-  
-  const blueColor = '#07BADA';
+  // Determine allocation status and colors
+  const meetsOrExceedsTarget = currentAllocation >= targetAllocation;
+  const currentBarColor = meetsOrExceedsTarget ? theme.colors.success : theme.colors.destructive;
 
   // Get asset logo path
   const getAssetLogo = (assetSymbol: string) => {
@@ -88,9 +66,9 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
 
   const logoSource = getAssetLogo(asset.asset);
 
-  // Determine delta colors (reuse the isOverAllocated from chart logic)
-  const deltaColor = isOverAllocated ? theme.colors.success : theme.colors.destructive;
-  const deltaBackgroundColor = isOverAllocated ? theme.colors.successBackground : theme.colors.destructiveBackground;
+  // Determine delta colors
+  const deltaColor = meetsOrExceedsTarget ? theme.colors.success : theme.colors.destructive;
+  const deltaBackgroundColor = meetsOrExceedsTarget ? theme.colors.successBackground : theme.colors.destructiveBackground;
 
   // Dynamic container style based on position
   const containerStyle = [
@@ -156,38 +134,26 @@ export default function AssetAllocationRow({ asset, isFirst = false, isLast = fa
                 rx={CHART_HEIGHT / 2}
               />
               
-              {/* Blue bar segment (up to target or current, whichever is smaller) */}
-              {blueBarWidth > 0 && (
+              {/* Current allocation bar */}
+              {currentBarWidth > 0 && (
                 <Rect
                   x={0}
                   y={6}
-                  width={blueBarWidth}
+                  width={currentBarWidth}
                   height={CHART_HEIGHT}
-                  fill={blueColor}
+                  fill={currentBarColor}
                   mask="url(#barMask)"
                 />
               )}
               
-              {/* Additional segment (green for excess, red for shortage) */}
-              {additionalSegmentWidth > 0 && (
-                <Rect
-                  x={additionalSegmentStart}
-                  y={6}
-                  width={additionalSegmentWidth}
-                  height={CHART_HEIGHT}
-                  fill={additionalSegmentColor}
-                  mask="url(#barMask)"
-                />
-              )}
-              
-              {/* Target allocation tick mark - longer */}
+              {/* Target allocation tick mark */}
               {targetPosition > 0 && targetPosition <= chartContainerWidth && (
                 <Line
                   x1={targetPosition}
                   y1={0}
                   x2={targetPosition}
                   y2={CHART_HEIGHT + 12}
-                  stroke={theme.colors.foreground}
+                  stroke={theme.colors.allocationTarget}
                   strokeWidth={2}
                   opacity={0.8}
                 />
