@@ -59,7 +59,7 @@ export default function PortfolioScreen() {
 
   // Local state for performance data and chart-specific loading
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
-  const [selectedGranularity, setSelectedGranularity] = useState('ALL');
+  const [selectedGranularity, setSelectedGranularity] = useState('1Y');
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [isDataCached, setIsDataCached] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
