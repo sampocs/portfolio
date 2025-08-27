@@ -4,20 +4,10 @@ from backend.database import models
 from datetime import datetime
 from decimal import Decimal
 
-_client: IbkrClient = None  # type: ignore
-
-
-def _get_client() -> IbkrClient:
-    """Retreives an IBKR singleton client"""
-    global _client
-    if _client is None:
-        _client = IbkrClient(**config.ibind_client_params)
-    return _client
-
 
 def get_current_holdings() -> list[models.Position]:
     """Retrieves current IBKR holdings"""
-    client = _get_client()
+    client = IbkrClient(**config.ibind_client_params)
     positions_data = client.positions2(config.ibkr_account_id)
     assert positions_data.data, "No positions found for account"
 

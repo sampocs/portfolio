@@ -4,29 +4,17 @@ from backend.database import models
 from datetime import datetime
 from decimal import Decimal
 
-_client: RESTClient = None  # type: ignore
-
-assets = ["BTC", "SOL", "ETH"]
-
-
-def _get_client() -> RESTClient:
-    """Retreives an IBKR singleton client"""
-    global _client
-    if _client is None:
-        _client = RESTClient(api_key=config.coinbase_api_key, api_secret=config.coinbase_api_secret)
-    return _client
-
 
 def get_current_holdings() -> list[models.Position]:
     """Retrieves current coinbase holdings"""
-    client = _get_client()
+    client = RESTClient(api_key=config.coinbase_api_key, api_secret=config.coinbase_api_secret)
 
     portfolio = client.get_portfolio_breakdown(config.coinbase_account_id).to_dict()
 
     positions = []
     for position in portfolio["breakdown"]["spot_positions"]:
         asset = position["asset"]
-        if asset not in assets:
+        if asset not in config.crypto_tokens:
             continue
 
         quantity = position["total_balance_crypto"]
