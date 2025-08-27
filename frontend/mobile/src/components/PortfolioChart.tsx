@@ -51,7 +51,7 @@ export default function PortfolioChart({
   };
 
   return (
-    <View style={styles.container}>
+    <>
       <FinancialChart
         data={chartData}
         onDataPointSelected={handleDataPointSelected}
@@ -67,14 +67,11 @@ export default function PortfolioChart({
           onDurationChange={onGranularityChange as any}
         />
       </View>
-    </View>
+    </>
   );
 }
 
 const styles = createStyles({
-  container: {
-    marginBottom: theme.spacing.lg,
-  },
   durationSelectorContainer: {
     zIndex: 999,
     elevation: 999,

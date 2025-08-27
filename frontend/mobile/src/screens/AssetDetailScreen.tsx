@@ -64,6 +64,25 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
     setSelectedDataPoint(dataPoint);
   };
 
+  // Get price change data for display - use selected data point if available
+  const getCurrentPriceChange = () => {
+    if (selectedDataPoint && assetData) {
+      const selectedPrice = selectedDataPoint.price || selectedDataPoint.value;
+      const firstPrice = assetData.processedPriceData[0]?.price || selectedPrice;
+      const changeAmount = selectedPrice - firstPrice;
+      const changePercent = firstPrice > 0 ? (changeAmount / firstPrice) * 100 : 0;
+      
+      return {
+        currentPrice: selectedPrice,
+        previousPrice: firstPrice,
+        changeAmount,
+        changePercent,
+        isPositive: changeAmount >= 0
+      };
+    }
+    return assetData.priceChange;
+  };
+
   // Transform price data for chart
   const transformPriceDataForChart = (priceData: ProcessedPriceData[]): ChartDataPoint[] => {
     return priceData.map((item, index) => ({
@@ -131,7 +150,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
       
       <ScrollView style={styles.scrollContent}>
         <AssetPriceHeader
-          priceChange={assetData.priceChange}
+          priceChange={getCurrentPriceChange()}
           isLoading={false}
         />
         
@@ -207,6 +226,10 @@ const styles = createStyles({
   errorText: {
     color: theme.colors.destructive,
     ...getTextStyle('md'),
+  },
+  durationSelectorContainer: {
+    zIndex: 999,
+    elevation: 999,
   },
   placeholder: {
     color: theme.colors.foreground,
