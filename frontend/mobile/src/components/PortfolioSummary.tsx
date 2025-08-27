@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { RefreshCcw } from 'lucide-react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency, formatPercentage } from '../styles/utils';
 
@@ -8,6 +9,7 @@ interface PortfolioSummaryProps {
   totalReturn: number;
   totalReturnPercent: number;
   selectedDate?: string;
+  onSyncPress?: () => void;
 }
 
 /**
@@ -16,7 +18,7 @@ interface PortfolioSummaryProps {
  * Shows the total portfolio value, absolute and percentage returns,
  * with optional selected date for point-in-time data display.
  */
-export default function PortfolioSummary({ totalValue, totalReturn, totalReturnPercent, selectedDate }: PortfolioSummaryProps) {
+export default function PortfolioSummary({ totalValue, totalReturn, totalReturnPercent, selectedDate, onSyncPress }: PortfolioSummaryProps) {
   const isPositiveReturn = totalReturn >= 0;
   
   return (
@@ -26,6 +28,18 @@ export default function PortfolioSummary({ totalValue, totalReturn, totalReturnP
       <View style={styles.valueContainer}>
         <Text style={styles.totalValue}>{formatCurrency(totalValue).replace('$', '')}</Text>
         <Text style={styles.currency}>USD</Text>
+        {onSyncPress && (
+          <TouchableOpacity
+            style={styles.syncButton}
+            onPress={onSyncPress}
+            activeOpacity={0.7}
+          >
+            <RefreshCcw 
+              size={20} 
+              color={theme.colors.muted} 
+            />
+          </TouchableOpacity>
+        )}
       </View>
       
       <View style={styles.returnsContainer}>
@@ -114,5 +128,10 @@ const styles = createStyles({
   selectedDate: {
     color: theme.colors.muted,
     ...getTextStyle('sm'),
+  },
+  syncButton: {
+    padding: theme.spacing.xs,
+    marginLeft: theme.spacing.sm,
+    borderRadius: 8,
   },
 });

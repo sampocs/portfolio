@@ -371,13 +371,13 @@ export default function PortfolioScreen() {
         <AssetCategorySelector
           selectedCategories={selectedCategories}
           onCategoryToggle={handleCategoryToggle}
-          onSyncPress={handleSyncPress}
         />
         <PortfolioSummary
           totalValue={summaryData.totalValue}
           totalReturn={summaryData.totalReturn}
           totalReturnPercent={summaryData.totalReturnPercent}
           selectedDate={summaryData.selectedDate}
+          onSyncPress={handleSyncPress}
         />
         <TotalWorthChart
           data={performanceData}
