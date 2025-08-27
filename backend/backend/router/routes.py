@@ -5,8 +5,12 @@ from sqlalchemy.orm import Session
 from backend.database import connection, crud
 from backend.config import config, VALID_DURATIONS
 from backend.router import transforms
+from backend.jobs import jobs
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 def verify_token(request: Request):
@@ -62,3 +66,16 @@ async def get_performance(
         )
 
     return transforms.get_performance(db, duration, asset_list)
+
+
+@router.post("/sync")
+@limiter.limit(f"{config.trades_cache_ttl_min}/minute")
+async def sync_trades(
+    request: Request, _: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)
+):
+    """Returns all trades"""
+    try:
+        jobs.index_recent_trades(db)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
