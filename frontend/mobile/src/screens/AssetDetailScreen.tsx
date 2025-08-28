@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withTiming,
+  Easing
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { theme } from '../styles/theme';
@@ -12,6 +19,7 @@ import FinancialChart, { ChartDataPoint } from '../components/FinancialChart';
 import AssetHoldingsSummary from '../components/AssetHoldingsSummary';
 import TradesList from '../components/TradesList';
 import { useData } from '../contexts/DataContext';
+import { DURATIONS } from '../constants';
 
 interface AssetDetailScreenProps {
   route: {
@@ -25,11 +33,44 @@ interface AssetDetailScreenProps {
   };
 }
 
+// Skeleton component with pulsing animation
+function SkeletonBox({ width, height, style }: { width: number | string, height: number, style?: any }) {
+  const opacity = useSharedValue(0.3);
+
+  React.useEffect(() => {
+    opacity.value = withRepeat(
+      withTiming(0.8, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          width,
+          height,
+          backgroundColor: theme.colors.muted,
+          borderRadius: 8,
+        },
+        animatedStyle,
+        style,
+      ]}
+    />
+  );
+}
+
 export default function AssetDetailScreen({ route, navigation }: AssetDetailScreenProps) {
   const { symbol, assetName } = route.params;
   const { dataMode } = useData();
-  const [selectedDuration, setSelectedDuration] = useState<AssetDuration>('1Y');
+  const [selectedDuration, setSelectedDuration] = useState<AssetDuration>(DURATIONS.INITIAL_ASSET);
   const [isLoading, setIsLoading] = useState(true);
+  const [isChartLoading, setIsChartLoading] = useState(false);
   const [assetData, setAssetData] = useState<any>(null);
   const [selectedDataPoint, setSelectedDataPoint] = useState<any>(null);
 
@@ -37,7 +78,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
     const loadAssetData = async () => {
       try {
         setIsLoading(true);
-        const data = await AssetService.getAssetDetails(symbol, selectedDuration, dataMode);
+        const data = await AssetService.getAssetDetails(symbol, DURATIONS.INITIAL_ASSET, dataMode);
         setAssetData(data);
       } catch (error) {
         console.error('Error loading asset data:', error);
@@ -47,16 +88,19 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
     };
 
     loadAssetData();
-  }, [symbol, selectedDuration, dataMode]);
+  }, [symbol, dataMode]); // Removed selectedDuration from dependencies
 
   const handleDurationChange = async (duration: AssetDuration) => {
     setSelectedDuration(duration);
+    setIsChartLoading(true);
     
     try {
       const data = await AssetService.getAssetDetails(symbol, duration, dataMode);
       setAssetData(data);
     } catch (error) {
       console.error('Error loading asset data for duration:', error);
+    } finally {
+      setIsChartLoading(false);
     }
   };
 
@@ -114,10 +158,53 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
           <Text style={styles.headerText}>{symbol}</Text>
           <View style={styles.headerSpacer} />
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.foreground} />
-          <Text style={styles.loadingText}>Loading {symbol} data...</Text>
-        </View>
+        
+        <ScrollView style={styles.scrollContent}>
+          {/* Price Header Skeleton */}
+          <View style={{ marginBottom: theme.spacing.md }}>
+            <SkeletonBox width={200} height={40} style={{ marginBottom: theme.spacing.xs }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <SkeletonBox width={100} height={20} style={{ marginRight: theme.spacing.sm }} />
+              <SkeletonBox width={80} height={28} />
+            </View>
+            <SkeletonBox width={150} height={14} style={{ marginTop: theme.spacing.xs }} />
+          </View>
+          
+          {/* Duration Selector Skeleton */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing.xl }}>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <SkeletonBox key={index} width={45} height={32} />
+            ))}
+          </View>
+          
+          {/* Chart Skeleton */}
+          <SkeletonBox width="100%" height={200} style={{ marginBottom: theme.spacing.lg }} />
+          
+          {/* Holdings Summary Skeleton */}
+          <View style={{ marginBottom: theme.spacing.lg }}>
+            <SkeletonBox width={120} height={24} style={{ marginBottom: theme.spacing.md }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing.sm }}>
+              <SkeletonBox width="48%" height={60} />
+              <SkeletonBox width="48%" height={60} />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <SkeletonBox width="48%" height={60} />
+              <SkeletonBox width="48%" height={60} />
+            </View>
+          </View>
+          
+          {/* Trades List Skeleton */}
+          <View>
+            <SkeletonBox width={100} height={24} style={{ marginBottom: theme.spacing.md }} />
+            {Array.from({ length: 4 }).map((_, index) => (
+              <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.sm }}>
+                <SkeletonBox width={60} height={16} style={{ marginRight: theme.spacing.sm }} />
+                <SkeletonBox width={80} height={16} style={{ marginRight: theme.spacing.sm }} />
+                <SkeletonBox width={100} height={16} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -158,7 +245,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
       <ScrollView style={styles.scrollContent}>
         <AssetPriceHeader
           priceChange={getCurrentPriceChange()}
-          isLoading={false}
+          isLoading={isChartLoading}
           selectedDate={selectedDataPoint?.date}
           updatedAt={assetData?.updatedAt}
         />
@@ -173,7 +260,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
         <FinancialChart
           data={transformPriceDataForChart(assetData.processedPriceData)}
           onDataPointSelected={handleDataPointSelected}
-          isLoading={false}
+          isLoading={isChartLoading}
           isPositive={assetData.priceChange.isPositive}
           showGradient={true}
         />
