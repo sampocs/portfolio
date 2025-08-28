@@ -29,7 +29,15 @@ export default function ExpandableGains({
 
   return (
     <TouchableOpacity onPress={handleToggle} activeOpacity={0.7}>
-      <Text style={styles.summaryLabel}>{isPositiveReturn ? 'Total Gains' : 'Total Losses'}</Text>
+      <View style={styles.labelContainer}>
+        <Text style={styles.summaryLabel}>{isPositiveReturn ? 'Total Gains' : 'Total Losses'}</Text>
+        <Ionicons 
+          name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+          size={14} 
+          color={theme.colors.muted}
+          style={styles.chevron}
+        />
+      </View>
       <View style={styles.combinedGainsContainer}>
         <Text style={[
           styles.summaryValue,
@@ -48,12 +56,6 @@ export default function ExpandableGains({
             {formatPercentage(totalReturnPercent)}
           </Text>
         </View>
-        <Ionicons 
-          name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-          size={14} 
-          color={theme.colors.muted}
-          style={styles.chevron}
-        />
       </View>
     </TouchableOpacity>
   );
@@ -61,10 +63,14 @@ export default function ExpandableGains({
 
 const styles = {
   // Original Total Gains styles - copied exactly from AssetHoldingsSummary
+  labelContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginBottom: theme.spacing.xs,
+  },
   summaryLabel: {
     color: theme.colors.muted,
     ...getTextStyle('sm'),
-    marginBottom: theme.spacing.xs,
   },
   summaryValue: {
     color: theme.colors.foreground,
@@ -85,6 +91,6 @@ const styles = {
     ...getTextStyle('sm', 'bold'),
   },
   chevron: {
-    marginLeft: 4,
+    marginLeft: 6,
   },
 };
