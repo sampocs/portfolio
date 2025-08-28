@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 def get_trades(db: Session, asset: str | None = None):
     """Returns all trades with optional asset filter"""
-    query = db.query(models.Trade)
+    query = db.query(models.Trade).where(models.Trade.excluded.is_(False))
     if asset:
         query = query.where(models.Trade.asset == asset)
     return query.all()
