@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles } from '../styles/utils';
-
-export type PortfolioDuration = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
-export type AssetDuration = '1D' | '1W' | '1M' | 'YTD' | '1Y';
+import { DURATIONS } from '../constants';
+import { PortfolioDuration, AssetDuration } from '../data/assetTypes';
 
 export interface DurationSelectorProps<T extends string> {
   durations: T[];
@@ -68,10 +67,10 @@ export function PortfolioDurationSelector({
 }) {
   return (
     <DurationSelector
-      durations={['1W', '1M', 'YTD', '1Y', 'ALL']}
+      durations={DURATIONS.PORTFOLIO as unknown as PortfolioDuration[]}
       selectedDuration={selectedDuration}
       onDurationChange={onDurationChange}
-      defaultDuration="ALL"
+      defaultDuration={DURATIONS.INITIAL_PORTFOLIO}
     />
   );
 }
@@ -85,10 +84,10 @@ export function AssetDurationSelector({
 }) {
   return (
     <DurationSelector
-      durations={['1D', '1W', '1M', 'YTD', '1Y']}
+      durations={DURATIONS.ASSET as unknown as AssetDuration[]}
       selectedDuration={selectedDuration}
       onDurationChange={onDurationChange}
-      defaultDuration="1Y"
+      defaultDuration={DURATIONS.INITIAL_ASSET}
     />
   );
 }

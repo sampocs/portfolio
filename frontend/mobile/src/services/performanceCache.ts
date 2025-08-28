@@ -1,6 +1,6 @@
 import { PerformanceData, Asset } from "../data/types";
 import { apiService } from "./api";
-import { TIMING } from "../constants";
+import { TIMING, DURATIONS } from "../constants";
 
 /**
  * PerformanceCacheManager - Intelligent caching for performance data
@@ -233,19 +233,14 @@ class PerformanceCacheManager {
 
     this.preloadInProgress = true;
 
-    const durations = ['1W', '1M', 'YTD', '1Y']; // Skip 'ALL' as it's loaded initially
-    const allDurations = ['ALL', ...durations]; // Include ALL for market combinations
+    const durations = DURATIONS.getBackgroundPreloadDurations();
     const marketCombinations = this.generateMarketCombinations(positions);
 
     const preloadTasks: Array<{ granularity: string; assets?: string[] }> = [];
 
     // For each duration, preload all market combinations
-    allDurations.forEach(duration => {
+    durations.forEach(duration => {
       marketCombinations.forEach(assetCombination => {
-        // Skip 'ALL' + undefined (all markets) as it's loaded initially
-        if (duration === 'ALL' && !assetCombination) {
-          return;
-        }
         preloadTasks.push({ 
           granularity: duration, 
           assets: assetCombination 

@@ -15,7 +15,7 @@ def get_trades(db: Session, asset: str | None = None):
     return query.all()
 
 
-def get_historical_prices(db: Session, asset: str, limit: int = 365):
+def get_historical_prices(db: Session, asset: str, limit: int = 365 * 5):
     """Returns all prices for a particular asset"""
     return (
         db.query(models.HistoricalPrice)

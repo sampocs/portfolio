@@ -66,6 +66,10 @@ export class AssetService {
         filteredHistory = this.getHistoryForDays(historical_prices, 365);
         break;
 
+      case '5Y':
+        filteredHistory = this.getHistoryForDays(historical_prices, 1825); // 5 years = 5 * 365 = 1825 days
+        break;
+
       default:
         filteredHistory = historical_prices.map(item => ({
           date: item.date,

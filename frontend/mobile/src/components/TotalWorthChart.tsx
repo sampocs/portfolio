@@ -13,6 +13,8 @@ import { Canvas, Path, LinearGradient as SkiaLinearGradient, vec, Skia } from '@
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
 import { PerformanceData } from '../data/types';
+import { DURATIONS } from '../constants';
+import { PortfolioDuration } from '../data/assetTypes';
 
 interface TotalWorthChartProps {
   data: PerformanceData[];
@@ -25,15 +27,13 @@ interface ChartDurationSelectorProps {
   onGranularityChange?: (granularity: string) => void;
 }
 
-type Duration = '1W' | '1M' | 'YTD' | '1Y' | 'ALL';
-
-const durations: Duration[] = ['1W', '1M', 'YTD', '1Y', 'ALL'];
+const durations = DURATIONS.PORTFOLIO;
 
 
 
 // Separate duration selector component that won't be affected by chart animations
 export function ChartDurationSelector({ onGranularityChange }: ChartDurationSelectorProps) {
-  const [selectedDuration, setSelectedDuration] = useState<Duration>('ALL');
+  const [selectedDuration, setSelectedDuration] = useState<PortfolioDuration>(DURATIONS.INITIAL_PORTFOLIO);
 
   // Completely isolated styles to avoid any inheritance
   const isolatedStyles = {

@@ -1,3 +1,5 @@
+import { DURATIONS } from '../constants';
+
 export interface AssetPriceHistory {
   date: string;
   price: string;
@@ -47,7 +49,8 @@ export interface AssetHoldings {
   averagePrice: number;
 }
 
-export type AssetDuration = '1D' | '1W' | '1M' | 'YTD' | '1Y';
+export type AssetDuration = typeof DURATIONS.ASSET[number];
+export type PortfolioDuration = typeof DURATIONS.PORTFOLIO[number];
 
 export interface AssetPriceChange {
   currentPrice: number;

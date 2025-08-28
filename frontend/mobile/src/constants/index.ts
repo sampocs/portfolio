@@ -63,6 +63,24 @@ export const CHART = {
   },
 } as const;
 
+// Duration Configuration
+export const DURATIONS = {
+  // All available portfolio durations
+  PORTFOLIO: ['1W', '1M', 'YTD', '1Y', '5Y', 'ALL'] as const,
+  
+  // All available asset durations  
+  ASSET: ['1D', '1W', '1M', 'YTD', '1Y', '5Y'] as const,
+  
+  // Initial load durations (what gets loaded first)
+  INITIAL_PORTFOLIO: '1Y' as const,
+  INITIAL_ASSET: '1Y' as const,
+  
+  // Helper function to get background preload durations
+  getBackgroundPreloadDurations: () => {
+    return DURATIONS.PORTFOLIO.filter(duration => duration !== DURATIONS.INITIAL_PORTFOLIO);
+  }
+} as const;
+
 // Color Constants (extracted from theme but as constants for reference)
 export const COLORS = {
   SKELETON: '#404040', // Loading screen skeleton color
