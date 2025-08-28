@@ -25,11 +25,11 @@ def get_historical_prices(db: Session, asset: str, limit: int = 365):
     )
 
 
-def get_live_price(db: Session, asset: str) -> Decimal:
+def get_live_price(db: Session, asset: str) -> tuple[Decimal, datetime.datetime]:
     """Returns the live price for an asset"""
-    price = db.query(models.LivePrice.price).where(models.LivePrice.asset == asset).first()
+    price = db.query(models.LivePrice.price, models.LivePrice.updated_at).where(models.LivePrice.asset == asset).first()
     assert price, f"No live price found for {asset}"
-    return price[0]
+    return price[0], price[1]
 
 
 def get_all_positions(db: Session):

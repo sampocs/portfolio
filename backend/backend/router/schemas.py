@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
@@ -49,4 +50,5 @@ class AssetPriceHistory(BaseModel):
     """
 
     live_price: Decimal
+    updated_at: datetime.datetime
     historical_prices: list[HistoricalPrice]
