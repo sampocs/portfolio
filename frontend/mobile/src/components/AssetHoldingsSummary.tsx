@@ -16,24 +16,24 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>Holdings Summary</Text>
+        <Text style={styles.sectionTitle}>Holdings</Text>
         
         <View style={styles.summaryGrid}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Invested</Text>
+              <Text style={styles.summaryLabel}>Cost Basis</Text>
               <Text style={styles.summaryValue}>---.--</Text>
             </View>
             
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Current Value</Text>
+              <Text style={styles.summaryLabel}>Market Value</Text>
               <Text style={styles.summaryValue}>---.--</Text>
             </View>
           </View>
           
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Return</Text>
+              <Text style={styles.summaryLabel}>Gain/Loss</Text>
               <Text style={[styles.summaryValue, { color: theme.colors.muted }]}>
                 +$--.--
               </Text>
@@ -55,19 +55,19 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Holdings Summary</Text>
+      <Text style={styles.sectionTitle}>Holdings</Text>
       
       <View style={styles.summaryGrid}>
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Invested</Text>
+            <Text style={styles.summaryLabel}>Cost Basis</Text>
             <Text style={styles.summaryValue}>
               {formatCurrency(totalInvested)}
             </Text>
           </View>
           
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Current Value</Text>
+            <Text style={styles.summaryLabel}>Market Value</Text>
             <Text style={styles.summaryValue}>
               {formatCurrency(currentValue)}
             </Text>
@@ -76,7 +76,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
         
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Return</Text>
+            <Text style={styles.summaryLabel}>Gain/Loss</Text>
             <Text style={[
               styles.summaryValue,
               { color: isPositiveReturn ? theme.colors.success : theme.colors.destructive }
