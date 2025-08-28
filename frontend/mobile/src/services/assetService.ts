@@ -121,7 +121,7 @@ export class AssetService {
   }
 
   /**
-   * Calculate holdings summary from trade data with net invested approach
+   * Calculate holdings summary from trade data using FIFO accounting method
    */
   static calculateHoldings(
     tradeData: AssetTradeData,
@@ -129,9 +129,16 @@ export class AssetService {
   ): AssetHoldings {
     let totalBuys = 0;           // Total money spent on buys
     let totalSellProceeds = 0;   // Total money received from sells
-    let totalQuantity = 0;       // Current quantity held
-    let costBasisRemaining = 0;  // Cost basis of current holdings
     let realizedGains = 0;       // Gains/losses from completed sells
+
+    // FIFO method - maintain a queue of buy lots
+    interface BuyLot {
+      quantity: number;
+      price: number;
+      costBasis: number;
+    }
+    
+    let buyLots: BuyLot[] = [];
 
     tradeData.trades.forEach(trade => {
       const quantity = trade.quantity;
@@ -140,20 +147,44 @@ export class AssetService {
 
       if (trade.action === 'BUY') {
         totalBuys += tradeValue;
-        totalQuantity += quantity;
-        costBasisRemaining += tradeValue;
+        buyLots.push({ quantity, price, costBasis: tradeValue });
       } else if (trade.action === 'SELL') {
         totalSellProceeds += tradeValue;
         
-        // Calculate realized gains from this sell
-        const averageCostPerShare = totalQuantity > 0 ? costBasisRemaining / totalQuantity : 0;
-        const soldCostBasis = averageCostPerShare * quantity;
-        realizedGains += (tradeValue - soldCostBasis);
-        
-        // Update remaining holdings
-        totalQuantity -= quantity;
-        costBasisRemaining -= soldCostBasis;
+        let remainingToSell = quantity;
+        let sellProceeds = tradeValue;
+        let totalSoldCostBasis = 0;
+
+        // Sell from oldest lots first (FIFO)
+        while (remainingToSell > 0 && buyLots.length > 0) {
+          const lot = buyLots[0];
+          const sellFromLot = Math.min(remainingToSell, lot.quantity);
+          const costBasisFromLot = sellFromLot * lot.price;
+
+          totalSoldCostBasis += costBasisFromLot;
+          remainingToSell -= sellFromLot;
+          lot.quantity -= sellFromLot;
+          lot.costBasis -= costBasisFromLot;
+
+          // Remove empty lot
+          if (lot.quantity <= 0) {
+            buyLots.shift();
+          }
+        }
+
+        // Calculate realized gain for this sell transaction
+        const tradeRealizedGain = sellProceeds - totalSoldCostBasis;
+        realizedGains += tradeRealizedGain;
       }
+    });
+
+    // Calculate remaining holdings from remaining lots
+    let totalQuantity = 0;
+    let totalCostBasisRemaining = 0;
+
+    buyLots.forEach(lot => {
+      totalQuantity += lot.quantity;
+      totalCostBasisRemaining += lot.costBasis;
     });
 
     // Net invested = money in - money out (can be negative)
@@ -163,7 +194,7 @@ export class AssetService {
     const currentValue = totalQuantity * currentPrice;
     
     // Unrealized gains = current value - remaining cost basis
-    const unrealizedGains = currentValue - costBasisRemaining;
+    const unrealizedGains = currentValue - totalCostBasisRemaining;
     
     // Total return = realized + unrealized gains
     const totalReturn = realizedGains + unrealizedGains;
@@ -172,8 +203,8 @@ export class AssetService {
     const absNetInvested = Math.abs(netInvested);
     const totalReturnPercent = absNetInvested > 0 ? (totalReturn / absNetInvested) * 100 : 0;
     
-    // Average price of current holdings
-    const averagePrice = totalQuantity > 0 ? costBasisRemaining / totalQuantity : 0;
+    // Average price of current holdings (weighted by quantity)
+    const averagePrice = totalQuantity > 0 ? totalCostBasisRemaining / totalQuantity : 0;
 
     return {
       netInvested,
