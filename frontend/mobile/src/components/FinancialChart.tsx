@@ -191,14 +191,6 @@ function FinancialChart({
     const maxY = yScale(maxValue);
     const minY = yScale(minValue);
     
-    console.log('Scale-based positioning:', {
-      maxValue,
-      minValue,
-      maxY,
-      minY,
-      chartBounds
-    });
-    
     return { maxY, minY };
   }, [yScale, maxValue, minValue, chartBounds, chartHeight]);
 
@@ -303,7 +295,10 @@ function FinancialChart({
 
       {/* Main chart content */}
       <View style={styles.chartContainer}>
-          <Text style={styles.maxLabel}>{formatLabel(maxValue)}</Text>
+          <Text style={[
+            styles.maxLabel,
+            yScale && { top: getHorizontalLinePositions.maxY - 16 }
+          ]}>{formatLabel(maxValue)}</Text>
             
             {/* Chart and Overlays */}
             <View style={styles.chartWrapper}>
@@ -436,7 +431,10 @@ function FinancialChart({
             </View>
           </View>
 
-          <Text style={styles.minLabel}>{formatLabel(minValue)}</Text>
+          <Text style={[
+            styles.minLabel,
+            yScale && { bottom: chartHeight - getHorizontalLinePositions.minY - 17 }
+          ]}>{formatLabel(minValue)}</Text>
           
           {/* Simple overlay to hide chart glitches during transitions */}
           <Animated.View style={[
