@@ -245,7 +245,8 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
       <ScrollView style={styles.scrollContent}>
         <AssetPriceHeader
           priceChange={getCurrentPriceChange()}
-          isLoading={isChartLoading}
+          isLoading={false}
+          isDeltaLoading={isChartLoading}
           selectedDate={selectedDataPoint?.date}
           updatedAt={assetData?.updatedAt}
         />

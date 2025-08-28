@@ -7,11 +7,12 @@ import { AssetPriceChange } from '../data/assetTypes';
 interface AssetPriceHeaderProps {
   priceChange: AssetPriceChange;
   isLoading?: boolean;
+  isDeltaLoading?: boolean;
   selectedDate?: string;
   updatedAt?: string;
 }
 
-export default function AssetPriceHeader({ priceChange, isLoading = false, selectedDate, updatedAt }: AssetPriceHeaderProps) {
+export default function AssetPriceHeader({ priceChange, isLoading = false, isDeltaLoading = false, selectedDate, updatedAt }: AssetPriceHeaderProps) {
   const { currentPrice, changeAmount, changePercent, isPositive } = priceChange;
 
   const formatPrice = (price: number): string => {
@@ -85,24 +86,40 @@ export default function AssetPriceHeader({ priceChange, isLoading = false, selec
       </View>
       
       <View style={styles.changeContainer}>
-        <Text style={[
-          styles.changeAmount,
-          { color: isPositive ? theme.colors.success : theme.colors.destructive }
-        ]}>
-          {formatPriceChange(changeAmount)}
-        </Text>
-        
-        <View style={[
-          styles.changePercentContainer,
-          { backgroundColor: isPositive ? theme.colors.successBackground : theme.colors.destructiveBackground }
-        ]}>
-          <Text style={[
-            styles.changePercent,
-            { color: isPositive ? theme.colors.success : theme.colors.destructive }
-          ]}>
-            {formatPercentChange(changePercent)}
-          </Text>
-        </View>
+        {isDeltaLoading ? (
+          <>
+            <Text style={[styles.changeAmount, { color: theme.colors.muted }]}>
+              +$--.--
+            </Text>
+            
+            <View style={[styles.changePercentContainer, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.changePercent, { color: theme.colors.muted }]}>
+                +--.--% 
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={[
+              styles.changeAmount,
+              { color: isPositive ? theme.colors.success : theme.colors.destructive }
+            ]}>
+              {formatPriceChange(changeAmount)}
+            </Text>
+            
+            <View style={[
+              styles.changePercentContainer,
+              { backgroundColor: isPositive ? theme.colors.successBackground : theme.colors.destructiveBackground }
+            ]}>
+              <Text style={[
+                styles.changePercent,
+                { color: isPositive ? theme.colors.success : theme.colors.destructive }
+              ]}>
+                {formatPercentChange(changePercent)}
+              </Text>
+            </View>
+          </>
+        )}
       </View>
       
       <View style={styles.dateContainer}>
