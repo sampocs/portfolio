@@ -73,6 +73,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [assetData, setAssetData] = useState<any>(null);
   const [selectedDataPoint, setSelectedDataPoint] = useState<any>(null);
+  const [isDurationChanging, setIsDurationChanging] = useState(false);
 
   useEffect(() => {
     const loadAssetData = async () => {
@@ -93,6 +94,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
   const handleDurationChange = async (duration: AssetDuration) => {
     setSelectedDuration(duration);
     setIsChartLoading(true);
+    setIsDurationChanging(true);
     
     try {
       const data = await AssetService.getAssetDetails(symbol, duration, dataMode);
@@ -101,6 +103,8 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
       console.error('Error loading asset data for duration:', error);
     } finally {
       setIsChartLoading(false);
+      // Keep isDurationChanging true for a bit longer to allow animation to complete
+      setTimeout(() => setIsDurationChanging(false), 500);
     }
   };
 
@@ -246,9 +250,9 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
         <AssetPriceHeader
           priceChange={getCurrentPriceChange()}
           isLoading={false}
-          isDeltaLoading={isChartLoading}
           selectedDate={selectedDataPoint?.date}
           updatedAt={assetData?.updatedAt}
+          animateChanges={isDurationChanging}
         />
         
         <View style={styles.durationSelectorContainer}>
