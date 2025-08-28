@@ -112,6 +112,7 @@ function FinancialChart({
     setChartBounds(null);
     setVictoryPoints(null);
     setSelectedDataPoint(null);
+    setYScale(null);
   }, [data]);
 
   // Handle smooth transitions between loading and chart states
