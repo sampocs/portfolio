@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -20,6 +20,23 @@ import AssetHoldingsSummary from '../components/AssetHoldingsSummary';
 import TradesList from '../components/TradesList';
 import { useData } from '../contexts/DataContext';
 import { DURATIONS } from '../constants';
+
+// Asset image mapping
+const assetImages: { [key: string]: any } = {
+  'VT': require('../../assets/images/VT.png'),
+  'VOO': require('../../assets/images/VOO.png'),
+  'VO': require('../../assets/images/VO.png'),
+  'VB': require('../../assets/images/VB.png'),
+  'VXUS': require('../../assets/images/VXUS.png'),
+  'VWO': require('../../assets/images/VWO.png'),
+  'COIN': require('../../assets/images/COIN.png'),
+  'HOOD': require('../../assets/images/HOOD.png'),
+  'AAAU': require('../../assets/images/AAAU.png'),
+  'VNQ': require('../../assets/images/VNQ.png'),
+  'BTC': require('../../assets/images/BTC.png'),
+  'ETH': require('../../assets/images/ETH.png'),
+  'SOL': require('../../assets/images/SOL.png'),
+};
 
 interface AssetDetailScreenProps {
   route: {
@@ -68,6 +85,9 @@ function SkeletonBox({ width, height, style }: { width: number | string, height:
 export default function AssetDetailScreen({ route, navigation }: AssetDetailScreenProps) {
   const { symbol, assetName } = route.params;
   const { dataMode } = useData();
+  
+  // Get image source from mapping
+  const imageSource = assetImages[symbol];
   const [selectedDuration, setSelectedDuration] = useState<AssetDuration>(DURATIONS.INITIAL_ASSET);
   const [isLoading, setIsLoading] = useState(true);
   const [isChartLoading, setIsChartLoading] = useState(false);
@@ -242,7 +262,22 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
         >
           <ArrowLeft size={24} color={theme.colors.foreground} />
         </TouchableOpacity>
-        <Text style={styles.headerText}>{symbol}</Text>
+        
+        <View style={styles.headerTitleContainer}>
+          {imageSource ? (
+            <Image 
+              source={imageSource} 
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.headerLogoFallback}>
+              <Text style={styles.headerLogoText}>{symbol}</Text>
+            </View>
+          )}
+          <Text style={styles.headerText}>{symbol}</Text>
+        </View>
+        
         <View style={styles.headerSpacer} />
       </View>
       
@@ -253,7 +288,6 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
           selectedDate={selectedDataPoint?.date}
           updatedAt={assetData?.updatedAt}
           animateChanges={isDurationChanging}
-          assetSymbol={symbol}
           assetName={assetName}
         />
         
@@ -303,14 +337,39 @@ const styles = createStyles({
     marginRight: theme.spacing.sm,
     marginLeft: -theme.spacing.sm,
   },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  headerLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: theme.spacing.xs,
+  },
+  headerLogoFallback: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.xs,
+  },
+  headerLogoText: {
+    color: theme.colors.foreground,
+    fontSize: 12,
+    fontWeight: theme.typography.weights.bold,
+    fontFamily: theme.typography.fontFamily,
+  },
   headerText: {
     color: theme.colors.foreground,
     ...getTextStyle('xxl', 'bold'),
-    flex: 1,
-    textAlign: 'center',
   },
   headerSpacer: {
-    width: 48, // Same width as back button + margins
+    width: 48, // Back to original size since title is now centered as a unit
   },
   scrollContent: {
     flex: 1,

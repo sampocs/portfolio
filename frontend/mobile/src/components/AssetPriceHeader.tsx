@@ -28,15 +28,11 @@ interface AssetPriceHeaderProps {
   selectedDate?: string;
   updatedAt?: string;
   animateChanges?: boolean;
-  assetSymbol?: string;
   assetName?: string;
 }
 
-export default function AssetPriceHeader({ priceChange, isLoading = false, selectedDate, updatedAt, animateChanges = false, assetSymbol, assetName }: AssetPriceHeaderProps) {
+export default function AssetPriceHeader({ priceChange, isLoading = false, selectedDate, updatedAt, animateChanges = false, assetName }: AssetPriceHeaderProps) {
   const { currentPrice, changeAmount, changePercent, isPositive } = priceChange;
-
-  // Get image source from mapping
-  const imageSource = assetSymbol ? assetImages[assetSymbol] : null;
 
   const formatPrice = (price: number): string => {
     if (price >= 1000) {
@@ -102,24 +98,7 @@ export default function AssetPriceHeader({ priceChange, isLoading = false, selec
 
   return (
     <View style={styles.container}>
-      <View style={styles.assetLabelContainer}>
-        {assetSymbol && (
-          <View style={styles.logoContainer}>
-            {imageSource ? (
-              <Image 
-                source={imageSource} 
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-            ) : (
-              <View style={styles.logoFallback}>
-                <Text style={styles.logoText}>{assetSymbol}</Text>
-              </View>
-            )}
-          </View>
-        )}
-        <Text style={styles.assetLabel}>{assetName || assetSymbol || 'Asset'}</Text>
-      </View>
+      <Text style={styles.assetLabel}>{assetName || 'Asset'}</Text>
       
       <View style={styles.priceContainer}>
         <Text style={styles.currentPrice}>
@@ -166,36 +145,10 @@ const styles = createStyles({
   container: {
     marginBottom: theme.spacing.md,
   },
-  assetLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing.xs,
-  },
-  logoContainer: {
-    marginRight: theme.spacing.sm,
-  },
-  logoImage: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  logoFallback: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    color: theme.colors.foreground,
-    fontSize: 10,
-    fontWeight: theme.typography.weights.bold,
-    fontFamily: theme.typography.fontFamily,
-  },
   assetLabel: {
     color: theme.colors.muted,
     ...getTextStyle('sm'),
+    marginBottom: theme.spacing.xs,
   },
   priceContainer: {
     alignItems: 'flex-start',
