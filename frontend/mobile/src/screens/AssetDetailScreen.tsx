@@ -11,6 +11,7 @@ import { AssetDurationSelector } from '../components/DurationSelector';
 import FinancialChart, { ChartDataPoint } from '../components/FinancialChart';
 import AssetHoldingsSummary from '../components/AssetHoldingsSummary';
 import TradesList from '../components/TradesList';
+import { useData } from '../contexts/DataContext';
 
 interface AssetDetailScreenProps {
   route: {
@@ -26,6 +27,7 @@ interface AssetDetailScreenProps {
 
 export default function AssetDetailScreen({ route, navigation }: AssetDetailScreenProps) {
   const { symbol, assetName } = route.params;
+  const { dataMode } = useData();
   const [selectedDuration, setSelectedDuration] = useState<AssetDuration>('1Y');
   const [isLoading, setIsLoading] = useState(true);
   const [assetData, setAssetData] = useState<any>(null);
@@ -35,7 +37,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
     const loadAssetData = async () => {
       try {
         setIsLoading(true);
-        const data = await AssetService.getAssetDetails(symbol, selectedDuration);
+        const data = await AssetService.getAssetDetails(symbol, selectedDuration, dataMode);
         setAssetData(data);
       } catch (error) {
         console.error('Error loading asset data:', error);
@@ -45,13 +47,13 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
     };
 
     loadAssetData();
-  }, [symbol, selectedDuration]);
+  }, [symbol, selectedDuration, dataMode]);
 
   const handleDurationChange = async (duration: AssetDuration) => {
     setSelectedDuration(duration);
     
     try {
-      const data = await AssetService.getAssetDetails(symbol, duration);
+      const data = await AssetService.getAssetDetails(symbol, duration, dataMode);
       setAssetData(data);
     } catch (error) {
       console.error('Error loading asset data for duration:', error);

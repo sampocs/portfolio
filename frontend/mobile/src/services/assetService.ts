@@ -7,8 +7,24 @@ import {
   AssetPriceChange 
 } from '../data/assetTypes';
 import { getAssetDetailData } from '../data/mockAssetData';
+import { DataMode } from '../contexts/DataContext';
+import { apiService } from './api';
 
 export class AssetService {
+  /**
+   * Fetch real asset price data from API
+   */
+  private static async fetchAssetPriceData(symbol: string): Promise<AssetPriceData> {
+    return await apiService.getAssetPrices(symbol);
+  }
+
+  /**
+   * Fetch real asset trade data from API
+   */
+  private static async fetchAssetTradeData(symbol: string): Promise<AssetTradeData> {
+    const trades = await apiService.getAssetTrades(symbol);
+    return { trades };
+  }
   /**
    * Get processed price data for a specific duration
    */
@@ -16,7 +32,7 @@ export class AssetService {
     priceData: AssetPriceData,
     duration: AssetDuration
   ): ProcessedPriceData[] {
-    const { live_price, price_history } = priceData;
+    const { live_price, historical_prices } = priceData;
     const currentDate = new Date();
     const currentPrice = parseFloat(live_price);
 
@@ -25,8 +41,8 @@ export class AssetService {
     switch (duration) {
       case '1D':
         // For 1D, just show yesterday's close and today's live price
-        if (price_history.length > 0) {
-          const lastHistoricalPrice = price_history[price_history.length - 1];
+        if (historical_prices.length > 0) {
+          const lastHistoricalPrice = historical_prices[historical_prices.length - 1];
           filteredHistory = [{
             date: lastHistoricalPrice.date,
             price: parseFloat(lastHistoricalPrice.price)
@@ -35,23 +51,23 @@ export class AssetService {
         break;
 
       case '1W':
-        filteredHistory = this.getHistoryForDays(price_history, 7);
+        filteredHistory = this.getHistoryForDays(historical_prices, 7);
         break;
 
       case '1M':
-        filteredHistory = this.getHistoryForDays(price_history, 30);
+        filteredHistory = this.getHistoryForDays(historical_prices, 30);
         break;
 
       case 'YTD':
-        filteredHistory = this.getHistoryFromYearStart(price_history, currentDate);
+        filteredHistory = this.getHistoryFromYearStart(historical_prices, currentDate);
         break;
 
       case '1Y':
-        filteredHistory = this.getHistoryForDays(price_history, 365);
+        filteredHistory = this.getHistoryForDays(historical_prices, 365);
         break;
 
       default:
-        filteredHistory = price_history.map(item => ({
+        filteredHistory = historical_prices.map(item => ({
           date: item.date,
           price: parseFloat(item.price)
         }));
@@ -112,8 +128,8 @@ export class AssetService {
     let totalCost = 0;
 
     tradeData.trades.forEach(trade => {
-      const quantity = parseFloat(trade.quantity);
-      const price = parseFloat(trade.price);
+      const quantity = trade.quantity;
+      const price = trade.price;
       const tradeValue = quantity * price;
 
       if (trade.action === 'BUY') {
@@ -147,8 +163,29 @@ export class AssetService {
   /**
    * Get asset detail data with all calculations
    */
-  static async getAssetDetails(symbol: string, duration: AssetDuration = '1Y') {
-    const data = await getAssetDetailData(symbol);
+  static async getAssetDetails(symbol: string, duration: AssetDuration = '1Y', dataMode: DataMode = 'demo') {
+    let data;
+    let updatedAt;
+    
+    if (dataMode === 'demo') {
+      // Use mock data for demo mode
+      data = await getAssetDetailData(symbol);
+      updatedAt = new Date().toISOString();
+    } else {
+      // Use real API data for live mode
+      const [priceData, tradeData] = await Promise.all([
+        this.fetchAssetPriceData(symbol),
+        this.fetchAssetTradeData(symbol)
+      ]);
+      
+      data = {
+        symbol,
+        priceData,
+        tradeData
+      };
+      updatedAt = priceData.updated_at || new Date().toISOString();
+    }
+    
     const currentPrice = parseFloat(data.priceData.live_price);
     
     return {
@@ -156,7 +193,7 @@ export class AssetService {
       processedPriceData: this.processPriceDataForDuration(data.priceData, duration),
       priceChange: this.calculatePriceChange(data.priceData, duration),
       holdings: this.calculateHoldings(data.tradeData, currentPrice),
-      updatedAt: new Date().toISOString()
+      updatedAt
     };
   }
 

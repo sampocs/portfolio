@@ -5,14 +5,22 @@ export interface AssetPriceHistory {
 
 export interface AssetPriceData {
   live_price: string;
-  price_history: AssetPriceHistory[];
+  updated_at: string;
+  historical_prices: AssetPriceHistory[];
 }
 
 export interface AssetTrade {
+  platform: string;
   date: string;
+  id: string;
+  price: number;
+  fees: number;
+  value: number;
+  asset: string;
   action: 'BUY' | 'SELL';
-  quantity: string;
-  price: string;
+  quantity: number;
+  cost: number;
+  excluded: boolean;
 }
 
 export interface AssetTradeData {
