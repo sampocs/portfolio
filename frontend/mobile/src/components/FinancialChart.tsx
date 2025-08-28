@@ -73,6 +73,15 @@ function FinancialChart({
     return Math.max(...chartData.map(d => d.y));
   }, [chartData]);
 
+  // Calculate buffered values for domain and reference lines
+  const bufferedMinValue = useMemo(() => {
+    return minValue - (maxValue - minValue) * 0.1;
+  }, [minValue, maxValue]);
+  
+  const bufferedMaxValue = useMemo(() => {
+    return maxValue + (maxValue - minValue) * 0.1;
+  }, [minValue, maxValue]);
+
   // Determine line color
   const determineIsPositive = useMemo(() => {
     if (isPositive !== undefined) return isPositive;
@@ -188,12 +197,12 @@ function FinancialChart({
   const getHorizontalLinePositions = useMemo(() => {
     if (!yScale || !chartBounds) return { maxY: 50, minY: chartHeight - 50 };
     
-    // Use Victory Native's scale function to convert data values to pixel positions
-    const maxY = yScale(maxValue);
-    const minY = yScale(minValue);
+    // Use Victory Native's scale function to convert buffered values to pixel positions
+    const maxY = yScale(bufferedMaxValue);
+    const minY = yScale(bufferedMinValue);
     
     return { maxY, minY };
-  }, [yScale, maxValue, minValue, chartBounds, chartHeight]);
+  }, [yScale, bufferedMaxValue, bufferedMinValue, chartBounds, chartHeight]);
 
   // Create Skia path using Victory Native's exact points with smooth curves
   const createGradientPathFromPoints = useCallback((points: any[], bounds: {top: number, bottom: number, left: number, right: number}) => {
@@ -335,6 +344,7 @@ function FinancialChart({
                   xKey="x"
                   yKeys={['y']}
                   chartPressState={pressState}
+                  domain={{ y: [bufferedMinValue, bufferedMaxValue] }}
                 >
                 {({ points, chartBounds: victoryChartBounds, yScale: victoryYScale }) => {
                   if (victoryChartBounds && (!chartBounds || 
