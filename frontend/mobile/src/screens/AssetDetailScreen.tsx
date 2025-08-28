@@ -49,8 +49,6 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
 
   const handleDurationChange = async (duration: AssetDuration) => {
     setSelectedDuration(duration);
-    // Clear selected data point when duration changes
-    setSelectedDataPoint(null);
     
     try {
       const data = await AssetService.getAssetDetails(symbol, duration);
@@ -68,6 +66,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
   const getCurrentPriceChange = () => {
     if (selectedDataPoint && assetData) {
       const selectedPrice = selectedDataPoint.price || selectedDataPoint.value;
+      // Calculate change relative to the first price in the current timeframe
       const firstPrice = assetData.processedPriceData[0]?.price || selectedPrice;
       const changeAmount = selectedPrice - firstPrice;
       const changePercent = firstPrice > 0 ? (changeAmount / firstPrice) * 100 : 0;
@@ -81,6 +80,12 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
       };
     }
     return assetData.priceChange;
+  };
+
+  // Clear selected data point when duration changes
+  const handleDurationChangeWithReset = async (duration: AssetDuration) => {
+    setSelectedDataPoint(null); // Clear immediately for UI responsiveness
+    await handleDurationChange(duration);
   };
 
   // Transform price data for chart
@@ -157,7 +162,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
         <View style={styles.durationSelectorContainer}>
           <AssetDurationSelector
             selectedDuration={selectedDuration}
-            onDurationChange={handleDurationChange}
+            onDurationChange={handleDurationChangeWithReset}
           />
         </View>
         
@@ -230,16 +235,7 @@ const styles = createStyles({
   durationSelectorContainer: {
     zIndex: 999,
     elevation: 999,
-  },
-  placeholder: {
-    color: theme.colors.foreground,
-    ...getTextStyle('lg', 'bold'),
-    marginBottom: theme.spacing.md,
-  },
-  placeholderSubtext: {
-    color: theme.colors.muted,
-    ...getTextStyle('md'),
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xl,
   },
   durationContainer: {
     flexDirection: 'row',

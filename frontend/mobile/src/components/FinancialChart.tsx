@@ -180,15 +180,27 @@ function FinancialChart({
     }
   );
 
-  // Calculate Y positions for min/max horizontal lines
+  // Store scale function and bounds for reference line positioning
+  const [yScale, setYScale] = useState<any>(null);
+  
+  // Calculate Y positions using Victory Native's scale function
   const getHorizontalLinePositions = useMemo(() => {
-    if (!chartBounds) return { maxY: 50, minY: chartHeight - 50 };
+    if (!yScale || !chartBounds) return { maxY: 50, minY: chartHeight - 50 };
     
-    const maxY = chartBounds.top + 9;
-    const minY = chartBounds.bottom;
+    // Use Victory Native's scale function to convert data values to pixel positions
+    const maxY = yScale(maxValue);
+    const minY = yScale(minValue);
+    
+    console.log('Scale-based positioning:', {
+      maxValue,
+      minValue,
+      maxY,
+      minY,
+      chartBounds
+    });
     
     return { maxY, minY };
-  }, [chartBounds, maxValue, minValue, chartHeight]);
+  }, [yScale, maxValue, minValue, chartBounds, chartHeight]);
 
   // Create Skia path using Victory Native's exact points with smooth curves
   const createGradientPathFromPoints = useCallback((points: any[], bounds: {top: number, bottom: number, left: number, right: number}) => {
@@ -328,7 +340,7 @@ function FinancialChart({
                   yKeys={['y']}
                   chartPressState={pressState}
                 >
-                {({ points, chartBounds: victoryChartBounds }) => {
+                {({ points, chartBounds: victoryChartBounds, yScale: victoryYScale }) => {
                   if (victoryChartBounds && (!chartBounds || 
                       chartBounds.top !== victoryChartBounds.top || 
                       chartBounds.bottom !== victoryChartBounds.bottom)) {
@@ -337,6 +349,10 @@ function FinancialChart({
 
                   if (points.y && (!victoryPoints || points.y.length !== victoryPoints.length)) {
                     setTimeout(() => setVictoryPoints(points.y), 0);
+                  }
+                  
+                  if (victoryYScale && victoryYScale !== yScale) {
+                    setTimeout(() => setYScale(() => victoryYScale), 0);
                   }
 
                   return (

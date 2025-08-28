@@ -88,7 +88,7 @@ export default function AssetPriceHeader({ priceChange, isLoading = false }: Ass
 
 const styles = createStyles({
   container: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   priceContainer: {
     alignItems: 'flex-start',
