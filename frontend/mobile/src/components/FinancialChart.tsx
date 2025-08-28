@@ -346,7 +346,7 @@ function FinancialChart({
                     setTimeout(() => setVictoryPoints(points.y), 0);
                   }
                   
-                  if (victoryYScale && victoryYScale !== yScale) {
+                  if (victoryYScale && !yScale) {
                     setTimeout(() => setYScale(() => victoryYScale), 0);
                   }
 
