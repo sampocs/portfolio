@@ -253,6 +253,8 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
           selectedDate={selectedDataPoint?.date}
           updatedAt={assetData?.updatedAt}
           animateChanges={isDurationChanging}
+          assetSymbol={symbol}
+          assetName={assetName}
         />
         
         <View style={styles.durationSelectorContainer}>
