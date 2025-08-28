@@ -121,15 +121,17 @@ export class AssetService {
   }
 
   /**
-   * Calculate holdings summary from trade data
+   * Calculate holdings summary from trade data with net invested approach
    */
   static calculateHoldings(
     tradeData: AssetTradeData,
     currentPrice: number
   ): AssetHoldings {
-    let totalInvested = 0;
-    let totalQuantity = 0;
-    let totalCost = 0;
+    let totalBuys = 0;           // Total money spent on buys
+    let totalSellProceeds = 0;   // Total money received from sells
+    let totalQuantity = 0;       // Current quantity held
+    let costBasisRemaining = 0;  // Cost basis of current holdings
+    let realizedGains = 0;       // Gains/losses from completed sells
 
     tradeData.trades.forEach(trade => {
       const quantity = trade.quantity;
@@ -137,28 +139,49 @@ export class AssetService {
       const tradeValue = quantity * price;
 
       if (trade.action === 'BUY') {
-        totalInvested += tradeValue;
+        totalBuys += tradeValue;
         totalQuantity += quantity;
-        totalCost += tradeValue;
+        costBasisRemaining += tradeValue;
       } else if (trade.action === 'SELL') {
-        // For sells, reduce quantity but don't reduce total invested
-        // This represents realized gains/losses
+        totalSellProceeds += tradeValue;
+        
+        // Calculate realized gains from this sell
+        const averageCostPerShare = totalQuantity > 0 ? costBasisRemaining / totalQuantity : 0;
+        const soldCostBasis = averageCostPerShare * quantity;
+        realizedGains += (tradeValue - soldCostBasis);
+        
+        // Update remaining holdings
         totalQuantity -= quantity;
-        const averageCostPerShare = totalCost / (totalQuantity + quantity);
-        totalCost -= averageCostPerShare * quantity;
+        costBasisRemaining -= soldCostBasis;
       }
     });
 
+    // Net invested = money in - money out (can be negative)
+    const netInvested = totalBuys - totalSellProceeds;
+    
+    // Current market value
     const currentValue = totalQuantity * currentPrice;
-    const totalReturn = currentValue - totalCost;
-    const totalReturnPercent = totalCost > 0 ? (totalReturn / totalCost) * 100 : 0;
-    const averagePrice = totalQuantity > 0 ? totalCost / totalQuantity : 0;
+    
+    // Unrealized gains = current value - remaining cost basis
+    const unrealizedGains = currentValue - costBasisRemaining;
+    
+    // Total return = realized + unrealized gains
+    const totalReturn = realizedGains + unrealizedGains;
+    
+    // Calculate percentage based on absolute net invested (avoid division by zero/negative)
+    const absNetInvested = Math.abs(netInvested);
+    const totalReturnPercent = absNetInvested > 0 ? (totalReturn / absNetInvested) * 100 : 0;
+    
+    // Average price of current holdings
+    const averagePrice = totalQuantity > 0 ? costBasisRemaining / totalQuantity : 0;
 
     return {
-      totalInvested,
+      netInvested,
       currentValue,
       totalReturn,
       totalReturnPercent,
+      realizedGains,
+      unrealizedGains,
       totalQuantity,
       averagePrice
     };

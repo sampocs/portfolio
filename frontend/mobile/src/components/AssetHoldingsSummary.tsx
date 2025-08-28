@@ -10,7 +10,7 @@ interface AssetHoldingsSummaryProps {
 }
 
 export default function AssetHoldingsSummary({ holdings, isLoading = false }: AssetHoldingsSummaryProps) {
-  const { totalInvested, currentValue, totalReturn, totalReturnPercent, totalQuantity } = holdings;
+  const { netInvested, currentValue, totalReturn, totalReturnPercent, totalQuantity } = holdings;
   const isPositiveReturn = totalReturn >= 0;
 
   if (isLoading) {
@@ -22,7 +22,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
           <View style={styles.columnsContainer}>
             <View style={styles.leftColumn}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Cost Basis</Text>
+                <Text style={styles.summaryLabel}>Net Invested</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>
               <View style={[styles.summaryItem, styles.lastItem]}>
@@ -64,9 +64,12 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
         <View style={styles.columnsContainer}>
           <View style={styles.leftColumn}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Cost Basis</Text>
-              <Text style={styles.summaryValue}>
-                {formatCurrency(totalInvested)}
+              <Text style={styles.summaryLabel}>Net Invested</Text>
+              <Text style={[
+                styles.summaryValue,
+                netInvested < 0 && { color: theme.colors.success } // Green when negative (house money)
+              ]}>
+                {formatCurrency(netInvested)}
               </Text>
             </View>
             <View style={[styles.summaryItem, styles.lastItem]}>
