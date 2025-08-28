@@ -152,7 +152,7 @@ const styles = createStyles({
   },
   priceContainer: {
     alignItems: 'flex-start',
-    marginBottom: theme.spacing.xs,
+    marginBottom: 4, // Reduced from theme.spacing.xs (8px) to 4px
   },
   currentPrice: {
     color: theme.colors.foreground,
@@ -164,9 +164,10 @@ const styles = createStyles({
   changeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: -6, // Increased negative margin to bring it even closer
   },
   changeAmount: {
-    fontSize: 17,
+    fontSize: 15, // Reduced from 17px to 15px
     fontWeight: theme.typography.weights.normal,
     fontFamily: theme.typography.fontFamily,
     marginRight: theme.spacing.sm,
@@ -177,7 +178,7 @@ const styles = createStyles({
     borderRadius: theme.borderRadius.sm,
   },
   changePercent: {
-    fontSize: 15,
+    fontSize: 13, // Reduced from 15px to 13px
     fontWeight: theme.typography.weights.bold,
     fontFamily: theme.typography.fontFamily,
   },
