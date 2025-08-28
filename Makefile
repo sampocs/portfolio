@@ -33,7 +33,7 @@ copy-data:
 	@cp -r data/* ../portfolio-data/
 
 build-app:
-	@eas build --platform ios
+	@(cd frontend/mobile && eas build --platform ios)
 
 deploy-app:
-	@eas submit --platform ios
+	@(cd frontend/mobile && eas submit --platform ios)
