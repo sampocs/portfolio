@@ -41,12 +41,14 @@ export interface ProcessedPriceData {
 }
 
 export interface AssetHoldings {
-  totalInvested: number;
-  currentValue: number;
-  totalReturn: number;
-  totalReturnPercent: number;
-  totalQuantity: number;
-  averagePrice: number;
+  netInvested: number;          // Total money in - total money out (can be negative)
+  currentValue: number;         // Current market value of holdings
+  totalReturn: number;          // Total gains/losses (realized + unrealized)
+  totalReturnPercent: number;   // Total return as percentage
+  realizedGains: number;        // Gains/losses from completed sells
+  unrealizedGains: number;      // Gains/losses from current holdings
+  totalQuantity: number;        // Current quantity held
+  averagePrice: number;         // Average cost per share of current holdings
 }
 
 export type AssetDuration = typeof DURATIONS.ASSET[number];

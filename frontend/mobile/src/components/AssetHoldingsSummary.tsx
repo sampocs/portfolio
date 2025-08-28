@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency, formatPercentage } from '../styles/utils';
 import { AssetHoldings } from '../data/assetTypes';
+import ExpandableGains from './ExpandableGains';
 
 interface AssetHoldingsSummaryProps {
   holdings: AssetHoldings;
@@ -10,8 +11,9 @@ interface AssetHoldingsSummaryProps {
 }
 
 export default function AssetHoldingsSummary({ holdings, isLoading = false }: AssetHoldingsSummaryProps) {
-  const { totalInvested, currentValue, totalReturn, totalReturnPercent, totalQuantity } = holdings;
+  const { netInvested, currentValue, totalReturn, totalReturnPercent, totalQuantity, realizedGains, unrealizedGains } = holdings;
   const isPositiveReturn = totalReturn >= 0;
+  const [isGainsExpanded, setIsGainsExpanded] = React.useState(false);
 
   if (isLoading) {
     return (
@@ -22,7 +24,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
           <View style={styles.columnsContainer}>
             <View style={styles.leftColumn}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Cost Basis</Text>
+                <Text style={styles.summaryLabel}>Net Invested</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>
               <View style={[styles.summaryItem, styles.lastItem]}>
@@ -64,9 +66,12 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
         <View style={styles.columnsContainer}>
           <View style={styles.leftColumn}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Cost Basis</Text>
-              <Text style={styles.summaryValue}>
-                {formatCurrency(totalInvested)}
+              <Text style={styles.summaryLabel}>Net Invested</Text>
+              <Text style={[
+                styles.summaryValue,
+                netInvested < 0 && { color: theme.colors.success } // Green when negative (house money)
+              ]}>
+                {formatCurrency(netInvested)}
               </Text>
             </View>
             <View style={[styles.summaryItem, styles.lastItem]}>
@@ -85,29 +90,53 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
               </Text>
             </View>
             <View style={[styles.summaryItem, styles.lastItem]}>
-              <Text style={styles.summaryLabel}>{isPositiveReturn ? 'Total Gains' : 'Total Losses'}</Text>
-              <View style={styles.combinedGainsContainer}>
-                <Text style={[
-                  styles.summaryValue,
-                  { color: isPositiveReturn ? theme.colors.success : theme.colors.destructive }
-                ]}>
-                  {totalReturn >= 0 ? '+' : ''}{formatCurrency(totalReturn)}
-                </Text>
-                <View style={[
-                  styles.returnPercentContainer,
-                  { backgroundColor: isPositiveReturn ? theme.colors.successBackground : theme.colors.destructiveBackground }
-                ]}>
-                  <Text style={[
-                    styles.returnPercent,
-                    { color: isPositiveReturn ? theme.colors.success : theme.colors.destructive }
-                  ]}>
-                    {formatPercentage(totalReturnPercent)}
-                  </Text>
-                </View>
-              </View>
+              <ExpandableGains
+                totalReturn={totalReturn}
+                totalReturnPercent={totalReturnPercent}
+                realizedGains={realizedGains}
+                unrealizedGains={unrealizedGains}
+                netInvested={netInvested}
+                onExpandChange={setIsGainsExpanded}
+              />
             </View>
           </View>
         </View>
+        
+        {/* Expandable breakdown section */}
+        {isGainsExpanded && (
+          <View style={styles.expandedBreakdown}>
+            <View style={styles.breakdownDivider} />
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Realized</Text>
+              <View style={styles.breakdownRight}>
+                <Text style={[
+                  styles.breakdownValue,
+                  { color: realizedGains >= 0 ? theme.colors.success : theme.colors.destructive }
+                ]}>
+                  {formatCurrency(realizedGains)}
+                </Text>
+                <Text style={styles.breakdownPercent}>
+                  {((Math.abs(netInvested) > 0 ? (realizedGains / Math.abs(netInvested)) * 100 : 0) >= 0 ? '+' : '')}{(Math.abs(netInvested) > 0 ? (realizedGains / Math.abs(netInvested)) * 100 : 0).toFixed(1)}%
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Unrealized</Text>
+              <View style={styles.breakdownRight}>
+                <Text style={[
+                  styles.breakdownValue,
+                  { color: unrealizedGains >= 0 ? theme.colors.success : theme.colors.destructive }
+                ]}>
+                  {formatCurrency(unrealizedGains)}
+                </Text>
+                <Text style={styles.breakdownPercent}>
+                  {((Math.abs(netInvested) > 0 ? (unrealizedGains / Math.abs(netInvested)) * 100 : 0) >= 0 ? '+' : '')}{(Math.abs(netInvested) > 0 ? (unrealizedGains / Math.abs(netInvested)) * 100 : 0).toFixed(1)}%
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -138,6 +167,9 @@ const styles = createStyles({
     alignItems: 'flex-start',
     minWidth: 180,
   },
+  expandableGainsContainer: {
+    marginTop: theme.spacing.md,
+  },
   summaryItem: {
     alignItems: 'flex-start',
     marginBottom: theme.spacing.md,
@@ -167,5 +199,37 @@ const styles = createStyles({
   },
   returnPercent: {
     ...getTextStyle('sm', 'bold'),
+  },
+  expandedBreakdown: {
+    marginTop: theme.spacing.md,
+  },
+  breakdownDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  breakdownLabel: {
+    ...getTextStyle('sm', 'normal'),
+    color: theme.colors.muted,
+  },
+  breakdownRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  breakdownValue: {
+    ...getTextStyle('sm', 'medium'),
+  },
+  breakdownPercent: {
+    ...getTextStyle('xs', 'normal'),
+    color: theme.colors.muted,
+    minWidth: 50,
+    textAlign: 'right',
   },
 });
