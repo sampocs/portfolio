@@ -7,9 +7,11 @@ import { AssetPriceChange } from '../data/assetTypes';
 interface AssetPriceHeaderProps {
   priceChange: AssetPriceChange;
   isLoading?: boolean;
+  selectedDate?: string;
+  updatedAt?: string;
 }
 
-export default function AssetPriceHeader({ priceChange, isLoading = false }: AssetPriceHeaderProps) {
+export default function AssetPriceHeader({ priceChange, isLoading = false, selectedDate, updatedAt }: AssetPriceHeaderProps) {
   const { currentPrice, changeAmount, changePercent, isPositive } = priceChange;
 
   const formatPrice = (price: number): string => {
@@ -23,13 +25,33 @@ export default function AssetPriceHeader({ priceChange, isLoading = false }: Ass
   };
 
   const formatPriceChange = (change: number): string => {
-    const sign = change >= 0 ? '+' : '';
-    return `${sign}$${Math.abs(change).toFixed(2)}`;
+    const sign = change >= 0 ? '+' : '-';
+    return `${sign}${Math.abs(change).toFixed(2)}`;
   };
 
   const formatPercentChange = (percent: number): string => {
     const sign = percent >= 0 ? '+' : '';
     return `${sign}${percent.toFixed(2)}%`;
+  };
+
+  const formatSelectedDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return `${month} ${day}, ${year}`;
+  };
+
+  const formatUpdatedAt = (dateString: string): string => {
+    const date = new Date(dateString);
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const day = date.getDate();
+    const time = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    }).toLowerCase();
+    return `${month} ${day}, ${time}`;
   };
 
   if (isLoading) {
@@ -82,6 +104,13 @@ export default function AssetPriceHeader({ priceChange, isLoading = false }: Ass
           </Text>
         </View>
       </View>
+      
+      <View style={styles.dateContainer}>
+        <Text style={styles.dateText}>
+          {selectedDate ? formatSelectedDate(selectedDate) : 
+           updatedAt ? formatUpdatedAt(updatedAt) : ' '}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -92,7 +121,7 @@ const styles = createStyles({
   },
   priceContainer: {
     alignItems: 'flex-start',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   currentPrice: {
     color: theme.colors.foreground,
@@ -120,5 +149,13 @@ const styles = createStyles({
     fontSize: 15,
     fontWeight: theme.typography.weights.bold,
     fontFamily: theme.typography.fontFamily,
+  },
+  dateContainer: {
+    marginTop: theme.spacing.xs,
+    minHeight: 16,
+  },
+  dateText: {
+    color: theme.colors.muted,
+    ...getTextStyle('sm'),
   },
 });

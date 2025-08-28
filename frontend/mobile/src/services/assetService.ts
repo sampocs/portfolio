@@ -155,7 +155,8 @@ export class AssetService {
       ...data,
       processedPriceData: this.processPriceDataForDuration(data.priceData, duration),
       priceChange: this.calculatePriceChange(data.priceData, duration),
-      holdings: this.calculateHoldings(data.tradeData, currentPrice)
+      holdings: this.calculateHoldings(data.tradeData, currentPrice),
+      updatedAt: new Date().toISOString()
     };
   }
 

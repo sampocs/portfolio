@@ -157,6 +157,8 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
         <AssetPriceHeader
           priceChange={getCurrentPriceChange()}
           isLoading={false}
+          selectedDate={selectedDataPoint?.date}
+          updatedAt={assetData?.updatedAt}
         />
         
         <View style={styles.durationSelectorContainer}>
