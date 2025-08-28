@@ -25,7 +25,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
                 <Text style={styles.summaryLabel}>Cost Basis</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>
-              <View style={styles.summaryItem}>
+              <View style={[styles.summaryItem, styles.lastItem]}>
                 <Text style={styles.summaryLabel}>Owned</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>
@@ -36,7 +36,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
                 <Text style={styles.summaryLabel}>Market Value</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>
-              <View style={styles.summaryItem}>
+              <View style={[styles.summaryItem, styles.lastItem]}>
                 <Text style={styles.summaryLabel}>Total Gains</Text>
                 <View style={styles.combinedGainsContainer}>
                   <Text style={[styles.summaryValue, { color: theme.colors.muted }]}>
@@ -69,7 +69,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
                 {formatCurrency(totalInvested)}
               </Text>
             </View>
-            <View style={styles.summaryItem}>
+            <View style={[styles.summaryItem, styles.lastItem]}>
               <Text style={styles.summaryLabel}>Owned</Text>
               <Text style={styles.summaryValue}>
                 {totalQuantity.toLocaleString('en-US', { maximumFractionDigits: 4 }).replace(/\.?0+$/, '')}
@@ -84,7 +84,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
                 {formatCurrency(currentValue)}
               </Text>
             </View>
-            <View style={styles.summaryItem}>
+            <View style={[styles.summaryItem, styles.lastItem]}>
               <Text style={styles.summaryLabel}>{isPositiveReturn ? 'Total Gains' : 'Total Losses'}</Text>
               <View style={styles.combinedGainsContainer}>
                 <Text style={[
