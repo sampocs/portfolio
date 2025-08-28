@@ -7,9 +7,29 @@ from backend.config import config
 from tqdm import tqdm
 
 
-def get_all_trades(db: Session):
-    """Returns all trades"""
-    return db.query(models.Trade).all()
+def get_trades(db: Session, asset: str | None = None):
+    """Returns all trades with optional asset filter"""
+    query = db.query(models.Trade).where(models.Trade.excluded.is_(False))
+    if asset:
+        query = query.where(models.Trade.asset == asset)
+    return query.all()
+
+
+def get_historical_prices(db: Session, asset: str, limit: int = 365 * 5):
+    """Returns all prices for a particular asset"""
+    return (
+        db.query(models.HistoricalPrice)
+        .where(models.HistoricalPrice.asset == asset)
+        .order_by(models.HistoricalPrice.date.desc())
+        .limit(limit)
+    )
+
+
+def get_live_price(db: Session, asset: str) -> tuple[Decimal, datetime.datetime]:
+    """Returns the live price for an asset"""
+    price = db.query(models.LivePrice.price, models.LivePrice.updated_at).where(models.LivePrice.asset == asset).first()
+    assert price, f"No live price found for {asset}"
+    return price[0], price[1]
 
 
 def get_all_positions(db: Session):

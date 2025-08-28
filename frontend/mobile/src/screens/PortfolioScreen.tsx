@@ -6,7 +6,7 @@ import { createStyles, getTextStyle } from '../styles/utils';
 import { TIMING, UI } from '../constants';
 import AssetCategorySelector from '../components/AssetCategorySelector';
 import PortfolioSummary from '../components/PortfolioSummary';
-import TotalWorthChart, { ChartDurationSelector } from '../components/TotalWorthChart';
+import PortfolioChart from '../components/PortfolioChart';
 import AssetList from '../components/AssetList';
 import SkeletonLoadingScreen from '../components/SkeletonLoadingScreen';
 import DataModeModal from '../components/DataModeModal';
@@ -30,13 +30,19 @@ const formatDate = (dateString: string): string => {
   });
 };
 
+interface PortfolioScreenProps {
+  navigation: {
+    navigate: (screen: string, params?: any) => void;
+  };
+}
+
 /**
  * PortfolioScreen - Main portfolio view showing assets, performance, and controls
  * 
  * Displays user's portfolio summary, performance chart, and asset list.
  * Includes hidden long-press functionality to switch between live and demo data modes.
  */
-export default function PortfolioScreen() {
+export default function PortfolioScreen({ navigation }: PortfolioScreenProps) {
   const [selectedCategories, setSelectedCategories] = useState({
     stocks: true,
     crypto: true,
@@ -172,6 +178,13 @@ export default function PortfolioScreen() {
   const handleWelcomeDemoMode = () => {
     setShowWelcomeScreen(false);
     // Already in demo mode, so just stay there
+  };
+
+  const handleAssetPress = (asset: Asset) => {
+    navigation.navigate('AssetDetail', {
+      symbol: asset.asset,
+      assetName: asset.description
+    });
   };
 
   const handleSyncPress = async () => {
@@ -406,21 +419,18 @@ export default function PortfolioScreen() {
           onSyncPress={handleSyncPress}
           isSyncing={isSyncing}
         />
-        <TotalWorthChart
+        <PortfolioChart
           data={performanceData}
           onDataPointSelected={handleDataPointSelected}
           isLoading={isChartLoading}
           isCached={isDataCached}
+          selectedGranularity={selectedGranularity}
+          onGranularityChange={handleGranularityChange}
         />
-        {/* Duration Selector - In ScrollView but with isolation wrapper */}
-        <View style={{ zIndex: 999, elevation: 999 }}>
-          <ChartDurationSelector
-            onGranularityChange={handleGranularityChange}
-          />
-        </View>
         <AssetList
           assets={positions}
           selectedCategories={selectedCategories}
+          onAssetPress={handleAssetPress}
         />
       </ScrollView>
       

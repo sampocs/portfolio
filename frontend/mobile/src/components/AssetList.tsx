@@ -13,9 +13,10 @@ interface AssetListProps {
     crypto: boolean;
     alternatives: boolean;
   };
+  onAssetPress?: (asset: Asset) => void;
 }
 
-export default function AssetList({ assets, selectedCategories }: AssetListProps) {
+export default function AssetList({ assets, selectedCategories, onAssetPress }: AssetListProps) {
   const [selectedSort, setSelectedSort] = useState<SortOption>('highest-value');
 
   // Filter assets based on selected categories
@@ -88,6 +89,7 @@ export default function AssetList({ assets, selectedCategories }: AssetListProps
             asset={asset} 
             isFirst={index === 0}
             isLast={index === sortedAssets.length - 1}
+            onPress={onAssetPress}
           />
         ))}
       </View>

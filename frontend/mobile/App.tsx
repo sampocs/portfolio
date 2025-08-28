@@ -3,16 +3,34 @@ import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { ChartSpline, ChartPie } from 'lucide-react-native';
 
 import PortfolioScreen from './src/screens/PortfolioScreen';
 import AllocationsScreen from './src/screens/AllocationsScreen';
+import AssetDetailScreen from './src/screens/AssetDetailScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import { DataProvider, useData } from './src/contexts/DataContext';
 import { theme } from './src/styles/theme';
 import SkeletonLoadingScreen from './src/components/SkeletonLoadingScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+// Portfolio stack navigator
+function PortfolioStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { backgroundColor: theme.colors.background },
+      }}
+    >
+      <Stack.Screen name="PortfolioMain" component={PortfolioScreen} />
+      <Stack.Screen name="AssetDetail" component={AssetDetailScreen} />
+    </Stack.Navigator>
+  );
+}
 
 // Main app content component (inside DataProvider)
 function AppContent() {
@@ -60,7 +78,7 @@ function AppContent() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Portfolio" component={PortfolioScreen} />
+      <Tab.Screen name="Portfolio" component={PortfolioStack} />
       <Tab.Screen name="Allocations" component={AllocationsScreen} />
     </Tab.Navigator>
   );

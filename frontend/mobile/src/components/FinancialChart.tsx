@@ -12,89 +12,34 @@ import { Svg, Line as SvgLine, Circle } from 'react-native-svg';
 import { Canvas, Path, LinearGradient as SkiaLinearGradient, vec, Skia } from '@shopify/react-native-skia';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
-import { PerformanceData } from '../data/types';
-import { DURATIONS } from '../constants';
-import { PortfolioDuration } from '../data/assetTypes';
 
-interface TotalWorthChartProps {
-  data: PerformanceData[];
-  onDataPointSelected?: (dataPoint: PerformanceData | null) => void;
+export interface ChartDataPoint {
+  x: number;
+  y: number;
+  date: string;
+  value: number;
+  originalData?: any; // For passing back original data structure
+}
+
+export interface FinancialChartProps {
+  data: ChartDataPoint[];
+  onDataPointSelected?: (dataPoint: any | null) => void;
   isLoading?: boolean;
-  isCached?: boolean; // New prop to indicate if data came from cache
+  isCached?: boolean;
+  isPositive?: boolean; // Override color logic
+  formatLabel?: (value: number) => string; // Custom label formatting
+  showGradient?: boolean;
 }
 
-interface ChartDurationSelectorProps {
-  onGranularityChange?: (granularity: string) => void;
-}
-
-const durations = DURATIONS.PORTFOLIO;
-
-
-
-// Separate duration selector component that won't be affected by chart animations
-export function ChartDurationSelector({ onGranularityChange }: ChartDurationSelectorProps) {
-  const [selectedDuration, setSelectedDuration] = useState<PortfolioDuration>(DURATIONS.INITIAL_PORTFOLIO);
-
-  // Completely isolated styles to avoid any inheritance
-  const isolatedStyles = {
-    container: {
-      flexDirection: 'row' as const,
-      justifyContent: 'space-between' as const,
-      paddingHorizontal: theme.spacing.sm,
-      marginTop: 2,
-    },
-    button: {
-      flex: 1,
-      paddingVertical: 6,
-      paddingHorizontal: theme.spacing.xs,
-      marginHorizontal: theme.spacing.xs,
-      borderRadius: 16,
-      backgroundColor: theme.colors.background,
-      alignItems: 'center' as const,
-    },
-    buttonSelected: {
-      backgroundColor: theme.colors.accent,
-    },
-    text: {
-      color: theme.colors.muted,
-      fontSize: 14,
-      fontFamily: theme.typography.fontFamily,
-      fontWeight: '500' as const,
-    },
-    textSelected: {
-      color: theme.colors.foreground,
-    },
-  };
-
-  return (
-    <View style={isolatedStyles.container}>
-      {durations.map((duration) => (
-        <View
-          key={duration}
-          style={[
-            isolatedStyles.button,
-            selectedDuration === duration && isolatedStyles.buttonSelected,
-          ]}
-          onTouchEnd={() => {
-            setSelectedDuration(duration);
-            onGranularityChange?.(duration);
-          }}
-        >
-          <Text
-            style={[
-              isolatedStyles.text,
-              selectedDuration === duration && isolatedStyles.textSelected,
-            ]}
-          >
-            {duration}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCached = false }: TotalWorthChartProps) {
+function FinancialChart({ 
+  data, 
+  onDataPointSelected, 
+  isLoading = false, 
+  isCached = false,
+  isPositive,
+  formatLabel = formatCurrency,
+  showGradient = true
+}: FinancialChartProps) {
   const { width } = Dimensions.get('window');
   const chartWidth = width - theme.spacing.xl * 2;
   const chartHeight = 170;
@@ -103,18 +48,17 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
   const chartOpacity = useSharedValue(1);
   const loadingOpacity = useSharedValue(0);
   const referenceLinesOpacity = useSharedValue(1);
-  const overlayOpacity = useSharedValue(0); // Simple overlay to hide chart during transitions
+  const overlayOpacity = useSharedValue(0);
 
   // Transform data for chart (needs numeric values and date objects)
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     return data.map((item, index) => ({
-      x: index, // Use index for x-axis
-      y: parseFloat(item.value),
+      x: index,
+      y: item.y,
       date: item.date,
-      cost: parseFloat(item.cost),
-      value: parseFloat(item.value),
-      returns: parseFloat(item.returns),
+      value: item.value,
+      originalData: item.originalData || item,
     }));
   }, [data]);
 
@@ -123,36 +67,45 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
     if (chartData.length === 0) return 0;
     return Math.min(...chartData.map(d => d.y));
   }, [chartData]);
+  
   const maxValue = useMemo(() => {
     if (chartData.length === 0) return 0;
     return Math.max(...chartData.map(d => d.y));
   }, [chartData]);
 
-  // Determine if overall return is positive
-  const totalReturn = useMemo(() => {
-    if (chartData.length === 0) return 0;
-    const latest = chartData[chartData.length - 1];
-    return latest.value - latest.cost;
-  }, [chartData]);
-
-  const isPositiveReturn = totalReturn >= 0;
-  const lineColor = isPositiveReturn ? theme.colors.success : theme.colors.destructive;
-
-  // Initialize press state with proper structure for single y key
-  const INIT_PRESS_STATE = { x: 0, y: { y: 0 } };
+  // Calculate buffered values for domain and reference lines
+  const bufferedMinValue = useMemo(() => {
+    return minValue - (maxValue - minValue) * 0.1;
+  }, [minValue, maxValue]);
   
-  // No transform state needed - we only want press detection for data point selection
+  const bufferedMaxValue = useMemo(() => {
+    return maxValue + (maxValue - minValue) * 0.1;
+  }, [minValue, maxValue]);
+
+  // Determine line color
+  const determineIsPositive = useMemo(() => {
+    if (isPositive !== undefined) return isPositive;
+    if (chartData.length === 0) return true;
+    
+    const first = chartData[0];
+    const last = chartData[chartData.length - 1];
+    return last.y >= first.y;
+  }, [chartData, isPositive]);
+
+  const lineColor = determineIsPositive ? theme.colors.success : theme.colors.destructive;
+
+  // Initialize press state
+  const INIT_PRESS_STATE = { x: 0, y: { y: 0 } };
   const { state: pressState, isActive: pressActive } = useChartPressState(INIT_PRESS_STATE);
 
   // Handle data point selection
   const handleDataPointSelected = useCallback((dataPoint: typeof chartData[0] | null) => {
     if (dataPoint && onDataPointSelected) {
-      const originalDataPoint = data.find(d => d.date === dataPoint.date);
-      onDataPointSelected(originalDataPoint || null);
+      onDataPointSelected(dataPoint.originalData);
     } else if (onDataPointSelected) {
       onDataPointSelected(null);
     }
-  }, [data, onDataPointSelected]);
+  }, [onDataPointSelected]);
 
   // State to track the currently selected data point
   const [selectedDataPoint, setSelectedDataPoint] = useState<typeof chartData[0] | null>(null);
@@ -163,42 +116,37 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
   // State to store Victory Native's exact points for gradient
   const [victoryPoints, setVictoryPoints] = useState<any[] | null>(null);
 
-  // Reset gradient state when data changes
+  // Reset state when data changes
   React.useEffect(() => {
     setChartBounds(null);
     setVictoryPoints(null);
     setSelectedDataPoint(null);
+    setYScale(null);
   }, [data]);
 
   // Handle smooth transitions between loading and chart states
   React.useEffect(() => {
     if (isLoading) {
-      // Use faster transitions for cached data
       const duration = isCached ? 60 : 120;
       const loadDuration = isCached ? 50 : 100;
       
-      // Show overlay with adaptive timing
       overlayOpacity.value = withTiming(0.95, { 
         duration,
         easing: Easing.out(Easing.quad)
       });
-      // Start loading overlay
       loadingOpacity.value = withTiming(1, { 
         duration: loadDuration, 
         easing: Easing.out(Easing.quad) 
       });
     } else {
-      // Use faster transitions for cached data
       const fadeDuration = isCached ? 50 : 100;
       const overlayDuration = isCached ? 75 : 150;
       const delay = isCached ? 10 : 20;
       
-      // Start fade-out with adaptive timing
       loadingOpacity.value = withTiming(0, { 
         duration: fadeDuration,
         easing: Easing.in(Easing.quad)
       });
-      // Begin overlay fade-out with adaptive timing
       setTimeout(() => {
         overlayOpacity.value = withTiming(0, { 
           duration: overlayDuration,
@@ -208,12 +156,10 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
     }
   }, [isLoading, isCached]);
 
-  // Function to find closest point (this runs on JS thread)
+  // Function to find closest point
   const findClosestPoint = useCallback((xValue: number) => {
     if (chartData.length === 0) return null;
         
-    // Map screen coordinate to data index
-    // Victory Native XL gives us screen coordinates, so we need to normalize
     const normalizedX = Math.max(0, Math.min(1, xValue / chartWidth));
     const dataIndex = Math.round(normalizedX * (chartData.length - 1));
     const clampedIndex = Math.max(0, Math.min(chartData.length - 1, dataIndex));
@@ -221,13 +167,13 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
     return chartData[clampedIndex];
   }, [chartData, chartWidth]);
 
-  // Wrapper function to find and set the closest point (for runOnJS)
+  // Wrapper function to find and set the closest point
   const updateSelectedPoint = useCallback((xValue: number) => {
     const closestPoint = findClosestPoint(xValue);
     setSelectedDataPoint(closestPoint);
   }, [findClosestPoint]);
 
-  // Use useAnimatedReaction to listen to press state changes and update data point
+  // Listen to press state changes and update data point
   useAnimatedReaction(
     () => {
       return {
@@ -237,7 +183,6 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
     },
     (current) => {
       if (current.isActive && pressState?.x?.position) {
-        // Update the selected point on JS thread
         runOnJS(updateSelectedPoint)(current.xPosition);
       } else {
         runOnJS(setSelectedDataPoint)(null);
@@ -245,23 +190,23 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
     }
   );
 
-  // Calculate Y positions for min/max horizontal lines
+  // Store scale function and bounds for reference line positioning
+  const [yScale, setYScale] = useState<any>(null);
+  
+  // Calculate Y positions using Victory Native's scale function
   const getHorizontalLinePositions = useMemo(() => {
-    if (!chartBounds) return { maxY: 50, minY: chartHeight - 50 }; // Fallback to old positions
+    if (!yScale || !chartBounds) return { maxY: 50, minY: chartHeight - 50 };
     
-    // Calculate Y position for max value (top of chart area)
-    // Adjust by ~9px to account for label space and internal padding
-    const maxY = chartBounds.top + 9;
-    
-    // Calculate Y position for min value (bottom of chart area)  
-    const minY = chartBounds.bottom;
+    // Use Victory Native's scale function to convert buffered values to pixel positions
+    const maxY = yScale(bufferedMaxValue);
+    const minY = yScale(bufferedMinValue);
     
     return { maxY, minY };
-  }, [chartBounds, maxValue, minValue, chartHeight]);
+  }, [yScale, bufferedMaxValue, bufferedMinValue, chartBounds, chartHeight]);
 
   // Create Skia path using Victory Native's exact points with smooth curves
   const createGradientPathFromPoints = useCallback((points: any[], bounds: {top: number, bottom: number, left: number, right: number}) => {
-    if (!points?.length || !bounds) return null;
+    if (!points?.length || !bounds || !showGradient) return null;
 
     const path = Skia.Path.Make();
 
@@ -282,12 +227,10 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
           typeof current.x === 'number' && typeof current.y === 'number' &&
           typeof prev.x === 'number' && typeof prev.y === 'number') {
         
-        // Simple smoothing - use control points based on neighboring points
         const next = points[i + 1];
         const prevPrev = points[i - 2];
         
-        // Calculate control points for smooth curve (adjusted tension to match Victory Native's "natural" curve)
-        const tension = 0.25; // Reduced tension to match Victory Native better
+        const tension = 0.25;
         
         let cp1x = prev.x, cp1y = prev.y;
         let cp2x = current.x, cp2y = current.y;
@@ -302,7 +245,6 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
           cp2y = current.y - tension * (next.y - prev.y);
         }
         
-        // Draw cubic bezier curve
         path.cubicTo(cp1x, cp1y, cp2x, cp2y, current.x, current.y);
       }
     }
@@ -313,36 +255,7 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
     path.close();
 
     return path;
-  }, []);
-
-  // Fallback path creation method
-  const createGradientPath = useCallback((bounds: {top: number, bottom: number, left: number, right: number}) => {
-    if (!chartData.length || !bounds) return null;
-
-    const path = Skia.Path.Make();
-    const chartRange = bounds.right - bounds.left;
-    const valueRange = maxValue - minValue;
-    const heightRange = bounds.bottom - bounds.top;
-
-    // Start at bottom-left corner of the chart area
-    path.moveTo(bounds.left, bounds.bottom);
-
-    // Create points that exactly match Victory Native's line positioning
-    chartData.forEach((dataPoint, index) => {
-      const x = bounds.left + (index / (chartData.length - 1)) * chartRange;
-      const normalizedValue = valueRange > 0 ? (dataPoint.y - minValue) / valueRange : 0.5;
-      const y = bounds.top + (1 - normalizedValue) * heightRange;
-      
-      path.lineTo(x, y);
-    });
-
-    // Close the path by going to bottom-right corner and back to start
-    path.lineTo(bounds.right, bounds.bottom);
-    path.lineTo(bounds.left, bounds.bottom);
-    path.close();
-
-    return path;
-  }, [chartData, maxValue, minValue]);
+  }, [showGradient]);
 
   // Notify parent component of selection changes
   React.useEffect(() => {
@@ -376,7 +289,7 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
         <Animated.View style={[
           styles.overlayContainer,
           loadingAnimatedStyle,
-          { height: chartHeight + 50 } // Account for labels
+          { height: chartHeight + 50 }
         ]}>
           <View style={[styles.chartWrapper, styles.loadingContainer, { height: chartHeight }]}>
             {isLoading ? (
@@ -392,13 +305,16 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
 
       {/* Main chart content */}
       <View style={styles.chartContainer}>
-          <Text style={styles.maxLabel}>{formatCurrency(maxValue)}</Text>
+          <Text style={[
+            styles.maxLabel,
+            yScale && { top: getHorizontalLinePositions.maxY - 16 }
+          ]}>{formatLabel(maxValue)}</Text>
             
             {/* Chart and Overlays */}
             <View style={styles.chartWrapper}>
               <View style={[{ width: chartWidth, height: chartHeight }]}>
                 {/* Skia gradient background - positioned behind Victory chart */}
-                {chartBounds && victoryPoints && chartData.length > 0 && (() => {
+                {showGradient && chartBounds && victoryPoints && chartData.length > 0 && (() => {
                   const gradientPath = createGradientPathFromPoints(victoryPoints, chartBounds);
                   return gradientPath ? (
                     <Canvas 
@@ -415,7 +331,7 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
                         <SkiaLinearGradient
                           start={vec(0, 0)}
                           end={vec(0, chartHeight)}
-                          colors={[lineColor + '66', lineColor + '00']} // 40% to 0% opacity
+                          colors={[lineColor + '66', lineColor + '00']}
                         />
                       </Path>
                     </Canvas>
@@ -428,24 +344,25 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
                   xKey="x"
                   yKeys={['y']}
                   chartPressState={pressState}
+                  domain={{ y: [bufferedMinValue, bufferedMaxValue] }}
                 >
-                {({ points, chartBounds: victoryChartBounds }) => {
-                  // Update chart bounds using a ref callback instead of useEffect
+                {({ points, chartBounds: victoryChartBounds, yScale: victoryYScale }) => {
                   if (victoryChartBounds && (!chartBounds || 
                       chartBounds.top !== victoryChartBounds.top || 
                       chartBounds.bottom !== victoryChartBounds.bottom)) {
-                    // Only update if bounds have changed to avoid unnecessary re-renders
                     setTimeout(() => setChartBounds(victoryChartBounds), 0);
                   }
 
-                  // Store Victory points for gradient
                   if (points.y && (!victoryPoints || points.y.length !== victoryPoints.length)) {
                     setTimeout(() => setVictoryPoints(points.y), 0);
+                  }
+                  
+                  if (victoryYScale && !yScale) {
+                    setTimeout(() => setYScale(() => victoryYScale), 0);
                   }
 
                   return (
                     <>
-                      {/* Main line */}
                       <Line
                         points={points.y}
                         curveType="natural"
@@ -467,10 +384,8 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
                   width={chartWidth}
                   style={styles.referenceLinesOverlay}
                 >
-                  {/* Only show reference lines when we have valid data and bounds */}
                   {chartBounds && chartData.length > 0 && (
                     <>
-                      {/* Top horizontal line at max value */}
                       <SvgLine
                         x1={0}
                         y1={getHorizontalLinePositions.maxY}
@@ -481,7 +396,6 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
                         opacity={0.6}
                       />
                       
-                      {/* Bottom horizontal line at min value */}
                       <SvgLine
                         x1={0}
                         y1={getHorizontalLinePositions.minY}
@@ -496,16 +410,14 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
                 </Svg>
               </Animated.View>
 
-              {/* Crosshair overlay (separate from reference lines) */}
+              {/* Crosshair overlay */}
               <Svg
                 height={chartHeight}
                 width={chartWidth}
                 style={[styles.referenceLinesOverlay, { position: 'absolute' }]}
               >
-                {/* Crosshair - only show when chart is being pressed */}
                 {pressActive && pressState && (
                   <>
-                    {/* Vertical line */}
                     <SvgLine
                       x1={pressState.x.position.value}
                       y1={20}
@@ -516,7 +428,6 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
                       opacity={0.8}
                     />
                     
-                    {/* Point indicator */}
                     <Circle
                       cx={pressState.x.position.value}
                       cy={pressState.y.y.position.value}
@@ -531,17 +442,20 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
             </View>
           </View>
 
-          <Text style={styles.minLabel}>{formatCurrency(minValue)}</Text>
+          <Text style={[
+            styles.minLabel,
+            yScale && { bottom: chartHeight - getHorizontalLinePositions.minY - 17 }
+          ]}>{formatLabel(minValue)}</Text>
           
           {/* Simple overlay to hide chart glitches during transitions */}
           <Animated.View style={[
             overlayAnimatedStyle,
             {
               position: 'absolute',
-              top: -15, // Extend up to cover max label
+              top: -15,
               left: 0,
               right: 0,
-              bottom: -15, // Extend down to cover min label
+              bottom: -15,
               backgroundColor: theme.colors.background,
               zIndex: 20,
               pointerEvents: 'none',
@@ -562,14 +476,6 @@ const styles = createStyles({
   },
   chartWrapper: {
     position: 'relative',
-  },
-  gradientCanvas: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    zIndex: 1,
   },
   referenceLinesContainer: {
     position: 'absolute',
@@ -605,31 +511,6 @@ const styles = createStyles({
     fontWeight: theme.typography.weights.normal,
     zIndex: 1,
   },
-  durationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.sm,
-    marginTop: 2,
-  },
-  durationButton: {
-    flex: 1,
-    paddingVertical: 2,
-    paddingHorizontal: theme.spacing.xs,
-    marginHorizontal: theme.spacing.xs,
-    borderRadius: 16,
-    backgroundColor: theme.colors.background,
-    alignItems: 'center',
-  },
-  durationButtonSelected: {
-    backgroundColor: theme.colors.accent,
-  },
-  durationText: {
-    color: theme.colors.muted,
-    ...getTextStyle('sm', 'medium'),
-  },
-  durationTextSelected: {
-    color: theme.colors.foreground,
-  },
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -645,5 +526,4 @@ const styles = createStyles({
   },
 });
 
-// Memoize the entire component to prevent unnecessary re-renders
-export default React.memo(TotalWorthChart);
+export default React.memo(FinancialChart);

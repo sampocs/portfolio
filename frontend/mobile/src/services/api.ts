@@ -106,6 +106,20 @@ class ApiService {
   }
 
   /**
+   * Fetch asset price data
+   */
+  async getAssetPrices(symbol: string): Promise<any> {
+    return await this.makeRequest<any>(`/prices/${symbol}`);
+  }
+
+  /**
+   * Fetch asset trade data
+   */
+  async getAssetTrades(symbol: string): Promise<any[]> {
+    return await this.makeRequest<any[]>(`/trades/${symbol}`);
+  }
+
+  /**
    * Trigger manual sync of trades from brokers
    */
   async syncTrades(): Promise<{ status: string; error?: string }> {

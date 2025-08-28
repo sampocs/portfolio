@@ -35,7 +35,20 @@ def authenticate(_: HTTPAuthorizationCredentials = Depends(verify_token)):
 @router.get("/trades")
 async def get_trades(_: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)):
     """Returns all trades"""
-    return crud.get_all_trades(db)
+    return crud.get_trades(db)
+
+
+@router.get("/trades/{asset}")
+async def get_trades_by_asset(
+    asset: str,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+    db: Session = Depends(connection.get_db),
+):
+    """Returns all trades for the given asset"""
+    if asset not in config.assets.keys():
+        return HTTPException(status_code=400, detail=f"Invalid asset, must be one of {','.join(config.assets.keys())}")
+
+    return crud.get_trades(db, asset=asset)
 
 
 @router.get("/positions")
@@ -65,7 +78,20 @@ async def get_performance(
             status_code=400, detail=f"Invalid asset(s), must be one of {','.join(config.assets.keys())}"
         )
 
-    return transforms.get_performance(db, duration, asset_list)
+    return transforms.get_performance(db, duration=duration, assets=asset_list)
+
+
+@router.get("/prices/{asset}")
+async def get_prices_by_asset(
+    asset: str,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+    db: Session = Depends(connection.get_db),
+):
+    """Returns the historical price data for the given asset"""
+    if asset not in config.assets.keys():
+        return HTTPException(status_code=400, detail=f"Invalid asset, must be one of {','.join(config.assets.keys())}")
+
+    return transforms.get_asset_prices(db, asset=asset)
 
 
 @router.post("/sync")
