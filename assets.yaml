@@ -6,7 +6,7 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VT.svg
+    logo: VT.png
     contract_id: 52197301
   - asset: VOO
     description: Large Cap
@@ -15,7 +15,7 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VOO.svg
+    logo: VOO.png
     contract_id: 136155102
   - asset: VO
     description: Mid Cap
@@ -24,7 +24,7 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VO.svg
+    logo: VO.png
     contract_id: 27638087
   - asset: VB
     description: "Small Cap"
@@ -33,7 +33,7 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VB.svg
+    logo: VB.png
     contract_id: 27638105
   - asset: VXUS
     description: International
@@ -42,7 +42,7 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VXUS.svg
+    logo: VXUS.png
     contract_id: 83512168
   - asset: VWO
     description: "Emerging"
@@ -51,25 +51,34 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VWO.svg
+    logo: VWO.png
     contract_id: 27684033
   - asset: COIN
     description: "Coinbase"
-    target_allocation: 5
+    target_allocation: 4
     market: Crypto
     segment: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: COIN.svg
+    logo: COIN.png
     contract_id: 481691285
   - asset: HOOD
     description: "Robinhood"
-    target_allocation: 5
+    target_allocation: 4
     market: Crypto
     segment: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: HOOD.svg
+    logo: HOOD.png
+    contract_id: 504546674
+  - asset: GLXY
+    description: "Galaxy Digital"
+    target_allocation: 2
+    market: Crypto
+    segment: Crypto Stocks
+    platform: ibkr
+    price_type: stocks
+    logo: GLXY.png
     contract_id: 504546674
   - asset: AAAU
     description: "Gold"
@@ -78,7 +87,7 @@ assets:
     segment: Gold
     platform: ibkr
     price_type: stocks
-    logo: AAAU.svg
+    logo: AAAU.png
     contract_id: 458886642
   - asset: VNQ
     description: "Real Estate"
@@ -87,7 +96,7 @@ assets:
     segment: Real Estate
     platform: ibkr
     price_type: stocks
-    logo: VNQ.svg
+    logo: VNQ.png
     contract_id: 31230302
   - asset: BTC
     description: Bitcoin
@@ -96,7 +105,7 @@ assets:
     segment: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: BTC.svg
+    logo: BTC.png
   - asset: ETH
     description: Ethereum
     target_allocation: 3
@@ -104,7 +113,7 @@ assets:
     segment: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: ETH.svg
+    logo: ETH.png
   - asset: SOL
     description: Solana
     target_allocation: 3
@@ -113,3 +122,11 @@ assets:
     platform: coinbase
     price_type: crypto
     logo: SOL.png
+  - asset: TIA
+    description: Celestia
+    target_allocation: 0
+    market: Crypto
+    segment: Crypto Tokens
+    platform: coinbase
+    price_type: crypto
+    logo: TIA.png

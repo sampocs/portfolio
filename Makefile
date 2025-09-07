@@ -37,3 +37,9 @@ build-app:
 
 deploy-app:
 	@(cd frontend/mobile && eas submit --platform ios)
+
+add-prices:
+ifndef ASSET
+	$(error ASSET environment variable is required)
+endif
+	@(cd backend && $(PYTHON) -m backend.bootstrap.add_prices --asset $(ASSET))

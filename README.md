@@ -105,3 +105,11 @@ In order to automatically track trades, they must be done as follows:
 - Stocks/ETFs: Executed through IBKR
 - Crypto: Executed through Coinbase Advanced
   - For lowest fees, place limit order at highest sell price, and set to "Post Only" (instead of "Taker")
+
+## Adding a New Asset
+
+- Add the asset to the config.yaml
+- Get the asset logo images and save to `frontend/mobile/assets/images/{asset}.png`
+- If it's a crypto asset, download the historical prices from coingecko (see above), and save under `data/prices/raw/{asset}_raw.csv`
+- Add the assets prices to the database with `make add-prices ASSET={asset}`
+- Trades will be sync'd automatically

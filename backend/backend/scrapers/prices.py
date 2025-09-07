@@ -20,7 +20,7 @@ def _get_previous_stock_price(asset: str, target_dates: list[str]) -> dict[str, 
         "datetype": "json",
         "apikey": config.alpha_vantage_api_token,
     }
-    response = requests.get(config.alpha_prev_close_api, params=params)
+    response = requests.get(config.alpha_price_api, params=params)
     response_data: dict = response.json()
 
     if "Time Series (Daily)" not in response_data:

@@ -10,14 +10,14 @@ from backend.config import config, logger
 from backend.scrapers import prices
 
 
-def forward_fill_missing_prices(trades_df: pd.DataFrame) -> pd.DataFrame:
+def forward_fill_missing_prices(prices_df: pd.DataFrame) -> pd.DataFrame:
     """Fill any missing prices from the trade DF with the previous known price"""
     filled_dfs = []
-    for asset in trades_df["asset"].unique():
-        asset_df = trades_df[trades_df["asset"] == asset].copy()
+    for asset in prices_df["asset"].unique():
+        asset_df = prices_df[prices_df["asset"] == asset].copy()
 
         # Create complete dateframe with all dates from min to max date for this asset
-        date_range = pd.date_range(start=asset_df["date"].min(), end=trades_df["date"].max(), freq="D")
+        date_range = pd.date_range(start=asset_df["date"].min(), end=prices_df["date"].max(), freq="D")
         complete_df = pd.DataFrame({"asset": asset, "date": date_range.date})
 
         # Merge with existing data and forward fill prices
@@ -54,13 +54,13 @@ def backfill_prices():
 
     crypto_df = pd.read_csv(config.prices_data_dir / "crypto_clean.csv")
     stock_df = pd.read_csv(config.prices_data_dir / "stocks_clean.csv")
-    trades_df = pd.concat([crypto_df, stock_df], ignore_index=True)
+    prices_df = pd.concat([crypto_df, stock_df], ignore_index=True)
 
-    trades_df["price"] = trades_df["price"].astype(str).map(lambda x: Decimal(x))
-    trades_df["date"] = pd.to_datetime(trades_df["date"]).dt.date
-    trades_df = forward_fill_missing_prices(trades_df)
+    prices_df["price"] = prices_df["price"].astype(str).map(lambda x: Decimal(x))
+    prices_df["date"] = pd.to_datetime(prices_df["date"]).dt.date
+    prices_df = forward_fill_missing_prices(prices_df)
 
-    records = trades_df.to_dict("records")
+    records = prices_df.to_dict("records")
 
     with connection.engine.begin() as conn:
         stmt = insert(models.HistoricalPrice).values(records)
