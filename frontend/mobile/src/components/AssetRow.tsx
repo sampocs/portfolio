@@ -47,13 +47,13 @@ export default function AssetRow({ asset, isFirst = false, isLast = false, onPre
   };
 
   const formatReturn = (value: number): string => {
-    const sign = value >= 0 ? '+' : '';
+    const sign = value >= 0 ? '+' : '-';
     return `${sign}$${formatCurrency(Math.abs(value))}`;
   };
 
   const formatPercent = (value: number): string => {
-    const sign = value >= 0 ? '+' : '';
-    return `${sign}${value.toFixed(2)}%`;
+    const sign = value >= 0 ? '+' : '-';
+    return `${sign}${Math.abs(value).toFixed(2)}%`;
   };
 
   const formatQuantity = (value: number): string => {
