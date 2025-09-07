@@ -348,17 +348,22 @@ function FinancialChart({
                   domain={{ y: [bufferedMinValue, bufferedMaxValue] }}
                 >
                 {({ points, chartBounds: victoryChartBounds, yScale: victoryYScale }) => {
+                  // Only update chart bounds if they don't exist or data length has changed
                   if (victoryChartBounds && (!chartBounds || 
-                      chartBounds.top !== victoryChartBounds.top || 
-                      chartBounds.bottom !== victoryChartBounds.bottom)) {
+                      (chartData.length > 0 && !victoryPoints) || 
+                      (points.y && victoryPoints && points.y.length !== victoryPoints.length))) {
                     setTimeout(() => setChartBounds(victoryChartBounds), 0);
                   }
 
-                  if (points.y && (!victoryPoints || points.y.length !== victoryPoints.length)) {
+                  // Only update points if they don't exist or data has fundamentally changed
+                  if (points.y && (!victoryPoints || 
+                      points.y.length !== victoryPoints.length ||
+                      chartData.length !== points.y.length)) {
                     setTimeout(() => setVictoryPoints(points.y), 0);
                   }
                   
-                  if (victoryYScale && !yScale) {
+                  // Only set yScale once or when data changes
+                  if (victoryYScale && (!yScale || chartData.length !== (victoryPoints?.length || 0))) {
                     setTimeout(() => setYScale(() => victoryYScale), 0);
                   }
 
