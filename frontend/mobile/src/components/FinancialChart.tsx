@@ -181,10 +181,11 @@ function FinancialChart({
         xPosition: pressState?.x?.position?.value || 0
       };
     },
-    (current) => {
+    (current, previous) => {
       if (current.isActive && pressState?.x?.position) {
         runOnJS(updateSelectedPoint)(current.xPosition);
-      } else {
+      } else if (previous?.isActive && !current.isActive) {
+        // Only reset when transitioning from active to inactive
         runOnJS(setSelectedDataPoint)(null);
       }
     }
