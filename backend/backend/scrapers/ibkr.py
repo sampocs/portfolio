@@ -1,3 +1,4 @@
+import click
 from ibind import IbkrClient
 from backend.config import config
 from backend.database import models
@@ -37,3 +38,21 @@ def get_current_holdings() -> list[models.Position]:
         )
 
     return positions
+
+
+def get_contract_id(asset: str):
+    """Returns the contract ID from an asset"""
+    client = IbkrClient(**config.ibind_client_params)
+    print(f"{asset} Contract ID:", client.stock_conid_by_symbol(asset).data)  # type: ignore
+
+
+@click.command()
+@click.option("--asset", required=True, help="The asset to add (e.g., AAPL, BTC)")
+@click.option("--contract-id", is_flag=True, help="Specify to retrive the contract ID from a ticker")
+def main(asset: str, contract_id: bool):
+    assert contract_id, "Only permitted option is to get the contract-id"
+    get_contract_id(asset)
+
+
+if __name__ == "__main__":
+    main()

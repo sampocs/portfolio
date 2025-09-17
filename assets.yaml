@@ -79,7 +79,7 @@ assets:
     platform: ibkr
     price_type: stocks
     logo: GLXY.png
-    contract_id: 504546674
+    contract_id: 784233662
   - asset: AAAU
     description: "Gold"
     target_allocation: 5

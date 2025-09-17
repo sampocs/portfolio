@@ -43,3 +43,9 @@ ifndef ASSET
 	$(error ASSET environment variable is required)
 endif
 	@(cd backend && $(PYTHON) -m backend.bootstrap.add_prices --asset $(ASSET))
+
+contract-id:
+ifndef ASSET
+	$(error ASSET environment variable is required)
+endif
+	@(cd backend && $(PYTHON) -m backend.scrapers.ibkr --contract-id --asset $(ASSET))
