@@ -115,3 +115,7 @@ In order to automatically track trades, they must be done as follows:
 - If it's a crypto asset, download the historical prices from coingecko (see above), and save under `data/prices/raw/{asset}_raw.csv`I
 - Add the assets prices to the database with `make add-prices ASSET={asset}`
 - Trades will be sync'd automatically
+
+## Known Issues
+
+- For the mobile app, there's dependency issues with some charting libraries. We often need to use `--legacy-peer-deps` when npm installing
