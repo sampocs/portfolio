@@ -6,7 +6,6 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VT.png
     contract_id: 52197301
   - asset: VOO
     description: Large Cap
@@ -15,7 +14,6 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VOO.png
     contract_id: 136155102
   - asset: VO
     description: Mid Cap
@@ -24,7 +22,6 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VO.png
     contract_id: 27638087
   - asset: VB
     description: "Small Cap"
@@ -33,7 +30,6 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VB.png
     contract_id: 27638105
   - asset: VXUS
     description: International
@@ -42,7 +38,6 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VXUS.png
     contract_id: 83512168
   - asset: VWO
     description: "Emerging"
@@ -51,7 +46,6 @@ assets:
     segment: Stock ETFs
     platform: ibkr
     price_type: stocks
-    logo: VWO.png
     contract_id: 27684033
   - asset: COIN
     description: "Coinbase"
@@ -60,7 +54,6 @@ assets:
     segment: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: COIN.png
     contract_id: 481691285
   - asset: HOOD
     description: "Robinhood"
@@ -69,7 +62,6 @@ assets:
     segment: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: HOOD.png
     contract_id: 504546674
   - asset: GLXY
     description: "Galaxy Digital"
@@ -78,7 +70,6 @@ assets:
     segment: Crypto Stocks
     platform: ibkr
     price_type: stocks
-    logo: GLXY.png
     contract_id: 784233662
   - asset: AAAU
     description: "Gold"
@@ -87,7 +78,6 @@ assets:
     segment: Gold
     platform: ibkr
     price_type: stocks
-    logo: AAAU.png
     contract_id: 458886642
   - asset: VNQ
     description: "Real Estate"
@@ -96,7 +86,6 @@ assets:
     segment: Real Estate
     platform: ibkr
     price_type: stocks
-    logo: VNQ.png
     contract_id: 31230302
   - asset: BTC
     description: Bitcoin
@@ -105,7 +94,6 @@ assets:
     segment: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: BTC.png
   - asset: ETH
     description: Ethereum
     target_allocation: 3
@@ -113,7 +101,6 @@ assets:
     segment: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: ETH.png
   - asset: SOL
     description: Solana
     target_allocation: 3
@@ -121,7 +108,6 @@ assets:
     segment: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: SOL.png
   - asset: TIA
     description: Celestia
     target_allocation: 0
@@ -129,4 +115,3 @@ assets:
     segment: Crypto Tokens
     platform: coinbase
     price_type: crypto
-    logo: TIA.png
