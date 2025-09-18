@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import { Asset } from '../data/types';
+import { getAssetLogo } from '../utils/assetRegistry';
 
 interface AssetRowProps {
   asset: Asset;
@@ -11,26 +12,9 @@ interface AssetRowProps {
   onPress?: (asset: Asset) => void;
 }
 
-// Asset image mapping
-const assetImages: { [key: string]: any } = {
-  'VT': require('../../assets/images/VT.png'),
-  'VOO': require('../../assets/images/VOO.png'),
-  'VO': require('../../assets/images/VO.png'),
-  'VB': require('../../assets/images/VB.png'),
-  'VXUS': require('../../assets/images/VXUS.png'),
-  'VWO': require('../../assets/images/VWO.png'),
-  'COIN': require('../../assets/images/COIN.png'),
-  'HOOD': require('../../assets/images/HOOD.png'),
-  'AAAU': require('../../assets/images/AAAU.png'),
-  'VNQ': require('../../assets/images/VNQ.png'),
-  'BTC': require('../../assets/images/BTC.png'),
-  'ETH': require('../../assets/images/ETH.png'),
-  'SOL': require('../../assets/images/SOL.png'),
-};
-
 export default function AssetRow({ asset, isFirst = false, isLast = false, onPress }: AssetRowProps) {
-  // Get image source from mapping
-  const imageSource = assetImages[asset.asset];
+  // Get image source from centralized registry
+  const imageSource = getAssetLogo(asset.asset);
   
   // Calculate values
   const totalValue = parseFloat(asset.value);
