@@ -32,6 +32,10 @@ copy-data:
 	@rm -rf ../porfolio-data/prices/ ../porfolio-data/trades/
 	@cp -r data/* ../portfolio-data/
 
+run-app:
+	@(cd frontend/mobile && npm run ios)
+
+# NOTE: Increment the app.json build number and version first
 build-app:
 	@(cd frontend/mobile && eas build --platform ios)
 
