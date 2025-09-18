@@ -116,13 +116,13 @@ function FinancialChart({
   // State to store Victory Native's exact points for gradient
   const [victoryPoints, setVictoryPoints] = useState<any[] | null>(null);
 
-  // Reset state when data changes
+  // Reset state only when data structure changes (length or content change)
   React.useEffect(() => {
     setChartBounds(null);
     setVictoryPoints(null);
     setSelectedDataPoint(null);
     setYScale(null);
-  }, [data]);
+  }, [data.length, data.map(d => `${d.x}-${d.y}`).join(',')]);
 
   // Handle smooth transitions between loading and chart states
   React.useEffect(() => {
