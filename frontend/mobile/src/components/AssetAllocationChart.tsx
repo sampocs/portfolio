@@ -62,6 +62,8 @@ function ChartRow({ asset, chartWidth, maxAllocation, isFirst = false, isLast = 
         'BTC': require('../../assets/images/BTC.png'),
         'ETH': require('../../assets/images/ETH.png'),
         'SOL': require('../../assets/images/SOL.png'),
+        'TIA': require('../../assets/images/TIA.png'),
+        'GLXY': require('../../assets/images/GLXY.png'),
       };
       return logoMap[assetSymbol] || null;
     } catch {
