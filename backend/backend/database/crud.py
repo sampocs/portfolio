@@ -7,11 +7,13 @@ from backend.config import config
 from tqdm import tqdm
 
 
-def get_trades(db: Session, asset: str | None = None):
+def get_trades(db: Session, asset: str | None = None, date: datetime.date | None = None):
     """Returns all trades with optional asset filter"""
     query = db.query(models.Trade).where(models.Trade.excluded.is_(False))
     if asset:
         query = query.where(models.Trade.asset == asset)
+    if date:
+        query = query.where(models.Trade.date == date)
     return query.all()
 
 

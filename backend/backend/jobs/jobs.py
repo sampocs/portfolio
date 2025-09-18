@@ -91,7 +91,7 @@ def index_recent_trades(db: Session):
 
     try:
         logger.info(f"Checking for stock trades since {last_trade_date}...")
-        stock_trades = trades.get_recent_ibkr_trades(start_date=last_trade_date)
+        stock_trades = trades.get_recent_ibkr_trades(db=db, start_date=last_trade_date)
         logger.info(f"Found {len(stock_trades)} stock trades")
     except Exception as e:
         logger.error(f"Failed to scrape stock trades: {e}")

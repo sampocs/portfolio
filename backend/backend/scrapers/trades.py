@@ -4,11 +4,49 @@ from decimal import Decimal
 from ibind import IbkrClient
 from dateutil import parser
 from backend.config import config, Platform
-from backend.database import models
+from backend.database import models, crud
 from coinbase.rest import RESTClient
+from sqlalchemy.orm import Session
 
 
-def get_recent_ibkr_trades(start_date: datetime.date) -> list[models.Trade]:
+def trade_has_id_conflict(db: Session, new_trade: models.Trade) -> bool:
+    """
+    The values in the IBKR response can change mildly as the order is filled, but there's
+    no single ID field we can use to know this for sure
+
+    To handle this, we check if we have other trades on that date for that asset, that have
+    a price/quantity within 0.01% of each other - in which case it is considered a duplicate
+
+    Importantly, if there is a duplicate, we return that there is NO conflict
+    The reason for this is that we will want to keep the same ID to allow the values
+    to be overriden with the upsert
+
+    If there is an existing trade on that date (meaning with the same ID), that does
+    NOT seem to be a duplicate, then we consider that a conflict, which lets us know
+    that we need to generate a new ID
+    """
+    existing_trades = crud.get_trades(db, asset=new_trade.asset, date=new_trade.date)
+    for existing in existing_trades:
+        if existing.action != new_trade.action:
+            continue
+
+        # Skip if existing values are zero (would cause division by zero)
+        if existing.quantity == 0 or existing.price == 0:
+            continue
+
+        # Check if quantity and price are within 0.01% tolerance
+        tolerance = Decimal("0.0001")
+        qty_diff_pct = abs((existing.quantity - new_trade.quantity)) / existing.quantity
+        price_diff_pct = abs((existing.price - new_trade.price)) / existing.price
+
+        # If the trade is sufficiently different, then we have an ID conflict
+        if qty_diff_pct > tolerance or price_diff_pct > tolerance:
+            return True
+
+    return False
+
+
+def get_recent_ibkr_trades(db: Session, start_date: datetime.date) -> list[models.Trade]:
     """
     Scrapes recent IBKR trades
     :param start_date: First date to query orders from, inclusively
@@ -40,8 +78,12 @@ def get_recent_ibkr_trades(start_date: datetime.date) -> list[models.Trade]:
             price = Decimal(str(transaction["pr"]))
             date = parser.parse(str(transaction["date"]).replace("00:00:00 EDT ", "")).date().isoformat()
             fees = Decimal("0.0035") * quantity
+            value = price * quantity
 
-            id_string = f"{asset_info.asset}_{date}_{action}_{quantity}_{price}_{cost}"
+            # Note: This intentionally causes trades on the same day for the same asset have the same ID
+            # We handle these cases separately, which are rare since the main user of this product
+            # does not place multiple trades for the same asset in the same day
+            id_string = f"{asset_info.asset}_{date}_{action}"
             trade_id = f"ibkr-{hashlib.sha256(id_string.encode()).hexdigest()[:20]}"
 
             trade = models.Trade(
@@ -54,9 +96,18 @@ def get_recent_ibkr_trades(start_date: datetime.date) -> list[models.Trade]:
                 quantity=quantity,
                 fees=fees,
                 cost=cost,
-                value=price * quantity,
+                value=value,
                 excluded=False,
             )
+
+            # See if we have an ID conflict with a trade on the same date with
+            # a different quantity or price
+            # If we do, we need to generate a new ID; if we don't, we can just leave
+            # it as is which will upsert on conflict with the latest value for dupes
+            if trade_has_id_conflict(db, trade):
+                suffix = f"{quantity}_{price}_{cost}_{value}"
+                id_string = f"{id_string}_{suffix}"
+                trade.id = f"ibkr-{hashlib.sha256(id_string.encode()).hexdigest()[:20]}"
 
             trades.append(trade)
 
