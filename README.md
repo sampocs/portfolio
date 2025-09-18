@@ -112,6 +112,6 @@ In order to automatically track trades, they must be done as follows:
 - If it's an IBKR asset, get the contractId with: `make contract-id ASSET={asset}`
 - Get the asset logo images and save to `frontend/mobile/assets/images/{asset}.png`
 - Add the image path to `getAssetLogo` in `frontend/mobile/src/components/AssetAllocationChart.tsx`
-- If it's a crypto asset, download the historical prices from coingecko (see above), and save under `data/prices/raw/{asset}_raw.csv`
+- If it's a crypto asset, download the historical prices from coingecko (see above), and save under `data/prices/raw/{asset}_raw.csv`I
 - Add the assets prices to the database with `make add-prices ASSET={asset}`
 - Trades will be sync'd automatically

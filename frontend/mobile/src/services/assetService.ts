@@ -42,10 +42,14 @@ export class AssetService {
       case '1D':
         // For 1D, just show yesterday's close and today's live price
         if (historical_prices.length > 0) {
-          const lastHistoricalPrice = historical_prices[historical_prices.length - 1];
+          // Sort to ensure we get the most recent historical price first
+          const sortedPrices = [...historical_prices].sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          const mostRecentHistoricalPrice = sortedPrices[0];
           filteredHistory = [{
-            date: lastHistoricalPrice.date,
-            price: parseFloat(lastHistoricalPrice.price)
+            date: mostRecentHistoricalPrice.date,
+            price: parseFloat(mostRecentHistoricalPrice.price)
           }];
         }
         break;
