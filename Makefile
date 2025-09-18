@@ -6,6 +6,9 @@ PYTHON=$(VENV_BIN)/python
 install:
 	conda create --name $(VENV_NAME) python=3.11 -y
 	@$(PYTHON) -m pip install -r backend/requirements.txt
+	
+npm-install:
+	@(cd frontend/mobile && npm install --legacy-peer-deps)
 
 start-api:
 	@(cd backend && $(PYTHON) -m uvicorn backend.main:app --host 0.0.0.0 --port 8000)
