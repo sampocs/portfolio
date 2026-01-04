@@ -1,5 +1,5 @@
 import datetime
-from backend.database import crud, models
+from backend.database import crud, models, connection
 from backend.scrapers import prices, trades
 from backend.config import logger
 from sqlalchemy.orm import Session
@@ -13,7 +13,9 @@ def _get_date_range(start_date: datetime.date, end_date: datetime.date) -> list[
     between the last run and the current date
     """
     days_diff = (end_date - start_date).days
-    target_dates = [start_date + datetime.timedelta(days=i) for i in range(0, days_diff + 1)]
+    target_dates = [
+        start_date + datetime.timedelta(days=i) for i in range(0, days_diff + 1)
+    ]
     return [str(date) for date in target_dates]
 
 
@@ -86,20 +88,35 @@ def index_recent_trades(db: Session):
     """
     Checks for any recent crypto or stock trades and saves them in the database
     """
-    last_trade_date = db.query(func.max(models.Trade.date)).scalar()
-    assert last_trade_date, "No trades present, please seed DB first"
+    last_ibkr_trade_date = (
+        db.query(func.max(models.Trade.date))
+        .filter(models.Trade.platform == "ibkr")
+        .scalar()
+    )
+    last_coinbase_trade_date = (
+        db.query(func.max(models.Trade.date))
+        .filter(models.Trade.platform == "coinbase")
+        .scalar()
+    )
+    assert last_ibkr_trade_date and last_coinbase_trade_date, (
+        "No trades present, please seed DB first"
+    )
 
     try:
-        logger.info(f"Checking for stock trades since {last_trade_date}...")
-        stock_trades = trades.get_recent_ibkr_trades(db=db, start_date=last_trade_date)
+        logger.info(f"Checking for stock trades since {last_ibkr_trade_date}...")
+        stock_trades = trades.get_recent_ibkr_trades(
+            db=db, start_date=last_ibkr_trade_date
+        )
         logger.info(f"Found {len(stock_trades)} stock trades")
     except Exception as e:
         logger.error(f"Failed to scrape stock trades: {e}")
         stock_trades = []
 
     try:
-        logger.info(f"Checking for crypto trades since {last_trade_date}...")
-        crypto_trades = trades.get_recent_coinbase_trades(start_date=last_trade_date)
+        logger.info(f"Checking for crypto trades since {last_coinbase_trade_date}...")
+        crypto_trades = trades.get_recent_coinbase_trades(
+            start_date=last_coinbase_trade_date
+        )
         logger.info(f"Found {len(crypto_trades)} crypto trades")
     except Exception as e:
         logger.error(f"Failed to scrape crypto trades: {e}")
@@ -114,3 +131,8 @@ def index_recent_trades(db: Session):
     crud.store_positions(db, positions)
 
     logger.info("Done")
+
+
+if __name__ == "__main__":
+    with connection.SessionLocal() as db:
+        _fill_historical_positions(db)

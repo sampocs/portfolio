@@ -4,10 +4,12 @@ from backend.database import models
 from decimal import Decimal
 from collections import defaultdict
 from backend.config import config
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 
 
-def get_trades(db: Session, asset: str | None = None, date: datetime.date | None = None):
+def get_trades(
+    db: Session, asset: str | None = None, date: datetime.date | None = None
+):
     """Returns all trades with optional asset filter"""
     query = db.query(models.Trade).where(models.Trade.excluded.is_(False))
     if asset:
@@ -29,7 +31,11 @@ def get_historical_prices(db: Session, asset: str, limit: int = 365 * 5):
 
 def get_live_price(db: Session, asset: str) -> tuple[Decimal, datetime.datetime]:
     """Returns the live price for an asset"""
-    price = db.query(models.LivePrice.price, models.LivePrice.updated_at).where(models.LivePrice.asset == asset).first()
+    price = (
+        db.query(models.LivePrice.price, models.LivePrice.updated_at)
+        .where(models.LivePrice.asset == asset)
+        .first()
+    )
     assert price, f"No live price found for {asset}"
     return price[0], price[1]
 
@@ -39,14 +45,20 @@ def get_all_positions(db: Session):
     return db.query(models.Position).all()
 
 
-def build_positions_from_trades(db: Session, end_date: str | None = None) -> list[models.Position]:
+def build_positions_from_trades(
+    db: Session, end_date: str | None = None
+) -> list[models.Position]:
     """
     Builds the current portfolio positions from the trade history on the specified dates
     Dates are inclusive on both ends
     Returns a list of Position objects, one for each asset
     """
     end_date = end_date or datetime.date.today().isoformat()
-    trades = db.query(models.Trade).where(models.Trade.date <= end_date).order_by(models.Trade.date)
+    trades = (
+        db.query(models.Trade)
+        .where(models.Trade.date <= end_date)
+        .order_by(models.Trade.date)
+    )
 
     # Group trades by asset
     asset_trades = defaultdict(list)
@@ -104,14 +116,23 @@ def build_positions_from_trades(db: Session, end_date: str | None = None) -> lis
     return positions
 
 
-def enrich_historical_position(db: Session, date: str, position: models.Position) -> models.HistoricalPosition:
+def enrich_historical_position(
+    db: Session, date: str, position: models.Position
+) -> models.HistoricalPosition:
     """Enrich a position with the historical price and downstream calculations"""
     asset_match = models.HistoricalPrice.asset == position.asset
     date_match = models.HistoricalPrice.date == date
-    daily_close_price = db.query(models.HistoricalPrice.price).where(asset_match).where(date_match).scalar()
+    daily_close_price = (
+        db.query(models.HistoricalPrice.price)
+        .where(asset_match)
+        .where(date_match)
+        .scalar()
+    )
 
     if position.quantity != 0:
-        assert daily_close_price, f"Daily close price not found for {position.asset} on {date}"
+        assert daily_close_price, (
+            f"Daily close price not found for {position.asset} on {date}"
+        )
     else:
         daily_close_price = Decimal(0)
 
@@ -137,9 +158,16 @@ def build_historical_positions(
     Build the historical positions table for each of the specified dates
     """
     historical_positions = []
-    for end_date in tqdm(target_dates, desc="Building historical positions") if log_progress else target_dates:
+    for end_date in (
+        tqdm(target_dates, desc="Building historical positions")
+        if log_progress
+        else target_dates
+    ):
         positions_raw = build_positions_from_trades(db, end_date=end_date)
-        historical_positions += [enrich_historical_position(db, end_date, position) for position in positions_raw]
+        historical_positions += [
+            enrich_historical_position(db, end_date, position)
+            for position in positions_raw
+        ]
 
     return historical_positions
 
@@ -153,7 +181,10 @@ def store_live_prices(db: Session, price_data: dict[str, Decimal]):
     db.query(models.LivePrice).delete()
 
     # Bulk insert new prices
-    price_objects = [models.LivePrice(asset=asset, price=price) for (asset, price) in price_data.items()]
+    price_objects = [
+        models.LivePrice(asset=asset, price=price)
+        for (asset, price) in price_data.items()
+    ]
     db.bulk_save_objects(price_objects)
 
     db.commit()
@@ -167,7 +198,9 @@ def store_historical_prices(db: Session, price_date: dict[str, dict[str, Decimal
     price_objects = []
     for asset, price_by_date in price_date.items():
         for date, price in price_by_date.items():
-            price_objects.append(models.HistoricalPrice(date=date, asset=asset, price=price))
+            price_objects.append(
+                models.HistoricalPrice(date=date, asset=asset, price=price)
+            )
 
     db.bulk_save_objects(price_objects)
     db.commit()
@@ -180,7 +213,9 @@ def store_positions(db: Session, positions: list[models.Position]):
     db.commit()
 
 
-def store_historical_positions(db: Session, historical_positions: list[models.HistoricalPosition]):
+def store_historical_positions(
+    db: Session, historical_positions: list[models.HistoricalPosition]
+):
     """Stores historical positiosn in the DB"""
     db.bulk_save_objects(historical_positions)
     db.commit()
