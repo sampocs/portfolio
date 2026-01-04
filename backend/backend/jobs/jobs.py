@@ -1,5 +1,5 @@
 import datetime
-from backend.database import crud, models, connection
+from backend.database import crud, models
 from backend.scrapers import prices, trades
 from backend.config import logger
 from sqlalchemy.orm import Session
@@ -131,8 +131,3 @@ def index_recent_trades(db: Session):
     crud.store_positions(db, positions)
 
     logger.info("Done")
-
-
-if __name__ == "__main__":
-    with connection.SessionLocal() as db:
-        _fill_historical_positions(db)

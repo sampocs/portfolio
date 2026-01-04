@@ -26,7 +26,9 @@ DURATION_TO_TIMEDELTA = {
     "5Y": datetime.timedelta(days=365 * 5),
 }
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger("portfolio")
 
 
@@ -111,16 +113,30 @@ class Config(BaseSettings):
     ibkr_account_id: str = Field(alias="IBKR_ACCOUNT_ID")
 
     ibind_use_oauth: bool = Field(alias="IBIND_USE_OAUTH", default=False)
-    ibind_oauth1a_consumer_key: str = Field(alias="IBIND_OAUTH1A_CONSUMER_KEY", default="")
+    ibind_oauth1a_consumer_key: str = Field(
+        alias="IBIND_OAUTH1A_CONSUMER_KEY", default=""
+    )
 
-    ibind_oauth1a_encryption_key_contents: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS", default="")
-    ibind_oauth1a_signature_key_contents: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS", default="")
+    ibind_oauth1a_encryption_key_contents: str = Field(
+        alias="IBIND_OAUTH1A_ENCRYPTION_KEY_CONTENTS", default=""
+    )
+    ibind_oauth1a_signature_key_contents: str = Field(
+        alias="IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS", default=""
+    )
 
-    ibind_oauth1a_encryption_key_fp: str = Field(alias="IBIND_OAUTH1A_ENCRYPTION_KEY_FP", default="")
-    ibind_oauth1a_signature_key_fp: str = Field(alias="IBIND_OAUTH1A_SIGNATURE_KEY_FP", default="")
+    ibind_oauth1a_encryption_key_fp: str = Field(
+        alias="IBIND_OAUTH1A_ENCRYPTION_KEY_FP", default=""
+    )
+    ibind_oauth1a_signature_key_fp: str = Field(
+        alias="IBIND_OAUTH1A_SIGNATURE_KEY_FP", default=""
+    )
 
-    ibind_oauth1a_access_token: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN", default="")
-    ibind_oauth1a_access_token_secret: str = Field(alias="IBIND_OAUTH1A_ACCESS_TOKEN_SECRET", default="")
+    ibind_oauth1a_access_token: str = Field(
+        alias="IBIND_OAUTH1A_ACCESS_TOKEN", default=""
+    )
+    ibind_oauth1a_access_token_secret: str = Field(
+        alias="IBIND_OAUTH1A_ACCESS_TOKEN_SECRET", default=""
+    )
     ibind_oauth1a_dh_prime: str = Field(alias="IBIND_OAUTH1A_DH_PRIME", default="")
     ibeam_port: str = Field(alias="IBEAM_PORT", default="5000")
 
@@ -131,18 +147,26 @@ class Config(BaseSettings):
     fastapi_secret: str = Field(alias="FASTAPI_SECRET")
 
     finhub_api_token: str = Field(alias="FINHUB_API_TOKEN")
-    alpha_vantage_api_token: str = Field(alias="ALPHA_VANTAGE_API_TOKEN")
+    tilingo_api_token: str = Field(alias="TILINGO_API_TOKEN")
     coingecko_api_token: str = Field(alias="COINGECKO_API_TOKEN")
 
     finhub_live_price_api: str = Field(default="https://finnhub.io/api/v1/quote")
-    coingecko_live_price_api: str = Field(default="https://pro-api.coingecko.com/api/v3/simple/price")
-    alpha_price_api: str = Field(default="https://www.alphavantage.co/query")
-    coingecko_prev_close_api: str = Field(default="https://pro-api.coingecko.com/api/v3/coins/{}/market_chart")
+    coingecko_live_price_api: str = Field(
+        default="https://pro-api.coingecko.com/api/v3/simple/price"
+    )
+    tilingo_prev_close_api: str = Field(
+        default="https://api.tiingo.com/tiingo/daily/{}/prices"
+    )
+    coingecko_prev_close_api: str = Field(
+        default="https://pro-api.coingecko.com/api/v3/coins/{}/market_chart"
+    )
 
     price_cache_ttl_min: int = Field(default=5)
     trades_cache_ttl_min: int = Field(default=10)
 
-    model_config = SettingsConfigDict(case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow")
+    model_config = SettingsConfigDict(
+        case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow"
+    )
 
     @model_validator(mode="after")
     def validate_ibind_config(self) -> "Config":
@@ -155,7 +179,11 @@ class Config(BaseSettings):
                 "ibind_oauth1a_dh_prime": "IBIND_OAUTH1A_DH_PRIME",
             }
 
-        missing_fields = [env_name for field_name, env_name in oauth_fields.items() if not getattr(self, field_name)]
+        missing_fields = [
+            env_name
+            for field_name, env_name in oauth_fields.items()
+            if not getattr(self, field_name)
+        ]
         if missing_fields:
             raise ValueError(
                 f"OAuth is enabled but missing required environment variables: {', '.join(missing_fields)}"
@@ -172,12 +200,21 @@ class Config(BaseSettings):
             "ibind_oauth1a_signature_key_contents": "IBIND_OAUTH1A_SIGNATURE_KEY_CONTENTS",
         }
 
-        provided_fp_fields = {env_name for field_name, env_name in fp_fields.items() if getattr(self, field_name)}
+        provided_fp_fields = {
+            env_name
+            for field_name, env_name in fp_fields.items()
+            if getattr(self, field_name)
+        }
         provided_contents_fields = {
-            env_name for field_name, env_name in contents_fields.items() if getattr(self, field_name)
+            env_name
+            for field_name, env_name in contents_fields.items()
+            if getattr(self, field_name)
         }
 
-        if set(fp_fields.values()) != provided_fp_fields and set(contents_fields.values()) != provided_contents_fields:
+        if (
+            set(fp_fields.values()) != provided_fp_fields
+            and set(contents_fields.values()) != provided_contents_fields
+        ):
             raise ValueError(
                 "OAuth is enabled but missing required environment variables for either file path or contents."
                 + f"\nRequired File path fields: {', '.join(fp_fields.values())}"
@@ -201,7 +238,7 @@ class Config(BaseSettings):
 
         temp_fd, temp_path = tempfile.mkstemp(suffix=suffix, prefix="oauth_key_")
         try:
-            with os.fdopen(temp_fd, 'w') as temp_file:
+            with os.fdopen(temp_fd, "w") as temp_file:
                 temp_file.write(content)
         except Exception:
             # Clean up if writing fails
@@ -219,7 +256,9 @@ class Config(BaseSettings):
         if self.ibind_oauth1a_encryption_key_fp:
             return self.ibind_oauth1a_encryption_key_fp
 
-        return self._create_temp_key_file(self.ibind_oauth1a_encryption_key_contents, "_encryption.key")
+        return self._create_temp_key_file(
+            self.ibind_oauth1a_encryption_key_contents, "_encryption.key"
+        )
 
     @cached_property
     def ibind_signature_key_fp(self) -> str:
@@ -230,7 +269,9 @@ class Config(BaseSettings):
         if self.ibind_oauth1a_signature_key_fp:
             return self.ibind_oauth1a_signature_key_fp
 
-        return self._create_temp_key_file(self.ibind_oauth1a_signature_key_contents, "_signature.key")
+        return self._create_temp_key_file(
+            self.ibind_oauth1a_signature_key_contents, "_signature.key"
+        )
 
     @property
     def ibind_oauth_config(self) -> OAuth1aConfig:
@@ -259,17 +300,27 @@ class Config(BaseSettings):
         with open(self.assets_config, "r") as f:
             asset_data = yaml.safe_load(f)
 
-        return {asset["asset"]: Asset.from_dict(asset) for asset in asset_data["assets"]}
+        return {
+            asset["asset"]: Asset.from_dict(asset) for asset in asset_data["assets"]
+        }
 
     @property
     def stock_tickers(self) -> list[str]:
         """Returns a list of all stock tickers"""
-        return [asset_id for asset_id, asset_info in self.assets.items() if asset_info.price_type == PriceType.STOCKS]
+        return [
+            asset_id
+            for asset_id, asset_info in self.assets.items()
+            if asset_info.price_type == PriceType.STOCKS
+        ]
 
     @property
     def crypto_tokens(self) -> list[str]:
         """Returns a list of all crypto tokens"""
-        return [asset_id for asset_id, asset_info in self.assets.items() if asset_info.price_type == PriceType.CRYPTO]
+        return [
+            asset_id
+            for asset_id, asset_info in self.assets.items()
+            if asset_info.price_type == PriceType.CRYPTO
+        ]
 
     @property
     def coingecko_ids(self) -> dict[str, str]:
