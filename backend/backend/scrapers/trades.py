@@ -79,7 +79,9 @@ def get_recent_ibkr_trades(
             quantity = Decimal(str(transaction["qty"]))
             cost = abs(Decimal(str(transaction["amt"])))
             price = Decimal(str(transaction["pr"]))
-            date = str(transaction["date"])[:10]
+            date = datetime.datetime.strptime(
+                str(transaction["date"]), "%a %b %d, %Y"
+            ).strftime("%Y-%m-%d")
             fees = Decimal("0.0035") * quantity
             value = price * quantity
 
