@@ -51,6 +51,15 @@ ifndef ASSET
 endif
 	@(cd backend && $(PYTHON) -m backend.bootstrap.add_prices --asset $(ASSET))
 
+sync-trades:
+	@(cd backend && $(PYTHON) -m backend.jobs.jobs --trades)
+
+sync-prices:
+	@(cd backend && $(PYTHON) -m backend.jobs.jobs --prices)
+
+sync-positions:
+	@(cd backend && $(PYTHON) -m backend.jobs.jobs --positions)
+
 contract-id:
 ifndef ASSET
 	$(error ASSET environment variable is required)
