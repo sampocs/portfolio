@@ -1,6 +1,7 @@
-import hashlib
 import datetime
+import hashlib
 from decimal import Decimal
+
 from ibind import IbkrClient
 from backend.config import config, Platform
 from backend.database import models, crud
@@ -66,9 +67,13 @@ def get_recent_ibkr_trades(
         days = (current_date - start_date).days + 1
 
         transactions_raw = client.transaction_history(
-            config.ibkr_account_id, contract_id, "USD", days
-        )  # type: ignore
-        assert transactions_raw.data and transactions_raw.data["transactions"]  # type: ignore
+            config.ibkr_account_id,
+            contract_id,
+            "USD",
+            days,  # type: ignore
+        )
+        if not transactions_raw.data or "transactions" not in transactions_raw.data:
+            continue
         transactions: list[dict[str, str | int]] = transactions_raw.data["transactions"]  # type: ignore
 
         for transaction in transactions:
@@ -79,9 +84,7 @@ def get_recent_ibkr_trades(
             quantity = Decimal(str(transaction["qty"]))
             cost = abs(Decimal(str(transaction["amt"])))
             price = Decimal(str(transaction["pr"]))
-            date = datetime.datetime.strptime(
-                str(transaction["date"]), "%a %b %d, %Y"
-            ).strftime("%Y-%m-%d")
+            date = datetime.datetime.strptime(str(transaction["rawDate"]), "%Y%m%d").strftime("%Y-%m-%d")
             fees = Decimal("0.0035") * quantity
             value = price * quantity
 
