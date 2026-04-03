@@ -1,8 +1,10 @@
 import click
 import datetime
+import pandas as pd
+from decimal import Decimal
 from backend.database import crud, models, connection
 from backend.scrapers import prices, trades
-from backend.config import logger
+from backend.config import config, logger
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.config import InvalidPriceResponse
@@ -134,11 +136,64 @@ def index_recent_trades(db: Session):
     logger.info("Done")
 
 
+def _get_next_vanguard_id(db: Session) -> int:
+    """Returns the next sequential vanguard trade ID number"""
+    last_id = (
+        db.query(models.Trade.id)
+        .filter(models.Trade.id.like("vanguard-%"))
+        .order_by(models.Trade.id.desc())
+        .limit(100)
+        .all()
+    )
+    max_n = max(int(row.id.split("-")[1]) for row in last_id)
+    return max_n + 1
+
+
+def index_backdoor_roth_trades(db: Session):
+    """Reads trades from backdoor_roths/ CSVs and inserts them into the DB"""
+    backdoor_dir = config.trades_data_dir / "backdoor_roths"
+    csv_files = sorted(backdoor_dir.glob("*.csv"))
+    if not csv_files:
+        logger.info("No backdoor roth CSVs found")
+        return
+
+    dfs = [pd.read_csv(f) for f in csv_files]
+    trades_df = pd.concat(dfs, ignore_index=True)
+
+    next_id = _get_next_vanguard_id(db)
+    trade_objects = []
+    for _, row in trades_df.iterrows():
+        trade = models.Trade(
+            id=f"vanguard-{next_id}",
+            platform=row["platform"],
+            date=row["date"],
+            action=row["action"],
+            asset=row["asset"],
+            price=Decimal(str(row["price"])),
+            quantity=Decimal(str(row["quantity"])),
+            fees=Decimal(str(row["fees"])),
+            cost=Decimal(str(row["cost"])),
+            value=Decimal(str(row["value"])),
+            excluded=False,
+        )
+        trade_objects.append(trade)
+        next_id += 1
+
+    logger.info(f"Inserting {len(trade_objects)} backdoor roth trades (vanguard-{next_id - len(trade_objects)} to vanguard-{next_id - 1})")
+    crud.store_trades(db, trade_objects)
+
+    logger.info("Updating current position")
+    positions = crud.build_positions_from_trades(db)
+    crud.store_positions(db, positions)
+    logger.info("Done")
+
+
 @click.command()
 @click.option("--trades", "run_trades", is_flag=True, help="Index recent trades")
 @click.option("--prices", "run_prices", is_flag=True, help="Fill historical prices")
 @click.option("--positions", "run_positions", is_flag=True, help="Fill historical positions")
-def main(run_trades: bool, run_prices: bool, run_positions: bool):
+@click.option("--backdoor-roth", "run_backdoor_roth", is_flag=True, help="Index backdoor roth trades from CSVs")
+def main(run_trades: bool, run_prices: bool, run_positions: bool, run_backdoor_roth: bool):
     with connection.SessionLocal() as db:
         if run_trades:
             index_recent_trades(db)
@@ -146,6 +201,8 @@ def main(run_trades: bool, run_prices: bool, run_positions: bool):
             _fill_historical_prices(db)
         if run_positions:
             _fill_historical_positions(db)
+        if run_backdoor_roth:
+            index_backdoor_roth_trades(db)
 
 
 if __name__ == "__main__":

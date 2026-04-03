@@ -60,6 +60,9 @@ sync-prices:
 sync-positions:
 	@(cd backend && $(PYTHON) -m backend.jobs.jobs --positions)
 
+sync-backdoor-roth:
+	@(cd backend && $(PYTHON) -m backend.jobs.jobs --backdoor-roth)
+
 contract-id:
 ifndef ASSET
 	$(error ASSET environment variable is required)
