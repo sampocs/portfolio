@@ -31,6 +31,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger("portfolio")
 
+# Suppress verbose ibind connection-error logging that floods Railway during IBKR outages
+logging.getLogger("ibind_fh.IbkrClient").setLevel(logging.ERROR)
+logging.getLogger("ibind.ibkr_utils").setLevel(logging.ERROR)
+
 
 @dataclass
 class InvalidPriceResponse(Exception):
@@ -286,6 +290,7 @@ class Config(BaseSettings):
             access_token=self.ibind_oauth1a_access_token,
             access_token_secret=self.ibind_oauth1a_access_token_secret,
             dh_prime=self.ibind_oauth1a_dh_prime,
+            maintain_oauth=False,
         )
 
     @property

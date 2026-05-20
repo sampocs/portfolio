@@ -54,6 +54,7 @@ def get_recent_ibkr_trades(
     :param start_date: First date to query orders from, inclusively
     """
     client = IbkrClient(**config.ibind_client_params)
+    client.tickle()
 
     trades = []
     for asset_info in config.assets.values():

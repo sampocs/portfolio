@@ -9,6 +9,7 @@ from decimal import Decimal
 def get_current_holdings() -> list[models.Position]:
     """Retrieves current IBKR holdings"""
     client = IbkrClient(**config.ibind_client_params)
+    client.tickle()
     positions_data = client.positions2(config.ibkr_account_id)
     assert positions_data.data, "No positions found for account"
 
