@@ -152,17 +152,17 @@ class Config(BaseSettings):
 
     finhub_api_token: str = Field(alias="FINHUB_API_TOKEN")
     tilingo_api_token: str = Field(alias="TILINGO_API_TOKEN")
-    coingecko_api_token: str = Field(alias="COINGECKO_API_TOKEN")
+    coingecko_api_token: str = Field(alias="COINGECKO_API_TOKEN", default="")
 
     finhub_live_price_api: str = Field(default="https://finnhub.io/api/v1/quote")
     coingecko_live_price_api: str = Field(
-        default="https://pro-api.coingecko.com/api/v3/simple/price"
+        default="https://api.coingecko.com/api/v3/simple/price"
     )
     tilingo_prev_close_api: str = Field(
         default="https://api.tiingo.com/tiingo/daily/{}/prices"
     )
     coingecko_prev_close_api: str = Field(
-        default="https://pro-api.coingecko.com/api/v3/coins/{}/market_chart"
+        default="https://api.coingecko.com/api/v3/coins/{}/market_chart"
     )
 
     price_cache_ttl_min: int = Field(default=5)

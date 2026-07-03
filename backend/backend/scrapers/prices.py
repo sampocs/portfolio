@@ -6,6 +6,16 @@ from backend.config import config, InvalidPriceResponse
 from backend.database import models, crud
 
 
+def _get_coingecko_headers() -> dict[str, str]:
+    """
+    Returns the auth header for the free Coingecko demo API
+    A key is optional - without one, requests fall back to anonymous rate limits
+    """
+    if not config.coingecko_api_token:
+        return {}
+    return {"x-cg-demo-api-key": config.coingecko_api_token}
+
+
 def _get_previous_stock_price(
     asset: str, target_dates: list[str]
 ) -> dict[str, Decimal]:
@@ -55,7 +65,7 @@ def _get_previous_crypto_price(
     utc_tz = datetime.timezone.utc
     date_to_unix = {date: _close_date_to_unix(date) for date in target_dates}
 
-    headers = {"x-cg-pro-api-key": config.coingecko_api_token}
+    headers = _get_coingecko_headers()
     params = {"vs_currency": "usd", "days": len(target_dates) + 1, "interval": "daily"}
     coingecko_id = config.coingecko_ids[asset]
 
@@ -100,7 +110,7 @@ def _get_current_stock_prices() -> dict[str, Decimal]:
 
 def _get_current_crypto_prices() -> dict[str, Decimal]:
     """Gets the current market price for each crypt token"""
-    headers = {"x-cg-pro-api-key": config.coingecko_api_token}
+    headers = _get_coingecko_headers()
     params = {"ids": ",".join(config.coingecko_ids.values()), "vs_currencies": "usd"}
 
     response = requests.get(
