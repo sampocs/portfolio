@@ -54,7 +54,9 @@ class HistoricalPosition(Base):
 
     asset: Mapped[str] = mapped_column(String, primary_key=True)
     date: Mapped[datetime.date] = mapped_column(Date, primary_key=True)
-    average_position_price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    average_position_price: Mapped[Decimal] = mapped_column(
+        decimal_sql_type, nullable=False
+    )
     daily_close_price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
     quantity: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
     cost: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
@@ -80,5 +82,8 @@ class LivePrice(Base):
     asset: Mapped[str] = mapped_column(String, primary_key=True)
     price: Mapped[Decimal] = mapped_column(decimal_sql_type)
     updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc)
+        # The default must be a callable - passing now() directly would freeze the
+        # timestamp at import time, stamping every row with the process boot time
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
