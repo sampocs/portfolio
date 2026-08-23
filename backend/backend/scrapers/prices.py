@@ -148,14 +148,18 @@ def get_previous_asset_prices(
     }
     all_prices = {**stock_prices, **crypto_prices}
 
-    # Fill missing dates with previous prices from database
+    # Fill missing dates by carrying forward the prior day's close
     # This is relevant for stocks which don't have prices when the market is closed on weekends and holidays
-    for asset in all_prices.keys():
-        for date in target_dates:
-            if date not in all_prices[asset]:
-                all_prices[asset][date] = crud.get_latest_asset_price(
+    # Carrying forward within the fetched batch matters when backfilling a gap: the DB only has
+    # prices from before the gap, so falling back to it mid-range would freeze stale closes
+    for asset, prices_by_date in all_prices.items():
+        previous_price = None
+        for date in sorted(target_dates):
+            if date not in prices_by_date:
+                prices_by_date[date] = previous_price or crud.get_latest_asset_price(
                     db, asset=asset, date=date
                 )
+            previous_price = prices_by_date[date]
     return all_prices
 
 
