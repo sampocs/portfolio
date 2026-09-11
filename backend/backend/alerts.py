@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import time
+import urllib.parse
 
 import requests
 
@@ -17,7 +18,8 @@ def build_reconnect_link() -> str:
     """Builds a signed, expiring link to the reconnect endpoint"""
     expires = int(time.time()) + RECONNECT_LINK_TTL_SECONDS
     signature = _sign_reconnect_link(expires)
-    return f"https://{config.railway_public_domain}{RECONNECT_PATH}?expires={expires}&signature={signature}"
+    query = urllib.parse.urlencode({"expires": expires, "signature": signature})
+    return f"https://{config.railway_public_domain}{RECONNECT_PATH}?{query}"
 
 
 def is_valid_reconnect_signature(expires: int, signature: str) -> bool:
@@ -41,16 +43,22 @@ def send_robinhood_disconnected_alert() -> None:
         )
         return
 
-    requests.post(
-        NTFY_URL.format(config.ntfy_topic),
-        data="Tap to log back in to Robinhood",
-        headers={
-            "Title": "Robinhood disconnected",
-            "Click": build_reconnect_link(),
-            "Tags": "warning",
-        },
-        timeout=REQUEST_TIMEOUT_SECONDS,
-    )
+    try:
+        response = requests.post(
+            NTFY_URL.format(config.ntfy_topic),
+            data="Tap to log back in to Robinhood",
+            headers={
+                "Title": "Robinhood disconnected",
+                "Click": build_reconnect_link(),
+                "Tags": "warning",
+            },
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as error:
+        # Never let a notification failure crash the caller (this runs inside the
+        # trade-sync job's exception handler) - just leave a log trail.
+        logger.warning(f"Failed to send the robinhood disconnect notification: {error}")
 
 
 def _sign_reconnect_link(expires: int) -> str:
@@ -62,4 +70,6 @@ def _sign_reconnect_link(expires: int) -> str:
     account to this SnapTrade user and have their trades synced here
     """
     message = SIGNATURE_MESSAGE.format(expires).encode()
-    return hmac.new(config.fastapi_secret.encode(), message, hashlib.sha256).hexdigest()
+    return hmac.new(
+        key=config.fastapi_secret.encode(), msg=message, digestmod=hashlib.sha256
+    ).hexdigest()
