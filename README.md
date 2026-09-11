@@ -41,6 +41,19 @@ IBIND_USE_OAUTH=True
 IBEAM_PORT=8000
 ```
 
+### Robinhood (via SnapTrade)
+
+Robinhood has no official stocks API, so trades are read through SnapTrade, which connects over
+Robinhood's OAuth flow and is read-only.
+
+1. Create a Personal account at https://dashboard.snaptrade.com and generate an API key (free)
+2. Set `SNAPTRADE_CLIENT_ID`, `SNAPTRADE_CONSUMER_KEY` and `NTFY_TOPIC` in `.env` and on Railway
+3. Subscribe to the `NTFY_TOPIC` topic in the ntfy app, which is where disconnect alerts arrive
+4. Run `make robinhood-connect` and open the printed URL within 5 minutes, then log in to Robinhood
+
+The connection expires periodically. When it does, the morning sync pushes a notification - tap it
+and log in again. Transactions are published by SnapTrade once a day, so trades appear the next morning.
+
 ## Historical Exports
 
 ### Vanguard
