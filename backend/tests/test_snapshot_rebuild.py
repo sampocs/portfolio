@@ -99,3 +99,29 @@ def test_no_new_trades_clears_nothing(db):
     jobs._clear_stale_position_snapshots(db, [])
 
     assert db.query(models.HistoricalPosition).count() == 1
+
+
+def test_failed_refill_leaves_snapshots_intact(db, monkeypatch):
+    _seed(db, _snapshot("2026-09-09"), _snapshot("2026-09-10"), _snapshot("2026-09-11"))
+
+    def failing_refill(session: Session) -> None:
+        raise AssertionError("Daily close price not found for VOO on 2026-09-10")
+
+    monkeypatch.setattr(jobs, "_fill_historical_positions", failing_refill)
+
+    with pytest.raises(AssertionError):
+        jobs._rebuild_stale_position_snapshots(
+            db, [_trade(trade_id="robinhood-2", date="2026-09-10")]
+        )
+
+    remaining = [
+        row.date
+        for row in db.query(models.HistoricalPosition)
+        .order_by(models.HistoricalPosition.date)
+        .all()
+    ]
+    assert remaining == [
+        datetime.date(2026, 9, 9),
+        datetime.date(2026, 9, 10),
+        datetime.date(2026, 9, 11),
+    ]

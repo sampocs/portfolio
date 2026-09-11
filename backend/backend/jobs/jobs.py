@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.config import InvalidPriceResponse
 
+# A rebuild reaching back further than this is unusual enough to log loudly
+SNAPSHOT_REBUILD_WARN_DAYS = 30
+
 
 def _get_date_range(start_date: datetime.date, end_date: datetime.date) -> list[str]:
     """
@@ -133,11 +136,41 @@ def _clear_stale_position_snapshots(
     if not last_snapshot_date or earliest_trade_date > last_snapshot_date:
         return
 
-    logger.info(f"Rebuilding position snapshots from {earliest_trade_date}")
+    # A span of months means the trade history was pulled from much further back than a
+    # normal sync reaches, and every day in it gets recomputed, so it's worth surfacing
+    rebuild_days = (last_snapshot_date - earliest_trade_date).days
+    log_rebuild = (
+        logger.warning if rebuild_days > SNAPSHOT_REBUILD_WARN_DAYS else logger.info
+    )
+    log_rebuild(
+        f"Rebuilding {rebuild_days} days of position snapshots from {earliest_trade_date}"
+    )
+
+    # Deliberately left uncommitted - _rebuild_stale_position_snapshots commits the
+    # delete together with the refill that repairs it
     db.query(models.HistoricalPosition).filter(
         models.HistoricalPosition.date >= earliest_trade_date
     ).delete()
-    db.commit()
+
+
+def _rebuild_stale_position_snapshots(
+    db: Session, new_trades: list[models.Trade]
+) -> None:
+    """
+    Clears the snapshots invalidated by late trades and refills them in one transaction
+
+    The refill re-derives each cleared date from stored trades and prices and can fail
+    (e.g. a missing price row, or a zero-cost transfer-in), so the delete must never be
+    committed on its own - that would leave a hole in the performance chart that every
+    subsequent run reopens
+    """
+    try:
+        _clear_stale_position_snapshots(db, new_trades)
+        _fill_historical_positions(db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 
 def index_recent_trades(db: Session, send_alerts: bool = False):
@@ -208,19 +241,18 @@ def index_recent_trades(db: Session, send_alerts: bool = False):
 
     all_trades = stock_trades + crypto_trades + robinhood_trades
 
-    # Late trades invalidate the snapshots written for their date, so those are
-    # cleared before storing and rebuilt immediately after
+    # Late trades invalidate the snapshots written for their date, so the new ones are
+    # identified up front, while the DB can still tell them apart from what it holds
     new_trades = _get_new_trades(db, all_trades)
 
     logger.info("Writing trades to DB")
     crud.store_trades(db, all_trades)
-    _clear_stale_position_snapshots(db, new_trades)
+
+    _rebuild_stale_position_snapshots(db, new_trades)
 
     logger.info("Updating current position")
     positions = crud.build_positions_from_trades(db)
     crud.store_positions(db, positions)
-
-    _fill_historical_positions(db)
 
     logger.info("Done")
 
@@ -268,19 +300,20 @@ def index_backdoor_roth_trades(db: Session):
         trade_objects.append(trade)
         next_id += 1
 
+    # Resolved before the write, since every trade looks stored once it has been inserted
+    new_trades = _get_new_trades(db, trade_objects)
+
     logger.info(
         f"Inserting {len(trade_objects)} backdoor roth trades (vanguard-{next_id - len(trade_objects)} to vanguard-{next_id - 1})"
     )
     crud.store_trades(db, trade_objects)
 
     # These are backdated trades, so their snapshots have to be rebuilt too
-    _clear_stale_position_snapshots(db, trade_objects)
+    _rebuild_stale_position_snapshots(db, new_trades)
 
     logger.info("Updating current position")
     positions = crud.build_positions_from_trades(db)
     crud.store_positions(db, positions)
-
-    _fill_historical_positions(db)
 
     logger.info("Done")
 
