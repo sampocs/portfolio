@@ -12,6 +12,7 @@ CONNECTION_TYPE_READ_ONLY = "read"
 TRADE_ACTIVITY_TYPES = "BUY,SELL,REI"
 INVESTMENT_ACCOUNT_CATEGORY = "INVESTMENT"
 ACTIVITY_PAGE_SIZE = 1000
+MAX_ACTIVITY_PAGES = 100
 
 
 class RobinhoodDisconnectedError(Exception):
@@ -55,7 +56,7 @@ def get_activities(
     activities = []
     offset = 0
 
-    while True:
+    for page_num in range(MAX_ACTIVITY_PAGES):
         response = client.account_information.get_account_activities(
             account_id=account_id,
             start_date=start_date,
@@ -63,7 +64,7 @@ def get_activities(
             offset=offset,
             limit=ACTIVITY_PAGE_SIZE,
         )
-        page = _response_json(response)["data"]
+        page = _response_json(response).get("data", [])
         activities += page
 
         # A short page means there's nothing left to fetch
@@ -71,6 +72,11 @@ def get_activities(
             return activities
 
         offset += ACTIVITY_PAGE_SIZE
+
+    raise RuntimeError(
+        f"Exceeded {MAX_ACTIVITY_PAGES} pages fetching activities for "
+        f"account {account_id} (page {page_num + 1}); offset may not be honored"
+    )
 
 
 def get_connection_portal_url() -> str:

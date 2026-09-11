@@ -54,6 +54,12 @@ Robinhood's OAuth flow and is read-only.
 The connection expires periodically. When it does, the morning sync pushes a notification - tap it
 and log in again. Transactions are published by SnapTrade once a day, so trades appear the next morning.
 
+The reconnect link embedded in that notification needs `RAILWAY_PUBLIC_DOMAIN`, which Railway injects
+automatically (see `backend/backend/alerts.py:32`). It isn't set when running locally, so disconnect
+alerts are skipped there.
+
+Running `make test` requires a local `.env`, since `backend.config` loads it at import time.
+
 ## Historical Exports
 
 ### Vanguard

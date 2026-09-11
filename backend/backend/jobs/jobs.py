@@ -241,8 +241,9 @@ def index_recent_trades(db: Session, send_alerts: bool = False):
 
     all_trades = stock_trades + crypto_trades + robinhood_trades
 
-    # Late trades invalidate the snapshots written for their date, so the new ones are
-    # identified up front, while the DB can still tell them apart from what it holds
+    # New trades are identified up front, while the DB can still tell them apart from
+    # what it holds. They're then stored, and the snapshots they invalidate are
+    # cleared and refilled afterward
     new_trades = _get_new_trades(db, all_trades)
 
     logger.info("Writing trades to DB")
