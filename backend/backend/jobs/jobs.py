@@ -90,7 +90,7 @@ def fill_prices_and_positions(db: Session):
 
 def index_recent_trades(db: Session, send_alerts: bool = False):
     """
-    Checks for any recent crypto or stock trades and saves them in the database
+    Checks for any recent stock, crypto, or robinhood trades and saves them in the database
     :param send_alerts: Whether a broken robinhood connection should push a notification.
                         Only the scheduled run sets this - the app's sync endpoint runs
                         far more often and would notify repeatedly

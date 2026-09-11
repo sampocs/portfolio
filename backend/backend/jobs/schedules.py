@@ -10,7 +10,7 @@ def get_scheduler() -> AsyncIOScheduler:
     Create a scheduler with the following jobs:
      - Fill previous historical prices every day at 5am CST
      - Fill previous historical positions every day at 5am CST
-     - Index recent trades every 10 minutes
+     - Index recent trades every day at 7am CST
     """
     scheduler = AsyncIOScheduler()
     with connection.SessionLocal() as db:

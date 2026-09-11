@@ -211,7 +211,8 @@ def _is_tracked_activity(activity: dict) -> bool:
     if symbol and symbol["symbol"] in config.assets:
         return True
 
-    logger.warning(f"Skipping robinhood transaction for untracked asset: {symbol}")
+    ticker = symbol["symbol"] if symbol else None
+    logger.warning(f"Skipping robinhood transaction for untracked asset: {ticker}")
     return False
 
 
@@ -254,7 +255,8 @@ def _get_market_date(trade_date: str) -> str:
     Returns the date a transaction should be attributed to
 
     SnapTrade timestamps are UTC, where an evening fill rolls into the next day,
-    so anything with a time component is converted to market time first
+    so a timestamp carrying a UTC offset is converted to market time first;
+    a value with no offset is taken as-is
     """
     parsed_date = datetime.datetime.fromisoformat(trade_date.replace("Z", "+00:00"))
     if parsed_date.tzinfo is None:
