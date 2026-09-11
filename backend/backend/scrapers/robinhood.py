@@ -10,6 +10,7 @@ from backend.config import config, logger
 BROKERAGE_SLUG = "ROBINHOOD"
 CONNECTION_TYPE_READ_ONLY = "read"
 TRADE_ACTIVITY_TYPES = "BUY,SELL,REI"
+INVESTMENT_ACCOUNT_CATEGORY = "INVESTMENT"
 ACTIVITY_PAGE_SIZE = 1000
 
 
@@ -120,17 +121,27 @@ def _find_connection(authorizations: list[dict]) -> dict | None:
 
 def _find_account_id(accounts: list[dict], connection_id: str) -> str:
     """
-    Returns the ID of the single account under the given connection
+    Returns the ID of the brokerage account under the given connection
 
-    A robinhood connection can also expose non-brokerage accounts (e.g. spending),
-    so an ambiguous result is raised rather than guessed at
+    A robinhood connection can also expose non-brokerage accounts (e.g. spending), which
+    the account category tells apart. Brokerages that don't report a category fall back
+    to requiring a single account, where an ambiguous result is raised rather than guessed at
     """
-    account_ids = [
-        account["id"]
+    connection_accounts = [
+        account
         for account in accounts
         if account["brokerage_authorization"] == connection_id
     ]
 
+    investment_accounts = [
+        account
+        for account in connection_accounts
+        if account.get("account_category") == INVESTMENT_ACCOUNT_CATEGORY
+    ]
+    if len(investment_accounts) == 1:
+        return investment_accounts[0]["id"]
+
+    account_ids = [account["id"] for account in connection_accounts]
     assert len(account_ids) == 1, (
         f"Expected one robinhood account, found {len(account_ids)}: {account_ids}"
     )

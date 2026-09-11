@@ -123,3 +123,76 @@ def test_get_recent_robinhood_trades_raises_when_connection_is_disabled(monkeypa
 
     with pytest.raises(trades.robinhood.RobinhoodDisconnectedError):
         trades.get_recent_robinhood_trades(start_date=None)
+
+
+def test_missing_fee_key_defaults_to_zero():
+    activity = _activity()
+    del activity["fee"]
+
+    assert trades._build_robinhood_trade(activity).fees == Decimal("0")
+
+
+def test_missing_amount_key_falls_back_to_the_trade_value():
+    activity = _activity()
+    del activity["amount"]
+
+    assert trades._build_robinhood_trade(activity).cost == Decimal("1000")
+
+
+def test_null_trade_date_is_skipped():
+    assert trades._build_robinhood_trade(_activity(trade_date=None)) is None
+
+
+def test_unknown_activity_type_is_skipped():
+    assert trades._build_robinhood_trade(_activity(type="SPLIT")) is None
+
+
+def test_lowercase_sell_is_skipped_rather_than_read_as_a_buy():
+    assert trades._build_robinhood_trade(_activity(type="sell", units=-2.0)) is None
+
+
+def test_sell_with_positive_units_is_skipped():
+    assert trades._build_robinhood_trade(_activity(type="SELL", units=2.0)) is None
+
+
+def test_one_unusable_activity_does_not_drop_the_batch(monkeypatch):
+    activities = [
+        _activity(),
+        _activity(id="bad-456", trade_date=None),
+        _activity(id="ghi-789", units=1.0, amount=-500.0),
+    ]
+
+    monkeypatch.setattr(Config, "snaptrade_configured", True)
+    monkeypatch.setattr(trades.robinhood, "get_client", lambda: "client")
+    monkeypatch.setattr(
+        trades.robinhood,
+        "get_connection",
+        lambda client: {"id": "conn-1", "disabled": False},
+    )
+    monkeypatch.setattr(
+        trades.robinhood, "get_account_id", lambda client, connection_id: "account-1"
+    )
+    monkeypatch.setattr(
+        trades.robinhood,
+        "get_activities",
+        lambda client, account_id, start_date: activities,
+    )
+
+    scraped = trades.get_recent_robinhood_trades(start_date=None)
+    assert [trade.id for trade in scraped] == ["robinhood-abc-123", "robinhood-ghi-789"]
+
+
+def test_connection_without_a_disabled_flag_is_treated_as_live(monkeypatch):
+    monkeypatch.setattr(Config, "snaptrade_configured", True)
+    monkeypatch.setattr(trades.robinhood, "get_client", lambda: "client")
+    monkeypatch.setattr(
+        trades.robinhood, "get_connection", lambda client: {"id": "conn-1"}
+    )
+    monkeypatch.setattr(
+        trades.robinhood, "get_account_id", lambda client, connection_id: "account-1"
+    )
+    monkeypatch.setattr(
+        trades.robinhood, "get_activities", lambda client, account_id, start_date: []
+    )
+
+    assert trades.get_recent_robinhood_trades(start_date=None) == []

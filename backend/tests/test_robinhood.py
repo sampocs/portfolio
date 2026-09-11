@@ -29,10 +29,37 @@ def test_find_account_id_matches_the_connection():
     )
 
 
+def test_find_account_id_picks_the_investment_account():
+    accounts = [
+        {
+            "id": "account-1",
+            "brokerage_authorization": "auth-2",
+            "account_category": "DEPOSIT",
+        },
+        {
+            "id": "account-2",
+            "brokerage_authorization": "auth-2",
+            "account_category": "INVESTMENT",
+        },
+    ]
+    assert (
+        robinhood._find_account_id(accounts=accounts, connection_id="auth-2")
+        == "account-2"
+    )
+
+
 def test_find_account_id_rejects_ambiguous_accounts():
     accounts = [
-        {"id": "account-1", "brokerage_authorization": "auth-2"},
-        {"id": "account-2", "brokerage_authorization": "auth-2"},
+        {
+            "id": "account-1",
+            "brokerage_authorization": "auth-2",
+            "account_category": None,
+        },
+        {
+            "id": "account-2",
+            "brokerage_authorization": "auth-2",
+            "account_category": None,
+        },
     ]
     with pytest.raises(AssertionError):
         robinhood._find_account_id(accounts=accounts, connection_id="auth-2")
