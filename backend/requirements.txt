@@ -16,3 +16,4 @@ coinbase==2.1.0
 coinbase-advanced-py==1.8.2
 slowapi==0.1.9
 click==8.1.8
+snaptrade-python-sdk==13.0.21

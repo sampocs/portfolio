@@ -68,3 +68,12 @@ ifndef ASSET
 	$(error ASSET environment variable is required)
 endif
 	@(cd backend && $(PYTHON) -m backend.scrapers.ibkr --contract-id --asset $(ASSET))
+
+install-dev:
+	@$(PYTHON) -m pip install -r backend/requirements-dev.txt
+
+test:
+	@(cd backend && $(PYTHON) -m pytest tests -v)
+
+robinhood-connect:
+	@(cd backend && $(PYTHON) -m backend.scrapers.robinhood --connect)

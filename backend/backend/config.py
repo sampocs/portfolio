@@ -68,6 +68,7 @@ class Segment(Enum):
 class Platform(Enum):
     IBKR = "ibkr"
     COINBASE = "coinbase"
+    ROBINHOOD = "robinhood"
 
 
 class PriceType(Enum):
@@ -146,6 +147,12 @@ class Config(BaseSettings):
 
     coinbase_api_key: str = Field(alias="COINBASE_API_KEY")
     coinbase_api_secret: str = Field(alias="COINBASE_API_SECRET")
+
+    snaptrade_client_id: str = Field(alias="SNAPTRADE_CLIENT_ID", default="")
+    snaptrade_consumer_key: str = Field(alias="SNAPTRADE_CONSUMER_KEY", default="")
+
+    ntfy_topic: str = Field(alias="NTFY_TOPIC", default="")
+    railway_public_domain: str = Field(alias="RAILWAY_PUBLIC_DOMAIN", default="")
 
     postgres_url: str = Field(alias="POSTGRES_URL")
     fastapi_secret: str = Field(alias="FASTAPI_SECRET")
@@ -308,6 +315,11 @@ class Config(BaseSettings):
         return {
             asset["asset"]: Asset.from_dict(asset) for asset in asset_data["assets"]
         }
+
+    @property
+    def snaptrade_configured(self) -> bool:
+        """SnapTrade is optional - without a personal API key, the robinhood sync is skipped"""
+        return bool(self.snaptrade_client_id and self.snaptrade_consumer_key)
 
     @property
     def stock_tickers(self) -> list[str]:
