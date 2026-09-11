@@ -226,7 +226,7 @@ def _is_tracked_activity(activity: dict) -> bool:
 
     # A null symbol means there's no equity to check against the config - it's likely
     # an options activity (contract lives in option_symbol instead) or a cash transaction
-    if activity.get("symbol") is None:
+    if not ticker:
         logger.warning(
             "Skipping robinhood transaction with no equity symbol (likely an option "
             f"or cash transaction): type={activity.get('type')} id={activity.get('id')}"

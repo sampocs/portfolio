@@ -138,7 +138,8 @@ def _clear_stale_position_snapshots(
 
     # A span of months means the trade history was pulled from much further back than a
     # normal sync reaches, and every day in it gets recomputed, so it's worth surfacing
-    rebuild_days = (last_snapshot_date - earliest_trade_date).days
+    # The span is inclusive of both ends: clearing a single date rebuilds one day
+    rebuild_days = (last_snapshot_date - earliest_trade_date).days + 1
     log_rebuild = (
         logger.warning if rebuild_days > SNAPSHOT_REBUILD_WARN_DAYS else logger.info
     )
