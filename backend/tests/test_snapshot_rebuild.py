@@ -64,16 +64,16 @@ def _seed(db: Session, *rows: models.Trade | models.HistoricalPosition) -> None:
 
 
 def test_only_unstored_trades_are_new(db):
-    _seed(db, _trade("robinhood-1", "2026-09-10"))
+    _seed(db, _trade(trade_id="robinhood-1", date="2026-09-10"))
 
-    scraped = [_trade("robinhood-1", "2026-09-10"), _trade("robinhood-2", "2026-09-11")]
+    scraped = [_trade(trade_id="robinhood-1", date="2026-09-10"), _trade(trade_id="robinhood-2", date="2026-09-11")]
     assert [trade.id for trade in jobs._get_new_trades(db, scraped)] == ["robinhood-2"]
 
 
 def test_late_trade_clears_snapshots_from_its_date(db):
     _seed(db, _snapshot("2026-09-09"), _snapshot("2026-09-10"), _snapshot("2026-09-11"))
 
-    jobs._clear_stale_position_snapshots(db, [_trade("robinhood-2", "2026-09-10")])
+    jobs._clear_stale_position_snapshots(db, [_trade(trade_id="robinhood-2", date="2026-09-10")])
 
     remaining = [row.date for row in db.query(models.HistoricalPosition).all()]
     assert remaining == [datetime.date(2026, 9, 9)]
@@ -82,13 +82,13 @@ def test_late_trade_clears_snapshots_from_its_date(db):
 def test_trade_after_the_last_snapshot_clears_nothing(db):
     _seed(db, _snapshot("2026-09-09"), _snapshot("2026-09-10"))
 
-    jobs._clear_stale_position_snapshots(db, [_trade("robinhood-2", "2026-09-11")])
+    jobs._clear_stale_position_snapshots(db, [_trade(trade_id="robinhood-2", date="2026-09-11")])
 
     assert db.query(models.HistoricalPosition).count() == 2
 
 
 def test_no_snapshots_clears_nothing(db):
-    jobs._clear_stale_position_snapshots(db, [_trade("robinhood-2", "2026-09-11")])
+    jobs._clear_stale_position_snapshots(db, [_trade(trade_id="robinhood-2", date="2026-09-11")])
 
     assert db.query(models.HistoricalPosition).count() == 0
 
