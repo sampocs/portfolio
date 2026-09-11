@@ -155,4 +155,13 @@ def robinhood_connect(expires: int, signature: str):
     if not alerts.is_valid_reconnect_signature(expires=expires, signature=signature):
         raise HTTPException(status_code=403, detail="Invalid or expired link")
 
+    # With no connection to repair, the portal would link a brand new brokerage account,
+    # so a link still in circulation could attach someone else's account to this portfolio.
+    # The first connection is only ever made from the CLI
+    if not robinhood.get_connection(robinhood.get_client()):
+        raise HTTPException(
+            status_code=409,
+            detail="Robinhood is not connected, run `make robinhood-connect` to link it",
+        )
+
     return RedirectResponse(robinhood.get_connection_portal_url())

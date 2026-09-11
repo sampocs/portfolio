@@ -9,7 +9,7 @@ from backend.config import config, logger
 
 NTFY_URL = "https://ntfy.sh/{}"
 RECONNECT_PATH = "/robinhood/connect"
-RECONNECT_LINK_TTL_SECONDS = 7 * 24 * 60 * 60
+RECONNECT_LINK_TTL_SECONDS = 24 * 60 * 60
 SIGNATURE_MESSAGE = "robinhood-connect:{}"
 REQUEST_TIMEOUT_SECONDS = 10
 
