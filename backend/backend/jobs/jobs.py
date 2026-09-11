@@ -2,9 +2,10 @@ import click
 import datetime
 import pandas as pd
 from decimal import Decimal
+from backend import alerts
 from backend.database import crud, models, connection
-from backend.scrapers import prices, trades
-from backend.config import config, logger
+from backend.scrapers import prices, trades, robinhood
+from backend.config import config, logger, Platform
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.config import InvalidPriceResponse
@@ -87,22 +88,33 @@ def fill_prices_and_positions(db: Session):
     logger.info("Done")
 
 
-def index_recent_trades(db: Session):
+def index_recent_trades(db: Session, send_alerts: bool = False):
     """
     Checks for any recent crypto or stock trades and saves them in the database
+    :param send_alerts: Whether a broken robinhood connection should push a notification.
+                        Only the scheduled run sets this - the app's sync endpoint runs
+                        far more often and would notify repeatedly
     """
     last_ibkr_trade_date = (
         db.query(func.max(models.Trade.date))
-        .filter(models.Trade.platform == "ibkr")
+        .filter(models.Trade.platform == Platform.IBKR.value)
         .scalar()
     )
     last_coinbase_trade_date = (
         db.query(func.max(models.Trade.date))
-        .filter(models.Trade.platform == "coinbase")
+        .filter(models.Trade.platform == Platform.COINBASE.value)
         .scalar()
     )
     assert last_ibkr_trade_date and last_coinbase_trade_date, (
         "No trades present, please seed DB first"
+    )
+
+    # Robinhood is intentionally left out of the assert above: there are no robinhood
+    # trades until the first one syncs, and a missing date pulls the full history
+    last_robinhood_trade_date = (
+        db.query(func.max(models.Trade.date))
+        .filter(models.Trade.platform == Platform.ROBINHOOD.value)
+        .scalar()
     )
 
     try:
@@ -125,8 +137,25 @@ def index_recent_trades(db: Session):
         logger.error(f"Failed to scrape crypto trades: {e}")
         crypto_trades = []
 
+    try:
+        logger.info(
+            f"Checking for robinhood trades since {last_robinhood_trade_date}..."
+        )
+        robinhood_trades = trades.get_recent_robinhood_trades(
+            start_date=last_robinhood_trade_date
+        )
+        logger.info(f"Found {len(robinhood_trades)} robinhood trades")
+    except robinhood.RobinhoodDisconnectedError:
+        logger.error("Robinhood connection is disabled and must be re-authorized")
+        robinhood_trades = []
+        if send_alerts:
+            alerts.send_robinhood_disconnected_alert()
+    except Exception as e:
+        logger.error(f"Failed to scrape robinhood trades: {e}")
+        robinhood_trades = []
+
     logger.info("Writing trades to DB")
-    all_trades = stock_trades + crypto_trades
+    all_trades = stock_trades + crypto_trades + robinhood_trades
     crud.store_trades(db, all_trades)
 
     logger.info("Updating current position")
@@ -179,7 +208,9 @@ def index_backdoor_roth_trades(db: Session):
         trade_objects.append(trade)
         next_id += 1
 
-    logger.info(f"Inserting {len(trade_objects)} backdoor roth trades (vanguard-{next_id - len(trade_objects)} to vanguard-{next_id - 1})")
+    logger.info(
+        f"Inserting {len(trade_objects)} backdoor roth trades (vanguard-{next_id - len(trade_objects)} to vanguard-{next_id - 1})"
+    )
     crud.store_trades(db, trade_objects)
 
     logger.info("Updating current position")
@@ -191,9 +222,18 @@ def index_backdoor_roth_trades(db: Session):
 @click.command()
 @click.option("--trades", "run_trades", is_flag=True, help="Index recent trades")
 @click.option("--prices", "run_prices", is_flag=True, help="Fill historical prices")
-@click.option("--positions", "run_positions", is_flag=True, help="Fill historical positions")
-@click.option("--backdoor-roth", "run_backdoor_roth", is_flag=True, help="Index backdoor roth trades from CSVs")
-def main(run_trades: bool, run_prices: bool, run_positions: bool, run_backdoor_roth: bool):
+@click.option(
+    "--positions", "run_positions", is_flag=True, help="Fill historical positions"
+)
+@click.option(
+    "--backdoor-roth",
+    "run_backdoor_roth",
+    is_flag=True,
+    help="Index backdoor roth trades from CSVs",
+)
+def main(
+    run_trades: bool, run_prices: bool, run_positions: bool, run_backdoor_roth: bool
+):
     with connection.SessionLocal() as db:
         if run_trades:
             index_recent_trades(db)

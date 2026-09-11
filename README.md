@@ -118,6 +118,7 @@ In order to automatically track trades, they must be done as follows:
 - Stocks/ETFs: Executed through IBKR
 - Crypto: Executed through Coinbase Advanced
   - For lowest fees, place limit order at highest sell price, and set to "Post Only" (instead of "Taker")
+- Robinhood: Executed in the Robinhood app, synced through SnapTrade (appears the next morning)
 - Vanguard (Backdoor Roth): Manually added via CSV
   1. Add a CSV to `data/trades/clean/backdoor_roths/vanguard_backdoor_roth_{year}.csv` with columns: `platform,date,action,asset,price,quantity,fees,cost,value`
   2. Run `make sync-backdoor-roth`

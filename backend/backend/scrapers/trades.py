@@ -1,12 +1,17 @@
 import datetime
 import hashlib
+import zoneinfo
 from decimal import Decimal
 
 from ibind import IbkrClient
-from backend.config import config, Platform
+from backend.config import config, Platform, logger
 from backend.database import models, crud
+from backend.scrapers import robinhood
 from coinbase.rest import RESTClient
 from sqlalchemy.orm import Session
+
+# Extended-hours fills land on the next UTC day, so timestamps are read in market time
+MARKET_TIMEZONE = zoneinfo.ZoneInfo("America/New_York")
 
 
 def trade_has_id_conflict(db: Session, new_trade: models.Trade) -> bool:
@@ -85,7 +90,9 @@ def get_recent_ibkr_trades(
             quantity = Decimal(str(transaction["qty"]))
             cost = abs(Decimal(str(transaction["amt"])))
             price = Decimal(str(transaction["pr"]))
-            date = datetime.datetime.strptime(str(transaction["rawDate"]), "%Y%m%d").strftime("%Y-%m-%d")
+            date = datetime.datetime.strptime(
+                str(transaction["rawDate"]), "%Y%m%d"
+            ).strftime("%Y-%m-%d")
             fees = Decimal("0.0035") * quantity
             value = price * quantity
 
@@ -164,3 +171,93 @@ def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:
         trades.append(trade)
 
     return trades
+
+
+def get_recent_robinhood_trades(start_date: datetime.date | None) -> list[models.Trade]:
+    """
+    Scrapes recent robinhood trades through SnapTrade
+    :param start_date: First date to query transactions from, inclusively.
+                       None pulls the account's full history
+    """
+    if not config.snaptrade_configured:
+        logger.info("SnapTrade is not configured, skipping robinhood trades")
+        return []
+
+    client = robinhood.get_client()
+    connection = robinhood.get_connection(client)
+    if not connection:
+        logger.info("Robinhood is not connected, skipping robinhood trades")
+        return []
+
+    # A disabled connection keeps returning stale cached data instead of failing,
+    # so this flag is the only signal that it needs to be re-authorized
+    if connection["disabled"]:
+        raise robinhood.RobinhoodDisconnectedError()
+
+    account_id = robinhood.get_account_id(client=client, connection_id=connection["id"])
+    activities = robinhood.get_activities(
+        client=client, account_id=account_id, start_date=start_date
+    )
+
+    tracked_activities = [
+        activity for activity in activities if _is_tracked_activity(activity)
+    ]
+    return [_build_robinhood_trade(activity) for activity in tracked_activities]
+
+
+def _is_tracked_activity(activity: dict) -> bool:
+    """Returns whether the transaction is for an asset in the portfolio config"""
+    symbol = activity["symbol"]
+    if symbol and symbol["symbol"] in config.assets:
+        return True
+
+    logger.warning(f"Skipping robinhood transaction for untracked asset: {symbol}")
+    return False
+
+
+def _build_robinhood_trade(activity: dict) -> models.Trade:
+    """Converts a SnapTrade transaction into a trade"""
+    is_sell = activity["type"] == models.TradeAction.SELL.value
+    action = models.TradeAction.SELL if is_sell else models.TradeAction.BUY
+
+    price = Decimal(str(activity["price"]))
+    quantity = abs(Decimal(str(activity["units"])))
+    fees = Decimal(str(activity["fee"] or 0))
+    value = price * quantity
+
+    # Dividend reinvestments don't always carry a cash amount, in which case the cash
+    # moved is the trade value plus the fees on a buy, or minus the fees on a sell
+    fee_direction = -1 if is_sell else 1
+    cost = (
+        abs(Decimal(str(activity["amount"])))
+        if activity["amount"] is not None
+        else value + fee_direction * fees
+    )
+
+    return models.Trade(
+        id=f"robinhood-{activity['id']}",
+        platform=Platform.ROBINHOOD.value,
+        date=_get_market_date(activity["trade_date"]),
+        action=action.value,
+        asset=activity["symbol"]["symbol"],
+        price=price,
+        quantity=quantity,
+        fees=fees,
+        cost=cost,
+        value=value,
+        excluded=False,
+    )
+
+
+def _get_market_date(trade_date: str) -> str:
+    """
+    Returns the date a transaction should be attributed to
+
+    SnapTrade timestamps are UTC, where an evening fill rolls into the next day,
+    so anything with a time component is converted to market time first
+    """
+    parsed_date = datetime.datetime.fromisoformat(trade_date.replace("Z", "+00:00"))
+    if parsed_date.tzinfo is None:
+        return parsed_date.date().isoformat()
+
+    return parsed_date.astimezone(MARKET_TIMEZONE).date().isoformat()
