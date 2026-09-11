@@ -88,6 +88,58 @@ def fill_prices_and_positions(db: Session):
     logger.info("Done")
 
 
+def _get_new_trades(
+    db: Session, scraped_trades: list[models.Trade]
+) -> list[models.Trade]:
+    """
+    Returns the scraped trades that aren't stored yet
+
+    Each sync re-fetches from the last known trade date, so most scraped trades
+    already exist and only the genuinely new ones can invalidate a snapshot
+    """
+    if not scraped_trades:
+        return []
+
+    scraped_ids = [trade.id for trade in scraped_trades]
+    existing_ids = {
+        row.id
+        for row in db.query(models.Trade.id)
+        .filter(models.Trade.id.in_(scraped_ids))
+        .all()
+    }
+
+    return [trade for trade in scraped_trades if trade.id not in existing_ids]
+
+
+def _clear_stale_position_snapshots(
+    db: Session, new_trades: list[models.Trade]
+) -> None:
+    """
+    Deletes the position snapshots dated on or after the earliest new trade
+
+    Snapshots are written once per day and never revisited, so a trade that lands after
+    its date's snapshot leaves a permanent gap in the performance chart. This always
+    happens with robinhood, since SnapTrade publishes transactions a day late.
+    The cleared dates are rebuilt from stored prices by _fill_historical_positions
+    """
+    if not new_trades:
+        return
+
+    # Trades are built with string dates, so they're parsed before comparing
+    earliest_trade_date = min(
+        datetime.date.fromisoformat(str(trade.date)) for trade in new_trades
+    )
+    last_snapshot_date = db.query(func.max(models.HistoricalPosition.date)).scalar()
+    if not last_snapshot_date or earliest_trade_date > last_snapshot_date:
+        return
+
+    logger.info(f"Rebuilding position snapshots from {earliest_trade_date}")
+    db.query(models.HistoricalPosition).filter(
+        models.HistoricalPosition.date >= earliest_trade_date
+    ).delete()
+    db.commit()
+
+
 def index_recent_trades(db: Session, send_alerts: bool = False):
     """
     Checks for any recent stock, crypto, or robinhood trades and saves them in the database
@@ -154,13 +206,21 @@ def index_recent_trades(db: Session, send_alerts: bool = False):
         logger.error(f"Failed to scrape robinhood trades: {e}")
         robinhood_trades = []
 
-    logger.info("Writing trades to DB")
     all_trades = stock_trades + crypto_trades + robinhood_trades
+
+    # Late trades invalidate the snapshots written for their date, so those are
+    # cleared before storing and rebuilt immediately after
+    new_trades = _get_new_trades(db, all_trades)
+
+    logger.info("Writing trades to DB")
     crud.store_trades(db, all_trades)
+    _clear_stale_position_snapshots(db, new_trades)
 
     logger.info("Updating current position")
     positions = crud.build_positions_from_trades(db)
     crud.store_positions(db, positions)
+
+    _fill_historical_positions(db)
 
     logger.info("Done")
 
@@ -213,9 +273,15 @@ def index_backdoor_roth_trades(db: Session):
     )
     crud.store_trades(db, trade_objects)
 
+    # These are backdated trades, so their snapshots have to be rebuilt too
+    _clear_stale_position_snapshots(db, trade_objects)
+
     logger.info("Updating current position")
     positions = crud.build_positions_from_trades(db)
     crud.store_positions(db, positions)
+
+    _fill_historical_positions(db)
+
     logger.info("Done")
 
 
