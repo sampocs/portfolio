@@ -39,7 +39,9 @@ def trade_has_id_conflict(db: Session, new_trade: models.Trade) -> bool:
 
         # Check if quantity and price are within 0.01% tolerance
         tolerance = Decimal("0.0001")
-        qty_diff_pct = abs(existing.quantity - new_trade.quantity) / abs(existing.quantity)
+        qty_diff_pct = abs(existing.quantity - new_trade.quantity) / abs(
+            existing.quantity
+        )
         price_diff_pct = abs((existing.price - new_trade.price)) / existing.price
 
         # If the trade is sufficiently different, then we have an ID conflict
@@ -132,6 +134,7 @@ def _build_ibkr_trade(transaction: dict, asset: str) -> models.Trade:
         cost=cost,
         value=price * quantity,
         excluded=False,
+        account=models.TradeAccount.BROKERAGE.value,
     )
 
 
@@ -175,6 +178,7 @@ def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:
             cost=Decimal(str(order["total_value_after_fees"])),
             value=Decimal(str(order["filled_value"])),
             excluded=False,
+            account=models.TradeAccount.BROKERAGE.value,
         )
 
         trades.append(trade)

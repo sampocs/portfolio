@@ -17,11 +17,15 @@ def forward_fill_missing_prices(prices_df: pd.DataFrame) -> pd.DataFrame:
         asset_df = prices_df[prices_df["asset"] == asset].copy()
 
         # Create complete dateframe with all dates from min to max date for this asset
-        date_range = pd.date_range(start=asset_df["date"].min(), end=prices_df["date"].max(), freq="D")
+        date_range = pd.date_range(
+            start=asset_df["date"].min(), end=prices_df["date"].max(), freq="D"
+        )
         complete_df = pd.DataFrame({"asset": asset, "date": date_range.date})
 
         # Merge with existing data and forward fill prices
-        asset_complete_df = complete_df.merge(asset_df, on=["asset", "date"], how="left")
+        asset_complete_df = complete_df.merge(
+            asset_df, on=["asset", "date"], how="left"
+        )
         asset_complete_df["price"] = asset_complete_df["price"].ffill()
 
         filled_dfs.append(asset_complete_df)
@@ -30,7 +34,12 @@ def forward_fill_missing_prices(prices_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def backfill_trades():
-    """Seeds trades table with backfilled trades"""
+    """
+    Seeds trades table with backfilled trades
+
+    Both CSVs carry an `account` column (brokerage vs roth), which flows straight
+    through to the insert below since every DataFrame column becomes an insert column.
+    """
     logger.info("Backfilling trades...")
 
     vanguard_df = pd.read_csv(config.trades_data_dir / "vanguard_clean.csv")
@@ -90,9 +99,14 @@ def backfill_historical_positions(db: Session):
     logger.info("Backfilling position snapshots...")
     start_date = db.query(func.min(models.Trade.date)).scalar()
     end_date = db.query(func.max(models.HistoricalPrice.date)).scalar()
-    target_dates = [str(start_date + datetime.timedelta(days=i)) for i in range(1, (end_date - start_date).days)]
+    target_dates = [
+        str(start_date + datetime.timedelta(days=i))
+        for i in range(1, (end_date - start_date).days)
+    ]
 
-    historical_positions = crud.build_historical_positions(db, target_dates, log_progress=True)
+    historical_positions = crud.build_historical_positions(
+        db, target_dates, log_progress=True
+    )
     crud.store_historical_positions(db, historical_positions)
 
 
