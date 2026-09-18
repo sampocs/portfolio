@@ -2,7 +2,7 @@ import datetime
 from sqlalchemy.orm import Session
 from backend.database import models
 from decimal import Decimal
-from collections import defaultdict
+from backend import lots
 from backend.config import config
 from tqdm import tqdm  # type: ignore
 
@@ -58,60 +58,41 @@ def build_positions_from_trades(
         db.query(models.Trade)
         .where(models.Trade.date <= end_date)
         .order_by(models.Trade.date)
+        .all()
     )
+    matchable_trades = [trade for trade in trades if trade.asset in config.assets]
 
-    # Group trades by asset
-    asset_trades = defaultdict(list)
-    for trade in trades:
-        if trade.asset not in config.assets.keys():
-            continue
-        asset_trades[trade.asset].append(trade)
+    matches = lots.match_lots(matchable_trades)
+    return positions_from_matches(matches)
 
-    # Build position for each asset
+
+def positions_from_matches(matches: lots.LotMatches) -> list[models.Position]:
+    """
+    Aggregates matched open lots into one Position per asset, pooling across accounts
+    and platforms. Cost is the sum of each remaining lot's quantity times its buy price;
+    average price is cost divided by quantity. Assets fully sold out (zero remaining
+    quantity) produce no position.
+    """
     positions = []
-    for asset, trades_list in asset_trades.items():
-        # Use buy logs to correctly calculate average price when there's a sell
-        buy_lots = []  # Each lot: {'quantity': Decimal, 'price': Decimal}
-
-        for trade in trades_list:
-            if trade.excluded:
-                continue
-
-            if trade.action == models.TradeAction.BUY:
-                buy_lots.append({"quantity": trade.quantity, "price": trade.price})
-
-            elif trade.action == models.TradeAction.SELL:
-                remaining_to_sell = trade.quantity
-
-                # Sell from oldest lots first (FIFO)
-                while remaining_to_sell > 0 and buy_lots:
-                    lot = buy_lots[0]
-
-                    if lot["quantity"] <= remaining_to_sell:
-                        # Sell entire lot
-                        remaining_to_sell -= lot["quantity"]
-                        buy_lots.pop(0)
-                    else:
-                        # Partial sell of lot
-                        lot["quantity"] -= remaining_to_sell
-                        remaining_to_sell = Decimal(0)
-
-        # Calculate totals from remaining lots
-        total_quantity = sum(lot["quantity"] for lot in buy_lots)
+    for asset, open_lots in matches.open_lots.items():
+        total_quantity = sum((lot.quantity for lot in open_lots), Decimal(0))
         if total_quantity == 0:
             continue
 
-        total_cost = sum(lot["quantity"] * lot["price"] for lot in buy_lots)
+        total_cost = sum(
+            (lot.quantity * lot.buy.price for lot in open_lots), Decimal(0)
+        )
         average_price = total_cost / total_quantity
 
-        position = models.Position(
-            asset=asset,
-            updated_at=datetime.datetime.now(datetime.timezone.utc),
-            average_price=average_price,
-            quantity=total_quantity,
-            cost=total_cost,
+        positions.append(
+            models.Position(
+                asset=asset,
+                updated_at=datetime.datetime.now(datetime.timezone.utc),
+                average_price=average_price,
+                quantity=total_quantity,
+                cost=total_cost,
+            )
         )
-        positions.append(position)
 
     return positions
 
