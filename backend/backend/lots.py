@@ -99,6 +99,9 @@ def match_lots(trades: list[models.Trade]) -> LotMatches:
 
 def _consume_sell(sell: models.Trade, open_lots: list[OpenLot]) -> list[LotSlice]:
     """Consumes a group's open lots oldest-first for one sell, splitting the last lot"""
+    if sell.quantity <= 0:
+        raise ValueError(f"Sell {sell.id} has non-positive quantity {sell.quantity}")
+
     remaining = sell.quantity
     consumed_slices: list[LotSlice] = []
 

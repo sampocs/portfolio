@@ -234,6 +234,9 @@ def build_tax_lots(matches: lots.LotMatches) -> list[models.TaxLot]:
                 account=sell.account,
                 asset=sell.asset,
                 holding_period=holding_period.value,
+                # The description keeps the slice's full-precision quantity on purpose
+                # (matching how a 1099-B prints it), even though the `quantity` column
+                # rounds to 6 decimals
                 description=f"{_format_quantity(quantity)} {sell.asset}",
                 date_acquired=date_acquired,
                 date_sold=date_sold,

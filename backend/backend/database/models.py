@@ -48,7 +48,10 @@ class Trade(Base):
     value: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
     excluded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     account: Mapped[str] = mapped_column(
-        String, nullable=False, default=TradeAccount.BROKERAGE.value
+        String,
+        nullable=False,
+        default=TradeAccount.BROKERAGE.value,
+        server_default=TradeAccount.BROKERAGE.value,
     )
 
 
