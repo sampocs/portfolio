@@ -1,7 +1,9 @@
 import datetime
+from collections import defaultdict
 from sqlalchemy.orm import Session
 from backend.database import models
 from decimal import Decimal
+from dateutil.relativedelta import relativedelta
 from backend import lots
 from backend.config import config
 from tqdm import tqdm  # type: ignore
@@ -191,6 +193,75 @@ def store_positions(db: Session, positions: list[models.Position]):
     """Stores the current position records, overwriting anything currently in the DB"""
     db.query(models.Position).delete()
     db.bulk_save_objects(positions)
+    db.commit()
+
+
+def build_tax_lots(matches: lots.LotMatches) -> list[models.TaxLot]:
+    """
+    Builds one TaxLot row per lot slice whose sell was made in the brokerage account.
+    Roth sells produce no rows, since Roth gains aren't taxable. Ids count slices within
+    a sell from 0, so they stay stable across rebuilds. Proceeds and cost prorate each
+    side's fees and value by the slice's share of the sell's and buy's total quantity.
+    """
+    slice_index_by_sell: dict[str, int] = defaultdict(int)
+    tax_lots: list[models.TaxLot] = []
+
+    for lot_slice in matches.slices:
+        sell = lot_slice.sell
+        if sell.account != models.TradeAccount.BROKERAGE.value:
+            continue
+
+        buy = lot_slice.buy
+        quantity = lot_slice.quantity
+        slice_index = slice_index_by_sell[sell.id]
+        slice_index_by_sell[sell.id] += 1
+
+        # Reuses the matcher's date normalization, since trades built in tests may
+        # carry ISO date strings instead of real date objects
+        date_acquired = lots._trade_date(buy)
+        date_sold = lots._trade_date(sell)
+        holding_period = (
+            models.HoldingPeriod.LONG_TERM
+            if date_sold > date_acquired + relativedelta(years=1)
+            else models.HoldingPeriod.SHORT_TERM
+        )
+
+        proceeds = (sell.value - sell.fees) * quantity / sell.quantity
+        cost = (buy.value + buy.fees) * quantity / buy.quantity
+
+        tax_lots.append(
+            models.TaxLot(
+                id=f"{sell.id}-{slice_index}",
+                platform=sell.platform,
+                account=sell.account,
+                asset=sell.asset,
+                holding_period=holding_period.value,
+                description=f"{_format_quantity(quantity)} {sell.asset}",
+                date_acquired=date_acquired,
+                date_sold=date_sold,
+                quantity=quantity,
+                acquisition_price=buy.price,
+                sale_price=sell.price,
+                proceeds=proceeds,
+                cost=cost,
+            )
+        )
+
+    return tax_lots
+
+
+def _format_quantity(quantity: Decimal) -> str:
+    """Formats a decimal quantity without trailing zeros or scientific notation"""
+    text = f"{quantity:f}"
+    if "." not in text:
+        return text
+    return text.rstrip("0").rstrip(".")
+
+
+def store_tax_lots(db: Session, tax_lots: list[models.TaxLot]):
+    """Stores the tax lot records, overwriting anything currently in the DB"""
+    db.query(models.TaxLot).delete()
+    db.bulk_save_objects(tax_lots)
     db.commit()
 
 
