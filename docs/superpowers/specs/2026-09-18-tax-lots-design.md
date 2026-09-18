@@ -160,7 +160,7 @@ following the `repair_prices.py` precedent:
 
 3. `models.Base.metadata.create_all` to create `tax_lots`.
 4. Print per-asset Roth share totals so they can be eyeballed against the export
-   (VT 52.28, AAAU 21, VB 10.32, VOO 6.44, VO 14.36, VWO 5.11, VXUS 3.89, VNQ 2.22).
+   (VT 52.28, AAAU 21, VB 10.32, VOO 6.44, VO 21.42 split-adjusted, VWO 5.11, VXUS 3.89, VNQ 2.22).
 
 The same id list is applied to `vanguard_clean.csv`'s new `account` column so seed and
 prod agree. `vanguard_clean.csv` lives in the gitignored `data/` dir and is mirrored to the
