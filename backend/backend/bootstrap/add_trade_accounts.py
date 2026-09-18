@@ -10,7 +10,7 @@ The Roth trade ids below were identified by matching the raw Vanguard export (ac
 Migration section for the full mapping.
 """
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
 
 from backend.config import logger
@@ -63,12 +63,12 @@ def _add_account_column(db: Session):
 def _tag_roth_trades(db: Session):
     """Tags the historical Roth trades identified against the raw Vanguard export"""
     logger.info(f"Tagging {len(ROTH_TRADE_IDS)} trades as Roth...")
-    ids = ", ".join(f"'{trade_id}'" for trade_id in ROTH_TRADE_IDS)
+    statement = text(
+        "update trades set account = :account where id in :ids"
+    ).bindparams(bindparam("ids", expanding=True))
     db.execute(
-        text(
-            f"update trades set account = '{models.TradeAccount.ROTH.value}' "
-            f"where id in ({ids})"
-        )
+        statement,
+        {"account": models.TradeAccount.ROTH.value, "ids": ROTH_TRADE_IDS},
     )
 
 

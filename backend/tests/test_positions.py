@@ -5,33 +5,30 @@ from backend import lots
 from backend.database import crud, models
 
 
+def _trade(**overrides) -> models.Trade:
+    defaults = {
+        "id": "t-1",
+        "platform": "ibkr",
+        "date": datetime.date(2026, 1, 1),
+        "action": models.TradeAction.BUY.value,
+        "asset": "AAPL",
+        "price": Decimal("100"),
+        "quantity": Decimal("10"),
+        "fees": Decimal("0"),
+        "cost": Decimal("1000"),
+        "value": Decimal("1000"),
+        "excluded": False,
+        "account": models.TradeAccount.BROKERAGE.value,
+    }
+    return models.Trade(**{**defaults, **overrides})
+
+
 def test_quantity_cost_and_average_price_sum_across_accounts():
-    buy_brokerage = models.Trade(
-        id="b-brok",
-        platform="ibkr",
-        date=datetime.date(2026, 1, 1),
-        action=models.TradeAction.BUY.value,
-        asset="AAPL",
-        price=Decimal("100"),
-        quantity=Decimal("10"),
-        fees=Decimal("0"),
-        cost=Decimal("1000"),
-        value=Decimal("1000"),
-        excluded=False,
-        account=models.TradeAccount.BROKERAGE.value,
-    )
-    buy_roth = models.Trade(
+    buy_brokerage = _trade(id="b-brok")
+    buy_roth = _trade(
         id="b-roth",
-        platform="ibkr",
-        date=datetime.date(2026, 1, 1),
-        action=models.TradeAction.BUY.value,
-        asset="AAPL",
         price=Decimal("200"),
         quantity=Decimal("5"),
-        fees=Decimal("0"),
-        cost=Decimal("1000"),
-        value=Decimal("1000"),
-        excluded=False,
         account=models.TradeAccount.ROTH.value,
     )
 
@@ -50,33 +47,14 @@ def test_quantity_cost_and_average_price_sum_across_accounts():
 
 
 def test_asset_fully_sold_out_produces_no_position():
-    buy = models.Trade(
-        id="b-1",
-        platform="ibkr",
-        date=datetime.date(2026, 1, 1),
-        action=models.TradeAction.BUY.value,
-        asset="AAPL",
-        price=Decimal("100"),
-        quantity=Decimal("10"),
-        fees=Decimal("0"),
-        cost=Decimal("1000"),
-        value=Decimal("1000"),
-        excluded=False,
-        account=models.TradeAccount.BROKERAGE.value,
-    )
-    sell = models.Trade(
+    buy = _trade(id="b-1")
+    sell = _trade(
         id="s-1",
-        platform="ibkr",
         date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
-        asset="AAPL",
         price=Decimal("110"),
-        quantity=Decimal("10"),
-        fees=Decimal("0"),
         cost=Decimal("1100"),
         value=Decimal("1100"),
-        excluded=False,
-        account=models.TradeAccount.BROKERAGE.value,
     )
 
     matches = lots.match_lots([buy, sell])

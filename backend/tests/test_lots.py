@@ -196,6 +196,18 @@ def test_sell_that_outruns_its_lots_raises_unmatched_sell_error():
     assert error.unmatched_quantity == Decimal("3")
 
 
+def test_sell_with_non_positive_quantity_raises_value_error():
+    sell = _trade(
+        id="s-1",
+        date=datetime.date(2026, 1, 2),
+        action=models.TradeAction.SELL.value,
+        quantity=Decimal("0"),
+    )
+
+    with pytest.raises(ValueError):
+        lots.match_lots([sell])
+
+
 def test_same_day_buys_break_ties_on_id_regardless_of_input_order():
     # Both buys land on the same date, at different prices, so nothing but id can
     # order them; the sell only partially drains the first-consumed lot

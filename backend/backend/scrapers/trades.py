@@ -109,7 +109,7 @@ def _build_ibkr_trade(transaction: dict, asset: str) -> models.Trade:
 
     IBKR reports a sell's quantity as negative, but the action already carries the
     direction, so the quantity is normalized to positive like every other platform.
-    The position builder relies on this - it ignores sells with a non-positive quantity
+    The lot matcher relies on this - it rejects sells with a non-positive quantity
     """
     action = str(transaction["type"]).upper()
     quantity = abs(Decimal(str(transaction["qty"])))
