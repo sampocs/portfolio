@@ -2,6 +2,7 @@ import click
 import datetime
 import pandas as pd
 from decimal import Decimal
+from backend import lots
 from backend.database import crud, models, connection
 from backend.scrapers import prices, trades
 from backend.config import config, logger
@@ -73,6 +74,15 @@ def _fill_historical_positions(db: Session):
     crud.store_historical_positions(db, historical_positions)
 
 
+def rebuild_tax_lots(db: Session):
+    """Rebuilds the tax_lots table from every trade, sharing the position matcher's FIFO"""
+    all_trades = crud.get_trades(db)
+    matches = lots.match_lots(all_trades)
+    tax_lots = crud.build_tax_lots(matches)
+    crud.store_tax_lots(db, tax_lots)
+    logger.info(f"Rebuilt {len(tax_lots)} tax lot rows")
+
+
 def fill_prices_and_positions(db: Session):
     """
     Bundles the price and position updates into the same job to make sure prices are
@@ -133,6 +143,9 @@ def index_recent_trades(db: Session):
     positions = crud.build_positions_from_trades(db)
     crud.store_positions(db, positions)
 
+    logger.info("Rebuilding tax lots")
+    rebuild_tax_lots(db)
+
     logger.info("Done")
 
 
@@ -175,25 +188,46 @@ def index_backdoor_roth_trades(db: Session):
             cost=Decimal(str(row["cost"])),
             value=Decimal(str(row["value"])),
             excluded=False,
+            account=models.TradeAccount.ROTH.value,
         )
         trade_objects.append(trade)
         next_id += 1
 
-    logger.info(f"Inserting {len(trade_objects)} backdoor roth trades (vanguard-{next_id - len(trade_objects)} to vanguard-{next_id - 1})")
+    logger.info(
+        f"Inserting {len(trade_objects)} backdoor roth trades (vanguard-{next_id - len(trade_objects)} to vanguard-{next_id - 1})"
+    )
     crud.store_trades(db, trade_objects)
 
     logger.info("Updating current position")
     positions = crud.build_positions_from_trades(db)
     crud.store_positions(db, positions)
+
+    logger.info("Rebuilding tax lots")
+    rebuild_tax_lots(db)
+
     logger.info("Done")
 
 
 @click.command()
 @click.option("--trades", "run_trades", is_flag=True, help="Index recent trades")
 @click.option("--prices", "run_prices", is_flag=True, help="Fill historical prices")
-@click.option("--positions", "run_positions", is_flag=True, help="Fill historical positions")
-@click.option("--backdoor-roth", "run_backdoor_roth", is_flag=True, help="Index backdoor roth trades from CSVs")
-def main(run_trades: bool, run_prices: bool, run_positions: bool, run_backdoor_roth: bool):
+@click.option(
+    "--positions", "run_positions", is_flag=True, help="Fill historical positions"
+)
+@click.option(
+    "--backdoor-roth",
+    "run_backdoor_roth",
+    is_flag=True,
+    help="Index backdoor roth trades from CSVs",
+)
+@click.option("--tax-lots", "run_tax_lots", is_flag=True, help="Rebuild tax lots")
+def main(
+    run_trades: bool,
+    run_prices: bool,
+    run_positions: bool,
+    run_backdoor_roth: bool,
+    run_tax_lots: bool,
+):
     with connection.SessionLocal() as db:
         if run_trades:
             index_recent_trades(db)
@@ -203,6 +237,8 @@ def main(run_trades: bool, run_prices: bool, run_positions: bool, run_backdoor_r
             _fill_historical_positions(db)
         if run_backdoor_roth:
             index_backdoor_roth_trades(db)
+        if run_tax_lots:
+            rebuild_tax_lots(db)
 
 
 if __name__ == "__main__":

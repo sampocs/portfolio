@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import DECIMAL, Date, DateTime, String, Boolean
+from sqlalchemy import DECIMAL, Computed, Date, DateTime, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base
 
 Base = declarative_base()
@@ -15,6 +15,20 @@ class TradeAction(str, Enum):
 
     BUY = "BUY"
     SELL = "SELL"
+
+
+class TradeAccount(str, Enum):
+    """Account a trade was made in: taxable brokerage or backdoor Roth"""
+
+    BROKERAGE = "brokerage"
+    ROTH = "roth"
+
+
+class HoldingPeriod(str, Enum):
+    """Holding period of a matched tax lot slice"""
+
+    LONG_TERM = "long_term"
+    SHORT_TERM = "short_term"
 
 
 class Trade(Base):
@@ -33,6 +47,12 @@ class Trade(Base):
     cost: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
     value: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
     excluded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    account: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default=TradeAccount.BROKERAGE.value,
+        server_default=TradeAccount.BROKERAGE.value,
+    )
 
 
 class Position(Base):
@@ -86,4 +106,27 @@ class LivePrice(Base):
         # timestamp at import time, stamping every row with the process boot time
         DateTime(timezone=True),
         default=lambda: datetime.datetime.now(datetime.timezone.utc),
+    )
+
+
+class TaxLot(Base):
+    """Stores one row per slice of a buy lot consumed by a brokerage sell"""
+
+    __tablename__ = "tax_lots"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    platform: Mapped[str] = mapped_column(String, nullable=False)
+    account: Mapped[str] = mapped_column(String, nullable=False)
+    asset: Mapped[str] = mapped_column(String, nullable=False)
+    holding_period: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    date_acquired: Mapped[datetime.date] = mapped_column(Date, nullable=False)
+    date_sold: Mapped[datetime.date] = mapped_column(Date, nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    acquisition_price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    sale_price: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    proceeds: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    cost: Mapped[Decimal] = mapped_column(decimal_sql_type, nullable=False)
+    gain_loss: Mapped[Decimal] = mapped_column(
+        decimal_sql_type, Computed("proceeds - cost")
     )
