@@ -216,10 +216,8 @@ def build_tax_lots(matches: lots.LotMatches) -> list[models.TaxLot]:
         slice_index = slice_index_by_sell[sell.id]
         slice_index_by_sell[sell.id] += 1
 
-        # Reuses the matcher's date normalization, since trades built in tests may
-        # carry ISO date strings instead of real date objects
-        date_acquired = lots._trade_date(buy)
-        date_sold = lots._trade_date(sell)
+        date_acquired = buy.date
+        date_sold = sell.date
         holding_period = (
             models.HoldingPeriod.LONG_TERM
             if date_sold > date_acquired + relativedelta(years=1)
