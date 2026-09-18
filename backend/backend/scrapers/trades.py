@@ -8,6 +8,9 @@ from backend.database import models, crud
 from coinbase.rest import RESTClient
 from sqlalchemy.orm import Session
 
+# IBKR transactions don't carry a commission field, so fees are estimated per share
+IBKR_FEE_PER_SHARE = Decimal("0.0035")
+
 
 def trade_has_id_conflict(db: Session, new_trade: models.Trade) -> bool:
     """
@@ -36,7 +39,7 @@ def trade_has_id_conflict(db: Session, new_trade: models.Trade) -> bool:
 
         # Check if quantity and price are within 0.01% tolerance
         tolerance = Decimal("0.0001")
-        qty_diff_pct = abs((existing.quantity - new_trade.quantity)) / existing.quantity
+        qty_diff_pct = abs(existing.quantity - new_trade.quantity) / abs(existing.quantity)
         price_diff_pct = abs((existing.price - new_trade.price)) / existing.price
 
         # If the trade is sufficiently different, then we have an ID conflict
@@ -81,46 +84,59 @@ def get_recent_ibkr_trades(
             if transaction["type"] not in ["Buy", "Sell"]:
                 continue
 
-            action = str(transaction["type"]).upper()
-            quantity = Decimal(str(transaction["qty"]))
-            cost = abs(Decimal(str(transaction["amt"])))
-            price = Decimal(str(transaction["pr"]))
-            date = datetime.datetime.strptime(str(transaction["rawDate"]), "%Y%m%d").strftime("%Y-%m-%d")
-            fees = Decimal("0.0035") * quantity
-            value = price * quantity
-
-            # Note: This intentionally causes trades on the same day for the same asset have the same ID
-            # We handle these cases separately, which are rare since the main user of this product
-            # does not place multiple trades for the same asset in the same day
-            id_string = f"{asset_info.asset}_{date}_{action}"
-            trade_id = f"ibkr-{hashlib.sha256(id_string.encode()).hexdigest()[:20]}"
-
-            trade = models.Trade(
-                id=trade_id,
-                platform=Platform.IBKR.value,
-                date=date,
-                action=action,
-                asset=asset_info.asset,
-                price=price,
-                quantity=quantity,
-                fees=fees,
-                cost=cost,
-                value=value,
-                excluded=False,
-            )
+            trade = _build_ibkr_trade(transaction, asset=asset_info.asset)
 
             # See if we have an ID conflict with a trade on the same date with
             # a different quantity or price
             # If we do, we need to generate a new ID; if we don't, we can just leave
             # it as is which will upsert on conflict with the latest value for dupes
             if trade_has_id_conflict(db, trade):
-                suffix = f"{quantity}_{price}_{cost}_{value}"
-                id_string = f"{id_string}_{suffix}"
-                trade.id = f"ibkr-{hashlib.sha256(id_string.encode()).hexdigest()[:20]}"
+                suffix = f"{trade.quantity}_{trade.price}_{trade.cost}_{trade.value}"
+                trade.id = _ibkr_trade_id(
+                    f"{trade.asset}_{trade.date}_{trade.action}_{suffix}"
+                )
 
             trades.append(trade)
 
     return trades
+
+
+def _build_ibkr_trade(transaction: dict, asset: str) -> models.Trade:
+    """
+    Converts an IBKR transaction into a trade
+
+    IBKR reports a sell's quantity as negative, but the action already carries the
+    direction, so the quantity is normalized to positive like every other platform.
+    The position builder relies on this - it ignores sells with a non-positive quantity
+    """
+    action = str(transaction["type"]).upper()
+    quantity = abs(Decimal(str(transaction["qty"])))
+    cost = abs(Decimal(str(transaction["amt"])))
+    price = Decimal(str(transaction["pr"]))
+    date = datetime.datetime.strptime(str(transaction["rawDate"]), "%Y%m%d").strftime(
+        "%Y-%m-%d"
+    )
+
+    # Note: This intentionally causes trades on the same day for the same asset have the same ID
+    # We handle these cases separately, which are rare since the main user of this product
+    # does not place multiple trades for the same asset in the same day
+    return models.Trade(
+        id=_ibkr_trade_id(f"{asset}_{date}_{action}"),
+        platform=Platform.IBKR.value,
+        date=date,
+        action=action,
+        asset=asset,
+        price=price,
+        quantity=quantity,
+        fees=IBKR_FEE_PER_SHARE * quantity,
+        cost=cost,
+        value=price * quantity,
+        excluded=False,
+    )
+
+
+def _ibkr_trade_id(id_string: str) -> str:
+    return f"ibkr-{hashlib.sha256(id_string.encode()).hexdigest()[:20]}"
 
 
 def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:

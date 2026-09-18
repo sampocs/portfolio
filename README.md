@@ -108,6 +108,9 @@ In order to automatically track trades, they must be done as follows:
 - Vanguard (Backdoor Roth): Manually added via CSV
   1. Add a CSV to `data/trades/clean/backdoor_roths/vanguard_backdoor_roth_{year}.csv` with columns: `platform,date,action,asset,price,quantity,fees,cost,value`
   2. Run `make sync-backdoor-roth`
+- Vanguard (taxable account, no API): Recorded by hand
+  1. Append the trade to `data/trades/clean/vanguard_sales/vanguard_sales_{year}.csv` using the next `vanguard-{n}` ID
+  2. Insert the same row into the `trades` table directly, then rebuild positions
 
 ## Adding a New Asset
 
