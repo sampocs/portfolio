@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 
 from backend import lots
@@ -8,7 +9,7 @@ def test_quantity_cost_and_average_price_sum_across_accounts():
     buy_brokerage = models.Trade(
         id="b-brok",
         platform="ibkr",
-        date="2026-01-01",
+        date=datetime.date(2026, 1, 1),
         action=models.TradeAction.BUY.value,
         asset="AAPL",
         price=Decimal("100"),
@@ -22,7 +23,7 @@ def test_quantity_cost_and_average_price_sum_across_accounts():
     buy_roth = models.Trade(
         id="b-roth",
         platform="ibkr",
-        date="2026-01-01",
+        date=datetime.date(2026, 1, 1),
         action=models.TradeAction.BUY.value,
         asset="AAPL",
         price=Decimal("200"),
@@ -52,7 +53,7 @@ def test_asset_fully_sold_out_produces_no_position():
     buy = models.Trade(
         id="b-1",
         platform="ibkr",
-        date="2026-01-01",
+        date=datetime.date(2026, 1, 1),
         action=models.TradeAction.BUY.value,
         asset="AAPL",
         price=Decimal("100"),
@@ -66,7 +67,7 @@ def test_asset_fully_sold_out_produces_no_position():
     sell = models.Trade(
         id="s-1",
         platform="ibkr",
-        date="2026-01-02",
+        date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         asset="AAPL",
         price=Decimal("110"),

@@ -66,10 +66,12 @@ def match_lots(trades: list[models.Trade]) -> LotMatches:
     Trades are grouped by (asset, platform, account) so a Roth lot is never consumed by
     a brokerage sell and a lot on one platform is never consumed by a sell on another.
     Excluded trades are skipped entirely. Within a group, trades are processed in
-    (date, action) order with same-day buys applied before sells, so a same-day rebuy
-    can't fund the sale that paid for it. Sells consume open lots oldest-first, splitting
-    the last lot consumed when the sell lands mid-lot. A sell that outruns its group's
-    open lots raises UnmatchedSellError rather than inventing a zero-basis slice.
+    (date, action, id) order with same-day buys applied before sells, so a same-day
+    rebuy can't fund the sale that paid for it, and same-day ties of the same action
+    break on id so ordering is deterministic regardless of input or DB order. Sells
+    consume open lots oldest-first, splitting the last lot consumed when the sell lands
+    mid-lot. A sell that outruns its group's open lots raises UnmatchedSellError rather
+    than inventing a zero-basis slice.
     """
     groups: dict[tuple[str, str, str], list[models.Trade]] = defaultdict(list)
     for trade in trades:
@@ -126,12 +128,11 @@ def _consume_sell(sell: models.Trade, open_lots: list[OpenLot]) -> list[LotSlice
     return consumed_slices
 
 
-def _sort_key(trade: models.Trade) -> tuple[datetime.date, int]:
-    """Sort key for a group's trades: by date, with same-day BUYs ordered before SELLs"""
+def _sort_key(trade: models.Trade) -> tuple[datetime.date, int, str]:
+    """
+    Sort key for a group's trades: by date, with same-day BUYs ordered before SELLs,
+    and ties within the same date and action broken on id so matching is deterministic
+    regardless of the order trades were passed in or loaded from the database.
+    """
     action_order = 0 if trade.action == models.TradeAction.BUY else 1
-    return (_trade_date(trade), action_order)
-
-
-def _trade_date(trade: models.Trade) -> datetime.date:
-    """Normalizes a trade's date; tests may build trades with ISO date strings"""
-    return datetime.date.fromisoformat(str(trade.date))
+    return (trade.date, action_order, trade.id)

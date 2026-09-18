@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 
 from backend import lots
@@ -8,7 +9,7 @@ def _trade(**overrides) -> models.Trade:
     defaults = {
         "id": "t-1",
         "platform": "ibkr",
-        "date": "2026-01-01",
+        "date": datetime.date(2026, 1, 1),
         "action": models.TradeAction.BUY.value,
         "asset": "AAPL",
         "price": Decimal("100"),
@@ -23,10 +24,10 @@ def _trade(**overrides) -> models.Trade:
 
 
 def test_holding_period_is_short_term_at_exactly_one_year():
-    buy = _trade(id="b-1", date="2025-01-01")
+    buy = _trade(id="b-1", date=datetime.date(2025, 1, 1))
     sell = _trade(
         id="s-1",
-        date="2026-01-01",
+        date=datetime.date(2026, 1, 1),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
     )
@@ -39,10 +40,10 @@ def test_holding_period_is_short_term_at_exactly_one_year():
 
 
 def test_holding_period_is_long_term_one_day_after_one_year():
-    buy = _trade(id="b-1", date="2025-01-01")
+    buy = _trade(id="b-1", date=datetime.date(2025, 1, 1))
     sell = _trade(
         id="s-1",
-        date="2026-01-02",
+        date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
     )
@@ -59,7 +60,7 @@ def test_partial_buy_lot_carries_prorated_share_of_buy_fees():
     # buy's fees and value, and all of the sell's fees since it sells the full amount
     buy = _trade(
         id="b-1",
-        date="2025-01-01",
+        date=datetime.date(2025, 1, 1),
         quantity=Decimal("10"),
         price=Decimal("100"),
         value=Decimal("1000"),
@@ -67,7 +68,7 @@ def test_partial_buy_lot_carries_prorated_share_of_buy_fees():
     )
     sell = _trade(
         id="s-1",
-        date="2025-06-01",
+        date=datetime.date(2025, 6, 1),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("5"),
         price=Decimal("120"),
@@ -93,7 +94,7 @@ def test_proceeds_and_cost_prorate_across_multiple_slices_of_one_sell():
     # buy's own consumed share (here, each buy lot is fully consumed)
     buy_1 = _trade(
         id="b-1",
-        date="2025-01-01",
+        date=datetime.date(2025, 1, 1),
         quantity=Decimal("4"),
         price=Decimal("100"),
         value=Decimal("400"),
@@ -101,7 +102,7 @@ def test_proceeds_and_cost_prorate_across_multiple_slices_of_one_sell():
     )
     buy_2 = _trade(
         id="b-2",
-        date="2025-01-02",
+        date=datetime.date(2025, 1, 2),
         quantity=Decimal("6"),
         price=Decimal("110"),
         value=Decimal("660"),
@@ -109,7 +110,7 @@ def test_proceeds_and_cost_prorate_across_multiple_slices_of_one_sell():
     )
     sell = _trade(
         id="s-1",
-        date="2025-06-01",
+        date=datetime.date(2025, 6, 1),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
         price=Decimal("150"),
@@ -135,13 +136,13 @@ def test_roth_sells_produce_no_tax_lot_rows():
     roth_buy = _trade(
         id="b-roth",
         asset="ROTH_ASSET",
-        date="2025-01-01",
+        date=datetime.date(2025, 1, 1),
         account=models.TradeAccount.ROTH.value,
     )
     roth_sell = _trade(
         id="s-roth",
         asset="ROTH_ASSET",
-        date="2025-06-01",
+        date=datetime.date(2025, 6, 1),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
         account=models.TradeAccount.ROTH.value,
@@ -149,13 +150,13 @@ def test_roth_sells_produce_no_tax_lot_rows():
     brokerage_buy = _trade(
         id="b-brok",
         asset="BROKERAGE_ASSET",
-        date="2025-01-01",
+        date=datetime.date(2025, 1, 1),
         account=models.TradeAccount.BROKERAGE.value,
     )
     brokerage_sell = _trade(
         id="s-brok",
         asset="BROKERAGE_ASSET",
-        date="2025-06-01",
+        date=datetime.date(2025, 6, 1),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
         account=models.TradeAccount.BROKERAGE.value,
@@ -169,11 +170,11 @@ def test_roth_sells_produce_no_tax_lot_rows():
 
 
 def test_ids_count_slices_within_a_sell_from_zero():
-    buy_1 = _trade(id="b-1", date="2025-01-01", quantity=Decimal("4"))
-    buy_2 = _trade(id="b-2", date="2025-01-02", quantity=Decimal("6"))
+    buy_1 = _trade(id="b-1", date=datetime.date(2025, 1, 1), quantity=Decimal("4"))
+    buy_2 = _trade(id="b-2", date=datetime.date(2025, 1, 2), quantity=Decimal("6"))
     sell = _trade(
         id="s-1",
-        date="2025-06-01",
+        date=datetime.date(2025, 6, 1),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
     )
@@ -185,17 +186,17 @@ def test_ids_count_slices_within_a_sell_from_zero():
 
 
 def test_ids_reset_to_zero_for_each_separate_sell():
-    buy_1 = _trade(id="b-1", date="2025-01-01", quantity=Decimal("10"))
+    buy_1 = _trade(id="b-1", date=datetime.date(2025, 1, 1), quantity=Decimal("10"))
     sell_1 = _trade(
         id="s-1",
-        date="2025-06-01",
+        date=datetime.date(2025, 6, 1),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
     )
-    buy_2 = _trade(id="b-2", date="2025-07-01", quantity=Decimal("10"))
+    buy_2 = _trade(id="b-2", date=datetime.date(2025, 7, 1), quantity=Decimal("10"))
     sell_2 = _trade(
         id="s-2",
-        date="2025-08-01",
+        date=datetime.date(2025, 8, 1),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
     )
@@ -204,3 +205,41 @@ def test_ids_reset_to_zero_for_each_separate_sell():
     tax_lots = crud.build_tax_lots(matches)
 
     assert [tax_lot.id for tax_lot in tax_lots] == ["s-1-0", "s-2-0"]
+
+
+def test_tax_lot_row_carries_every_column_including_formatted_description():
+    buy = _trade(
+        id="b-1",
+        platform="vanguard",
+        asset="VOO",
+        date=datetime.date(2025, 1, 1),
+        quantity=Decimal("10.000000"),
+        price=Decimal("100"),
+        value=Decimal("1000"),
+        fees=Decimal("10"),
+    )
+    sell = _trade(
+        id="s-1",
+        platform="vanguard",
+        asset="VOO",
+        date=datetime.date(2025, 6, 1),
+        action=models.TradeAction.SELL.value,
+        quantity=Decimal("0.500000"),
+        price=Decimal("120"),
+        value=Decimal("60"),
+        fees=Decimal("6"),
+    )
+
+    matches = lots.match_lots([buy, sell])
+    tax_lots = crud.build_tax_lots(matches)
+
+    assert len(tax_lots) == 1
+    tax_lot = tax_lots[0]
+    assert tax_lot.description == "0.5 VOO"
+    assert tax_lot.date_acquired == buy.date
+    assert tax_lot.date_sold == sell.date
+    assert tax_lot.acquisition_price == buy.price
+    assert tax_lot.sale_price == sell.price
+    assert tax_lot.platform == "vanguard"
+    assert tax_lot.asset == "VOO"
+    assert tax_lot.account == models.TradeAccount.BROKERAGE.value

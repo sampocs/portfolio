@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 
 import pytest
@@ -10,7 +11,7 @@ def _trade(**overrides) -> models.Trade:
     defaults = {
         "id": "t-1",
         "platform": "ibkr",
-        "date": "2026-01-01",
+        "date": datetime.date(2026, 1, 1),
         "action": models.TradeAction.BUY.value,
         "asset": "AAPL",
         "price": Decimal("100"),
@@ -25,11 +26,11 @@ def _trade(**overrides) -> models.Trade:
 
 
 def test_fifo_consumes_oldest_lot_first_and_splits_partial_sell():
-    buy_1 = _trade(id="b-1", date="2026-01-01", quantity=Decimal("10"))
-    buy_2 = _trade(id="b-2", date="2026-01-02", quantity=Decimal("10"))
+    buy_1 = _trade(id="b-1", date=datetime.date(2026, 1, 1), quantity=Decimal("10"))
+    buy_2 = _trade(id="b-2", date=datetime.date(2026, 1, 2), quantity=Decimal("10"))
     sell = _trade(
         id="s-1",
-        date="2026-01-03",
+        date=datetime.date(2026, 1, 3),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("15"),
     )
@@ -46,12 +47,12 @@ def test_fifo_consumes_oldest_lot_first_and_splits_partial_sell():
 
 
 def test_sell_spanning_several_lots_yields_one_slice_per_lot():
-    buy_1 = _trade(id="b-1", date="2026-01-01", quantity=Decimal("5"))
-    buy_2 = _trade(id="b-2", date="2026-01-02", quantity=Decimal("5"))
-    buy_3 = _trade(id="b-3", date="2026-01-03", quantity=Decimal("5"))
+    buy_1 = _trade(id="b-1", date=datetime.date(2026, 1, 1), quantity=Decimal("5"))
+    buy_2 = _trade(id="b-2", date=datetime.date(2026, 1, 2), quantity=Decimal("5"))
+    buy_3 = _trade(id="b-3", date=datetime.date(2026, 1, 3), quantity=Decimal("5"))
     sell = _trade(
         id="s-1",
-        date="2026-01-04",
+        date=datetime.date(2026, 1, 4),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("12"),
     )
@@ -71,19 +72,19 @@ def test_sell_spanning_several_lots_yields_one_slice_per_lot():
 def test_lots_pooled_per_account_roth_not_consumed_by_brokerage_sell():
     buy_brokerage = _trade(
         id="b-brok",
-        date="2026-01-01",
+        date=datetime.date(2026, 1, 1),
         quantity=Decimal("10"),
         account=models.TradeAccount.BROKERAGE.value,
     )
     buy_roth = _trade(
         id="b-roth",
-        date="2026-01-01",
+        date=datetime.date(2026, 1, 1),
         quantity=Decimal("10"),
         account=models.TradeAccount.ROTH.value,
     )
     sell_brokerage = _trade(
         id="s-brok",
-        date="2026-01-02",
+        date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
         account=models.TradeAccount.BROKERAGE.value,
@@ -102,14 +103,20 @@ def test_lots_pooled_per_account_roth_not_consumed_by_brokerage_sell():
 
 def test_lots_pooled_per_platform_ibkr_not_consumed_by_vanguard_sell():
     buy_ibkr = _trade(
-        id="b-ibkr", date="2026-01-01", quantity=Decimal("10"), platform="ibkr"
+        id="b-ibkr",
+        date=datetime.date(2026, 1, 1),
+        quantity=Decimal("10"),
+        platform="ibkr",
     )
     buy_vanguard = _trade(
-        id="b-van", date="2026-01-01", quantity=Decimal("10"), platform="vanguard"
+        id="b-van",
+        date=datetime.date(2026, 1, 1),
+        quantity=Decimal("10"),
+        platform="vanguard",
     )
     sell_vanguard = _trade(
         id="s-van",
-        date="2026-01-02",
+        date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
         platform="vanguard",
@@ -126,17 +133,21 @@ def test_lots_pooled_per_platform_ibkr_not_consumed_by_vanguard_sell():
 
 
 def test_same_day_buy_is_not_consumed_by_the_sell_that_funded_it():
-    older_buy = _trade(id="b-old", date="2026-01-01", quantity=Decimal("5"))
-    same_day_buy = _trade(id="b-new", date="2026-01-02", quantity=Decimal("5"))
+    older_buy = _trade(
+        id="b-old", date=datetime.date(2026, 1, 1), quantity=Decimal("5")
+    )
+    same_day_buy = _trade(
+        id="b-new", date=datetime.date(2026, 1, 2), quantity=Decimal("5")
+    )
     same_day_sell = _trade(
         id="s-1",
-        date="2026-01-02",
+        date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("5"),
     )
 
     # Trades are passed out of chronological order to prove the matcher sorts by
-    # (date, action) itself rather than relying on input order
+    # (date, action, id) itself rather than relying on input order
     matches = lots.match_lots([same_day_sell, same_day_buy, older_buy])
 
     assert matches.slices == [
@@ -148,10 +159,10 @@ def test_same_day_buy_is_not_consumed_by_the_sell_that_funded_it():
 
 
 def test_excluded_trades_are_ignored():
-    buy = _trade(id="b-1", date="2026-01-01", quantity=Decimal("10"))
+    buy = _trade(id="b-1", date=datetime.date(2026, 1, 1), quantity=Decimal("10"))
     excluded_sell = _trade(
         id="s-excluded",
-        date="2026-01-02",
+        date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("5"),
         excluded=True,
@@ -166,10 +177,10 @@ def test_excluded_trades_are_ignored():
 
 
 def test_sell_that_outruns_its_lots_raises_unmatched_sell_error():
-    buy = _trade(id="b-1", date="2026-01-01", quantity=Decimal("5"))
+    buy = _trade(id="b-1", date=datetime.date(2026, 1, 1), quantity=Decimal("5"))
     sell = _trade(
         id="s-1",
-        date="2026-01-02",
+        date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         quantity=Decimal("8"),
     )
@@ -183,3 +194,38 @@ def test_sell_that_outruns_its_lots_raises_unmatched_sell_error():
     assert error.account == models.TradeAccount.BROKERAGE.value
     assert error.sell_id == "s-1"
     assert error.unmatched_quantity == Decimal("3")
+
+
+def test_same_day_buys_break_ties_on_id_regardless_of_input_order():
+    # Both buys land on the same date, at different prices, so nothing but id can
+    # order them; the sell only partially drains the first-consumed lot
+    buy_low_id = _trade(
+        id="b-1", date=datetime.date(2026, 1, 1), price=Decimal("86.36")
+    )
+    buy_high_id = _trade(
+        id="b-2", date=datetime.date(2026, 1, 1), price=Decimal("86.17")
+    )
+    sell = _trade(
+        id="s-1",
+        date=datetime.date(2026, 1, 2),
+        action=models.TradeAction.SELL.value,
+        quantity=Decimal("6"),
+    )
+
+    matches_low_first = lots.match_lots([buy_low_id, buy_high_id, sell])
+    matches_high_first = lots.match_lots([buy_high_id, buy_low_id, sell])
+
+    expected_slices = [
+        lots.LotSlice(buy=buy_low_id, sell=sell, quantity=Decimal("6")),
+    ]
+    expected_open_lots = {
+        "AAPL": [
+            lots.OpenLot(buy=buy_low_id, quantity=Decimal("4")),
+            lots.OpenLot(buy=buy_high_id, quantity=Decimal("10")),
+        ]
+    }
+
+    assert matches_low_first.slices == expected_slices
+    assert matches_low_first.open_lots == expected_open_lots
+    assert matches_high_first.slices == expected_slices
+    assert matches_high_first.open_lots == expected_open_lots
