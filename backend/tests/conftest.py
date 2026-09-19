@@ -1,9 +1,11 @@
 from collections.abc import Generator
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from backend.config import Asset, Market, Platform, PriceType, Segment
 from backend.database import models
 
 
@@ -19,3 +21,17 @@ def db_session() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
+
+
+def _asset_config(asset: str) -> Asset:
+    """Builds a minimal Asset config for tests that monkeypatch `config.assets`"""
+    return Asset(
+        asset=asset,
+        description=asset,
+        target_allocation=Decimal("10"),
+        market=Market.STOCKS,
+        segment=Segment.STOCK_ETFS,
+        platform=Platform.IBKR,
+        price_type=PriceType.STOCKS,
+        contract_id="1",
+    )

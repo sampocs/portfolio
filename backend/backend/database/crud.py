@@ -42,7 +42,8 @@ def get_trades(
 def get_cash_flows(db: Session, assets: list[str] | None = None) -> dict[str, CashFlow]:
     """
     Returns total buys and sells (Trade.cost) per asset, over non-excluded trades.
-    Optional asset filter narrows which trades are considered.
+    Optional asset filter narrows which trades are considered; trades for assets not
+    in the filter (or, with no filter, not in `config.assets`) are ignored.
     """
     trades = _get_non_excluded_trades(db, assets=assets)
 
@@ -65,7 +66,8 @@ def get_daily_cash_flows(
     """
     Returns buys and sells (Trade.cost) for each trade date, ascending, over
     non-excluded trades. Each entry covers only that single date, not a cumulative
-    total. Optional asset filter narrows which trades are considered.
+    total. Optional asset filter narrows which trades are considered; trades for
+    assets not in the filter (or, with no filter, not in `config.assets`) are ignored.
     """
     trades = _get_non_excluded_trades(db, assets=assets)
 
@@ -86,10 +88,13 @@ def get_daily_cash_flows(
 def _get_non_excluded_trades(
     db: Session, assets: list[str] | None
 ) -> list[models.Trade]:
-    """Fetches non-excluded trades, optionally filtered to a set of assets"""
+    """
+    Fetches non-excluded trades, optionally filtered to a set of assets. With no
+    filter, falls back to the configured assets, so trades for an asset removed from
+    `assets.yaml` are ignored rather than skewing unfiltered totals.
+    """
     query = db.query(models.Trade).where(models.Trade.excluded.is_(False))
-    if assets:
-        query = query.where(models.Trade.asset.in_(assets))
+    query = query.where(models.Trade.asset.in_(assets or list(config.assets.keys())))
     return query.all()
 
 

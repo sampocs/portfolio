@@ -2,9 +2,10 @@ import datetime
 from decimal import Decimal
 
 from backend import lots
-from backend.config import Asset, Market, Platform, PriceType, Segment, config
+from backend.config import config
 from backend.database import crud, models
 from backend.router import transforms
+from tests.conftest import _asset_config
 
 
 def _trade(**overrides) -> models.Trade:
@@ -23,19 +24,6 @@ def _trade(**overrides) -> models.Trade:
         "account": models.TradeAccount.BROKERAGE.value,
     }
     return models.Trade(**{**defaults, **overrides})
-
-
-def _asset_config(asset: str) -> Asset:
-    return Asset(
-        asset=asset,
-        description=asset,
-        target_allocation=Decimal("10"),
-        market=Market.STOCKS,
-        segment=Segment.STOCK_ETFS,
-        platform=Platform.IBKR,
-        price_type=PriceType.STOCKS,
-        contract_id="1",
-    )
 
 
 def test_quantity_cost_and_average_price_sum_across_accounts():

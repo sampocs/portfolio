@@ -1,8 +1,10 @@
 import datetime
 from decimal import Decimal
 
+from backend.config import config
 from backend.database import crud, models
 from backend.router import transforms
+from tests.conftest import _asset_config
 
 
 def _trade(**overrides) -> models.Trade:
@@ -40,7 +42,12 @@ def _historical_position(**overrides) -> models.HistoricalPosition:
 # --- crud.get_cash_flows -----------------------------------------------------------
 
 
-def test_get_cash_flows_sums_buys_and_sells_by_asset_and_ignores_excluded(db_session):
+def test_get_cash_flows_sums_buys_and_sells_by_asset_and_ignores_excluded(
+    db_session, monkeypatch
+):
+    monkeypatch.setattr(
+        config, "assets", {"VT": _asset_config("VT"), "VOO": _asset_config("VOO")}
+    )
     buy = _trade(id="b-1", asset="VT", cost=Decimal("1000"))
     sell = _trade(
         id="s-1",
@@ -82,7 +89,12 @@ def test_get_cash_flows_honors_asset_filter(db_session):
 # --- crud.get_daily_cash_flows -------------------------------------------------------
 
 
-def test_get_daily_cash_flows_groups_by_date_ascending_and_ignores_excluded(db_session):
+def test_get_daily_cash_flows_groups_by_date_ascending_and_ignores_excluded(
+    db_session, monkeypatch
+):
+    monkeypatch.setattr(
+        config, "assets", {"VT": _asset_config("VT"), "VOO": _asset_config("VOO")}
+    )
     day2_buy = _trade(
         id="b-1", asset="VT", date=datetime.date(2026, 1, 2), cost=Decimal("1000")
     )
@@ -131,6 +143,30 @@ def test_get_daily_cash_flows_honors_asset_filter(db_session):
 
     daily_flows = crud.get_daily_cash_flows(db_session, assets=["VT"])
 
+    assert daily_flows == [
+        crud.DailyCashFlow(
+            date=datetime.date(2026, 1, 1), buys=Decimal("1000"), sells=Decimal("0")
+        )
+    ]
+
+
+def test_get_cash_flows_and_daily_cash_flows_ignore_unconfigured_assets_by_default(
+    db_session, monkeypatch
+):
+    monkeypatch.setattr(config, "assets", {"VT": _asset_config("VT")})
+
+    vt = _trade(
+        id="b-1", asset="VT", date=datetime.date(2026, 1, 1), cost=Decimal("1000")
+    )
+    unconfigured = _trade(
+        id="b-2", asset="ZZZ", date=datetime.date(2026, 1, 1), cost=Decimal("300")
+    )
+    crud.store_trades(db_session, [vt, unconfigured])
+
+    cash_flows = crud.get_cash_flows(db_session)
+    daily_flows = crud.get_daily_cash_flows(db_session)
+
+    assert cash_flows == {"VT": crud.CashFlow(buys=Decimal("1000"), sells=Decimal("0"))}
     assert daily_flows == [
         crud.DailyCashFlow(
             date=datetime.date(2026, 1, 1), buys=Decimal("1000"), sells=Decimal("0")
@@ -199,9 +235,19 @@ def test_accumulate_running_cash_flows_is_zero_before_any_trade():
 def test_get_performance_running_totals_include_trades_before_the_duration_window(
     db_session,
 ):
+    """
+    Regresses two things at once: (1) running buys/sells accumulate trades made
+    before the duration window (the old trade), and (2) `returns` is cash-out over
+    cash-in (`(value + sells - buys) / buys * 100`) rather than the unrealized
+    `(value - cost) / cost * 100`. Cost is deliberately kept different from buys (and
+    sells nonzero from the sell date on) at every point so the two formulas diverge -
+    a regression using `cost` in place of `buys`, or dropping `sells`, changes the
+    expected `returns` value.
+    """
     today = datetime.date.today()
     old_trade_date = today - datetime.timedelta(days=100)  # outside the 1M window
     recent_trade_date = today - datetime.timedelta(days=10)
+    sell_date = today - datetime.timedelta(days=4)
 
     crud.store_trades(
         db_session,
@@ -209,6 +255,15 @@ def test_get_performance_running_totals_include_trades_before_the_duration_windo
             _trade(id="b-old", asset="VT", date=old_trade_date, cost=Decimal("1000")),
             _trade(
                 id="b-recent", asset="VT", date=recent_trade_date, cost=Decimal("500")
+            ),
+            _trade(
+                id="s-1",
+                asset="VT",
+                date=sell_date,
+                action=models.TradeAction.SELL.value,
+                quantity=Decimal("5"),
+                cost=Decimal("600"),
+                value=Decimal("600"),
             ),
             # different asset - excluded by the asset filter below
             _trade(
@@ -225,7 +280,10 @@ def test_get_performance_running_totals_include_trades_before_the_duration_windo
                 value=Decimal("1800"),
             ),
             _historical_position(
-                asset="VT", date=today, cost=Decimal("1500"), value=Decimal("2000")
+                asset="VT", date=sell_date, cost=Decimal("900"), value=Decimal("1200")
+            ),
+            _historical_position(
+                asset="VT", date=today, cost=Decimal("900"), value=Decimal("1300")
             ),
         ]
     )
@@ -235,20 +293,43 @@ def test_get_performance_running_totals_include_trades_before_the_duration_windo
 
     assert [snapshot.date for snapshot in performance] == [
         str(recent_trade_date),
+        str(sell_date),
         str(today),
     ]
 
+    def _expected_returns(*, value: Decimal, sells: Decimal, buys: Decimal) -> Decimal:
+        return (value + sells - buys) / buys * 100
+
+    # before the sell date: no sells yet, and cost happens to equal buys here, so this
+    # point alone would not catch a regression - the points below do.
     first = performance[0]
     assert first.buys == Decimal("1500")  # old trade (before the window) + recent trade
     assert first.sells == Decimal("0")
     assert first.cost == Decimal("1500")
     assert first.value == Decimal("1800")
-    assert first.returns == Decimal("20")  # (1800 + 0 - 1500) / 1500 * 100
+    assert first.returns == _expected_returns(
+        value=first.value, sells=first.sells, buys=first.buys
+    )
 
+    # on the sell date: sells becomes 600, and cost (900) diverges from buys (1500)
     second = performance[1]
-    assert second.buys == Decimal("1500")  # no new trades since
-    assert second.value == Decimal("2000")
-    assert second.returns == Decimal("100") / Decimal("3")  # 500 / 1500 * 100
+    assert second.buys == Decimal("1500")  # no new buys since
+    assert second.sells == Decimal("600")
+    assert second.cost == Decimal("900")
+    assert second.value == Decimal("1200")
+    assert second.returns == _expected_returns(
+        value=second.value, sells=second.sells, buys=second.buys
+    )
+
+    # after the sell date: sells stays at 600, cost still diverges from buys
+    third = performance[2]
+    assert third.buys == Decimal("1500")
+    assert third.sells == Decimal("600")
+    assert third.cost == Decimal("900")
+    assert third.value == Decimal("1300")
+    assert third.returns == _expected_returns(
+        value=third.value, sells=third.sells, buys=third.buys
+    )
 
 
 def test_get_performance_returns_zero_when_buys_is_zero(db_session):
