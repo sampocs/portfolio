@@ -146,7 +146,15 @@ for i, (idx, cat) in enumerate(category_groups):
 
 
 # Price columns -  dollar sign with commas and 2 decimals
-for col in ["current_price", "average_price", "cost", "value"]:
+for col in [
+    "current_price",
+    "average_price",
+    "cost",
+    "value",
+    "buys",
+    "sells",
+    "total_return",
+]:
     if col in positions_df_display.columns:
         positions_df_display[col] = positions_df_display[col].apply(
             lambda i: f"${float(i):,.2f}"

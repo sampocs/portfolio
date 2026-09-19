@@ -162,7 +162,7 @@ def positions_from_matches(matches: lots.LotMatches) -> list[models.Position]:
         lot_slice.buy.asset for lot_slice in matches.slices
     }
 
-    positions = []
+    positions: list[models.Position] = []
     for asset in sorted(assets):
         open_lots = matches.open_lots.get(asset, [])
         total_quantity = sum((lot.quantity for lot in open_lots), Decimal(0))

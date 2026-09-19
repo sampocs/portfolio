@@ -4,25 +4,8 @@ from decimal import Decimal
 from backend.config import config
 from backend.database import crud, models
 from backend.router import transforms
+from tests import factories
 from tests.conftest import _asset_config
-
-
-def _trade(**overrides) -> models.Trade:
-    defaults = {
-        "id": "t-1",
-        "platform": "ibkr",
-        "date": datetime.date(2026, 1, 1),
-        "action": models.TradeAction.BUY.value,
-        "asset": "VT",
-        "price": Decimal("100"),
-        "quantity": Decimal("10"),
-        "fees": Decimal("0"),
-        "cost": Decimal("1000"),
-        "value": Decimal("1000"),
-        "excluded": False,
-        "account": models.TradeAccount.BROKERAGE.value,
-    }
-    return models.Trade(**{**defaults, **overrides})
 
 
 def _historical_position(**overrides) -> models.HistoricalPosition:
@@ -48,22 +31,22 @@ def test_get_cash_flows_sums_buys_and_sells_by_asset_and_ignores_excluded(
     monkeypatch.setattr(
         config, "assets", {"VT": _asset_config("VT"), "VOO": _asset_config("VOO")}
     )
-    buy = _trade(id="b-1", asset="VT", cost=Decimal("1000"))
-    sell = _trade(
+    buy = factories.make_trade(id="b-1", asset="VT", cost=Decimal("1000"))
+    sell = factories.make_trade(
         id="s-1",
         asset="VT",
         date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         cost=Decimal("600"),
     )
-    excluded = _trade(
+    excluded = factories.make_trade(
         id="b-2",
         asset="VT",
         date=datetime.date(2026, 1, 3),
         cost=Decimal("999"),
         excluded=True,
     )
-    other_asset = _trade(
+    other_asset = factories.make_trade(
         id="b-3", asset="VOO", date=datetime.date(2026, 1, 1), cost=Decimal("300")
     )
     crud.store_trades(db_session, [buy, sell, excluded, other_asset])
@@ -75,8 +58,8 @@ def test_get_cash_flows_sums_buys_and_sells_by_asset_and_ignores_excluded(
 
 
 def test_get_cash_flows_honors_asset_filter(db_session):
-    vt_buy = _trade(id="b-1", asset="VT", cost=Decimal("1000"))
-    voo_buy = _trade(
+    vt_buy = factories.make_trade(id="b-1", asset="VT", cost=Decimal("1000"))
+    voo_buy = factories.make_trade(
         id="b-2", asset="VOO", date=datetime.date(2026, 1, 1), cost=Decimal("300")
     )
     crud.store_trades(db_session, [vt_buy, voo_buy])
@@ -95,20 +78,20 @@ def test_get_daily_cash_flows_groups_by_date_ascending_and_ignores_excluded(
     monkeypatch.setattr(
         config, "assets", {"VT": _asset_config("VT"), "VOO": _asset_config("VOO")}
     )
-    day2_buy = _trade(
+    day2_buy = factories.make_trade(
         id="b-1", asset="VT", date=datetime.date(2026, 1, 2), cost=Decimal("1000")
     )
-    day2_sell = _trade(
+    day2_sell = factories.make_trade(
         id="s-1",
         asset="VOO",
         date=datetime.date(2026, 1, 2),
         action=models.TradeAction.SELL.value,
         cost=Decimal("200"),
     )
-    day1_buy = _trade(
+    day1_buy = factories.make_trade(
         id="b-2", asset="VT", date=datetime.date(2026, 1, 1), cost=Decimal("500")
     )
-    excluded = _trade(
+    excluded = factories.make_trade(
         id="b-3",
         asset="VT",
         date=datetime.date(2026, 1, 1),
@@ -133,10 +116,10 @@ def test_get_daily_cash_flows_groups_by_date_ascending_and_ignores_excluded(
 
 
 def test_get_daily_cash_flows_honors_asset_filter(db_session):
-    vt = _trade(
+    vt = factories.make_trade(
         id="b-1", asset="VT", date=datetime.date(2026, 1, 1), cost=Decimal("1000")
     )
-    voo = _trade(
+    voo = factories.make_trade(
         id="b-2", asset="VOO", date=datetime.date(2026, 1, 1), cost=Decimal("300")
     )
     crud.store_trades(db_session, [vt, voo])
@@ -155,10 +138,10 @@ def test_get_cash_flows_and_daily_cash_flows_ignore_unconfigured_assets_by_defau
 ):
     monkeypatch.setattr(config, "assets", {"VT": _asset_config("VT")})
 
-    vt = _trade(
+    vt = factories.make_trade(
         id="b-1", asset="VT", date=datetime.date(2026, 1, 1), cost=Decimal("1000")
     )
-    unconfigured = _trade(
+    unconfigured = factories.make_trade(
         id="b-2", asset="ZZZ", date=datetime.date(2026, 1, 1), cost=Decimal("300")
     )
     crud.store_trades(db_session, [vt, unconfigured])
@@ -252,11 +235,13 @@ def test_get_performance_running_totals_include_trades_before_the_duration_windo
     crud.store_trades(
         db_session,
         [
-            _trade(id="b-old", asset="VT", date=old_trade_date, cost=Decimal("1000")),
-            _trade(
+            factories.make_trade(
+                id="b-old", asset="VT", date=old_trade_date, cost=Decimal("1000")
+            ),
+            factories.make_trade(
                 id="b-recent", asset="VT", date=recent_trade_date, cost=Decimal("500")
             ),
-            _trade(
+            factories.make_trade(
                 id="s-1",
                 asset="VT",
                 date=sell_date,
@@ -266,7 +251,7 @@ def test_get_performance_running_totals_include_trades_before_the_duration_windo
                 value=Decimal("600"),
             ),
             # different asset - excluded by the asset filter below
-            _trade(
+            factories.make_trade(
                 id="b-other", asset="VOO", date=old_trade_date, cost=Decimal("5000")
             ),
         ],

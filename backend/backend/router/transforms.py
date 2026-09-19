@@ -24,7 +24,11 @@ def get_enriched_positions(db: Session) -> list[schemas.Position]:
         current_price = live_prices[position.asset]
         value = current_price * position.quantity
 
-        cash_flow = cash_flows[position.asset]
+        # A trade can be marked excluded after the last positions sync, leaving a
+        # position row with no non-excluded trades and thus no entry here.
+        cash_flow = cash_flows.get(
+            position.asset, crud.CashFlow(buys=Decimal(0), sells=Decimal(0))
+        )
         total_return = value + cash_flow.sells - cash_flow.buys
         returns = (
             (total_return / cash_flow.buys) * 100 if cash_flow.buys != 0 else Decimal(0)
@@ -55,7 +59,9 @@ def get_enriched_positions(db: Session) -> list[schemas.Position]:
     # Get the total value and then calculate the current allocations
     total_value = sum(position.value for position in enriched_positions)
     for position in enriched_positions:
-        position.current_allocation = (position.value / total_value) * 100
+        position.current_allocation = (
+            (position.value / total_value) * 100 if total_value != 0 else Decimal(0)
+        )
 
     return enriched_positions
 
