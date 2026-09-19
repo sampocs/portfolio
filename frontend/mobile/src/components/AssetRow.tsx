@@ -16,9 +16,10 @@ export default function AssetRow({ asset, isFirst = false, isLast = false, onPre
   // Get image source from centralized registry
   const imageSource = getAssetLogo(asset.asset);
   
-  // Calculate values
+  // Calculate values - total return is cash out over cash in (value + sells - buys),
+  // not unrealized gain over remaining cost basis
   const totalValue = parseFloat(asset.value);
-  const totalReturn = totalValue - parseFloat(asset.cost);
+  const totalReturn = parseFloat(asset.total_return);
   const returnsPercent = parseFloat(asset.returns);
   const isPositive = totalReturn >= 0;
 
