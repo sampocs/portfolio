@@ -359,9 +359,11 @@ export default function PortfolioScreen({ navigation }: PortfolioScreenProps) {
   const portfolioSummary = calculatePortfolioSummary(filteredPositions);
 
   // Get summary data - use selected data point if available, otherwise use current totals
+  // Total return is cash out over cash in (value + sells - buys), not unrealized gain
+  // over remaining cost basis
   const summaryData = selectedDataPoint ? {
     totalValue: parseFloat(selectedDataPoint.value),
-    totalReturn: parseFloat(selectedDataPoint.value) - parseFloat(selectedDataPoint.cost),
+    totalReturn: parseFloat(selectedDataPoint.value) + parseFloat(selectedDataPoint.sells) - parseFloat(selectedDataPoint.buys),
     totalReturnPercent: parseFloat(selectedDataPoint.returns),
     selectedDate: formatDate(selectedDataPoint.date),
   } : {

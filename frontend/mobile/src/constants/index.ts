@@ -34,6 +34,8 @@ export const DATA = {
   STARTING_PORTFOLIO_VALUE: 95000,
   FINAL_PORTFOLIO_VALUE: 139652.52,
   FINAL_PORTFOLIO_COST: 118296.62,
+  FINAL_PORTFOLIO_BUYS: 123496.62, // Sum of mockPositions buys, including the closed position
+  FINAL_PORTFOLIO_SELLS: 3800, // Sum of mockPositions sells (realized proceeds from the closed position)
 } as const;
 
 // Storage Keys

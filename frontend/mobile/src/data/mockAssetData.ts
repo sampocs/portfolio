@@ -29,24 +29,32 @@ const generatePriceHistory = (
   return history;
 };
 
+// Crypto assets settle on Coinbase; everything else trades through IBKR.
+const CRYPTO_SYMBOLS = new Set(['BTC', 'ETH', 'SOL']);
+
+// Rough fee rate applied to the gross trade value, used to derive a realistic
+// net cash `cost` (real cash that moved) from the gross `value` (quantity * price).
+const FEE_RATE = 0.001;
+
 // Helper function to generate realistic trades
 const generateTrades = (symbol: string, quantity: number): AssetTrade[] => {
   const trades: AssetTrade[] = [];
   const basePrice = getBasePriceForAsset(symbol);
+  const platform = CRYPTO_SYMBOLS.has(symbol) ? 'COINBASE' : 'IBKR';
   let remainingQuantity = quantity;
-  
+
   // Generate 3-8 trades over the past year
   const numTrades = Math.floor(Math.random() * 6) + 3;
   const startDate = new Date();
   startDate.setFullYear(startDate.getFullYear() - 1);
-  
+
   for (let i = 0; i < numTrades && remainingQuantity > 0; i++) {
     const date = new Date(startDate);
     date.setDate(startDate.getDate() + (i * 365) / numTrades);
-    
+
     // Mostly buys with occasional sells
     const action: 'BUY' | 'SELL' = Math.random() < 0.85 ? 'BUY' : 'SELL';
-    
+
     let tradeQuantity: number;
     if (action === 'BUY') {
       tradeQuantity = Math.min(remainingQuantity * (0.2 + Math.random() * 0.3), remainingQuantity);
@@ -56,19 +64,33 @@ const generateTrades = (symbol: string, quantity: number): AssetTrade[] => {
       tradeQuantity = Math.min(quantity * (0.1 + Math.random() * 0.2), quantity - remainingQuantity);
       remainingQuantity += tradeQuantity;
     }
-    
+
     // Price variation around base price
     const priceVariation = 0.8 + Math.random() * 0.4;
     const tradePrice = basePrice * priceVariation;
-    
+
+    // Gross trade value, fees, and the real net cash cost: a buy costs more
+    // than its gross value (fees add to cash out), a sell nets less than its
+    // gross value (fees are subtracted from cash in).
+    const tradeValue = tradeQuantity * tradePrice;
+    const fees = tradeValue * FEE_RATE;
+    const cost = action === 'BUY' ? tradeValue + fees : tradeValue - fees;
+
     trades.push({
+      platform,
       date: date.toISOString().split('T')[0],
+      id: `${symbol}-${i}`,
+      price: tradePrice,
+      fees,
+      value: tradeValue,
+      asset: symbol,
       action,
-      quantity: tradeQuantity.toFixed(4),
-      price: tradePrice.toFixed(2)
+      quantity: tradeQuantity,
+      cost,
+      excluded: false
     });
   }
-  
+
   return trades.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 };
 
@@ -104,55 +126,68 @@ const getLivePriceForAsset = (symbol: string): string => {
 export const mockAssetPriceData: { [symbol: string]: AssetPriceData } = {
   'VT': {
     live_price: getLivePriceForAsset('VT'),
-    price_history: generatePriceHistory(245, 365, 0.015)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(245, 365, 0.015)
   },
   'VOO': {
     live_price: getLivePriceForAsset('VOO'),
-    price_history: generatePriceHistory(512, 365, 0.012)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(512, 365, 0.012)
   },
   'VO': {
     live_price: getLivePriceForAsset('VO'),
-    price_history: generatePriceHistory(299, 365, 0.014)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(299, 365, 0.014)
   },
   'VB': {
     live_price: getLivePriceForAsset('VB'),
-    price_history: generatePriceHistory(240, 365, 0.018)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(240, 365, 0.018)
   },
   'VXUS': {
     live_price: getLivePriceForAsset('VXUS'),
-    price_history: generatePriceHistory(69, 365, 0.016)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(69, 365, 0.016)
   },
   'VWO': {
     live_price: getLivePriceForAsset('VWO'),
-    price_history: generatePriceHistory(52, 365, 0.020)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(52, 365, 0.020)
   },
   'COIN': {
     live_price: getLivePriceForAsset('COIN'),
-    price_history: generatePriceHistory(285, 365, 0.035)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(285, 365, 0.035)
   },
   'HOOD': {
     live_price: getLivePriceForAsset('HOOD'),
-    price_history: generatePriceHistory(24, 365, 0.040)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(24, 365, 0.040)
   },
   'AAAU': {
     live_price: getLivePriceForAsset('AAAU'),
-    price_history: generatePriceHistory(28, 365, 0.008)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(28, 365, 0.008)
   },
   'VNQ': {
     live_price: getLivePriceForAsset('VNQ'),
-    price_history: generatePriceHistory(105, 365, 0.020)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(105, 365, 0.020)
   },
   'BTC': {
     live_price: getLivePriceForAsset('BTC'),
-    price_history: generatePriceHistory(43500, 365, 0.045)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(43500, 365, 0.045)
   },
   'ETH': {
     live_price: getLivePriceForAsset('ETH'),
-    price_history: generatePriceHistory(3200, 365, 0.050)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(3200, 365, 0.050)
   },
   'SOL': {
     live_price: getLivePriceForAsset('SOL'),
-    price_history: generatePriceHistory(210, 365, 0.060)
+    updated_at: new Date().toISOString(),
+    historical_prices: generatePriceHistory(210, 365, 0.060)
   }
 };
 
