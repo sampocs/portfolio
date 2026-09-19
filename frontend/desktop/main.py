@@ -15,7 +15,9 @@ dotenv.load_dotenv(env_file)
 API_SECRET = os.environ["FASTAPI_SECRET"]
 APP_PASSWORD = os.environ["DASHBOARD_PASSWORD"]
 
-POSITIONS_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/positions"
+POSITIONS_ENDPOINT = (
+    "https://portfolio-backend-production-29dc.up.railway.app/positions"
+)
 TRADES_ENDPOINT = "https://portfolio-backend-production-29dc.up.railway.app/trades"
 
 
@@ -62,15 +64,19 @@ if not check_password():
 
 def camel_to_title(s: str):
     """Convert from camel case to title case"""
-    spaced = re.sub(r'([a-z])([A-Z])', r'\1 \2', s)
+    spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", s)
     return spaced.title().replace("_", " ")
 
 
 @st.cache_data(ttl=60)  # 1min cache
 def fetch_portfolio_data():
     """Fetch positions and trades data from API with caching"""
-    position_response = requests.get(POSITIONS_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"})
-    trades_response = requests.get(TRADES_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"})
+    position_response = requests.get(
+        POSITIONS_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"}
+    )
+    trades_response = requests.get(
+        TRADES_ENDPOINT, headers={"Authorization": f"Bearer {API_SECRET}"}
+    )
 
     position_data = position_response.json()
     trades_data = trades_response.json()
@@ -90,22 +96,37 @@ for col in [
     "average_price",
     "cost",
     "value",
+    "buys",
+    "sells",
+    "total_return",
     "returns",
     "current_allocation",
     "target_allocation",
 ]:
     decimals = Decimal("0.01") if col != "quantity" else Decimal("0.000001")
-    positions_df[col] = positions_df[col].map(lambda i: Decimal(i).quantize(decimals, rounding=ROUND_DOWN))
+    positions_df[col] = positions_df[col].map(
+        lambda i: Decimal(i).quantize(decimals, rounding=ROUND_DOWN)
+    )
 
-category_priority = {"Stock ETFs": 1, "Crypto Tokens": 2, "Crypto Stocks": 3, "Gold": 4, "Real Estate": 5}
+category_priority = {
+    "Stock ETFs": 1,
+    "Crypto Tokens": 2,
+    "Crypto Stocks": 3,
+    "Gold": 4,
+    "Real Estate": 5,
+}
 
-positions_df["category_priority"] = positions_df["category"].map(category_priority).fillna(999)
+positions_df["category_priority"] = (
+    positions_df["category"].map(category_priority).fillna(999)
+)
 positions_df = positions_df.sort_values(
     by=["category_priority", "target_allocation"], ascending=[True, False]
 ).reset_index(drop=True)
 positions_df = positions_df.drop("category_priority", axis=1)
 
-positions_df["unbalanced_by"] = positions_df["current_allocation"] - positions_df["target_allocation"]
+positions_df["unbalanced_by"] = (
+    positions_df["current_allocation"] - positions_df["target_allocation"]
+)
 
 
 positions_df_display = positions_df.copy()
@@ -113,28 +134,34 @@ positions_df_display = positions_df.copy()
 category_groups = []
 current_category = None
 for idx, row in positions_df_display.iterrows():
-    if current_category != row['category']:
-        current_category = row['category']
+    if current_category != row["category"]:
+        current_category = row["category"]
         category_groups.append((idx, current_category))
     else:
-        category_groups.append((idx, ''))
+        category_groups.append((idx, ""))
 
 # Apply the category grouping
 for i, (idx, cat) in enumerate(category_groups):
-    positions_df_display.at[idx, 'category'] = cat
+    positions_df_display.at[idx, "category"] = cat
 
 
 # Price columns -  dollar sign with commas and 2 decimals
 for col in ["current_price", "average_price", "cost", "value"]:
     if col in positions_df_display.columns:
-        positions_df_display[col] = positions_df_display[col].apply(lambda i: f"${float(i):,.2f}")
+        positions_df_display[col] = positions_df_display[col].apply(
+            lambda i: f"${float(i):,.2f}"
+        )
 
 # Allocation columns - percentage with 2 decimals
 for col in ["returns", "current_allocation", "unbalanced_by"]:
     if col in positions_df_display.columns:
-        positions_df_display[col] = positions_df_display[col].apply(lambda i: f"{float(i):.1f}%")
+        positions_df_display[col] = positions_df_display[col].apply(
+            lambda i: f"{float(i):.1f}%"
+        )
 
-positions_df_display["target_allocation"] = positions_df_display["target_allocation"].apply(lambda i: f"{i:.0f}%")
+positions_df_display["target_allocation"] = positions_df_display[
+    "target_allocation"
+].apply(lambda i: f"{i:.0f}%")
 
 
 def color_cells(val):
@@ -160,13 +187,15 @@ def style_rows(s):
             row_color = "background-color: white"
 
         # Apply row color to all columns except Returns which has specific coloring
-        row_styles = [row_color if col != 'Returns' else '' for col in s.columns]
+        row_styles = [row_color if col != "Returns" else "" for col in s.columns]
         styles.append(row_styles)
 
     return pd.DataFrame(styles, index=s.index, columns=s.columns)
 
 
-positions_df_display = positions_df_display.rename(columns={c: camel_to_title(c) for c in positions_df_display.columns})
+positions_df_display = positions_df_display.rename(
+    columns={c: camel_to_title(c) for c in positions_df_display.columns}
+)
 
 # Apply styling with alternating rows and return colors
 styled_df = positions_df_display.style.apply(style_rows, axis=None).map(
@@ -243,11 +272,12 @@ table tbody tr td:nth-child(2) {
     unsafe_allow_html=True,
 )
 
-# Calculate portfolio totals
+# Calculate portfolio totals. "Total Invested" and the return figures use real cash
+# flows (buys/total_return), not the remaining FIFO cost basis (cost).
 total_value = positions_df["value"].sum()
-total_cost = positions_df["cost"].sum()
-total_return_dollar = total_value - total_cost
-total_return_pct = ((total_value - total_cost) / total_cost) * 100 if total_cost != 0 else 0
+total_buys = positions_df["buys"].sum()
+total_return_dollar = positions_df["total_return"].sum()
+total_return_pct = (total_return_dollar / total_buys) * 100 if total_buys != 0 else 0
 
 # Portfolio Summary Section
 st.markdown("## Summary")
@@ -257,7 +287,7 @@ with col1:
     st.metric(label="Portfolio Value", value=f"${float(total_value):,.2f}")
 
 with col2:
-    st.metric(label="Total Invested", value=f"${float(total_cost):,.2f}")
+    st.metric(label="Total Invested", value=f"${float(total_buys):,.2f}")
 
 with col3:
     # Create a container for the metric and delta positioning
@@ -265,7 +295,11 @@ with col3:
     with metric_container:
         st.metric(label="Returns", value=f"${float(total_return_dollar):,.2f}")
         delta_color = "rgb(9, 171, 59)" if total_return_pct >= 0 else "rgb(255, 43, 43)"
-        delta_bg_color = "rgba(9, 171, 59, 0.1)" if total_return_pct >= 0 else "rgba(255, 43, 43, 0.1)"
+        delta_bg_color = (
+            "rgba(9, 171, 59, 0.1)"
+            if total_return_pct >= 0
+            else "rgba(255, 43, 43, 0.1)"
+        )
         delta_arrow = "↗" if total_return_pct >= 0 else "↘"
         st.markdown(
             f"""
@@ -317,14 +351,24 @@ with col1:
                 st.session_state[asset] = new_state
 
         st.divider()
-        asset_checkboxes = {opt: st.checkbox(opt, value=(opt in set(all_assets)), key=opt) for opt in all_assets}
+        asset_checkboxes = {
+            opt: st.checkbox(opt, value=(opt in set(all_assets)), key=opt)
+            for opt in all_assets
+        }
 with col2:
     with st.popover("Trade Type", width=200):
         st.write("Select one or more:")
-        trade_type_checkboxes = {opt: st.checkbox(opt, value=(opt in set(trade_types)), key=opt) for opt in trade_types}
+        trade_type_checkboxes = {
+            opt: st.checkbox(opt, value=(opt in set(trade_types)), key=opt)
+            for opt in trade_types
+        }
 
 selected_assets = [asset for asset, selected in asset_checkboxes.items() if selected]
-selected_trades = [trade_type.upper() for trade_type, selected in trade_type_checkboxes.items() if selected]
+selected_trades = [
+    trade_type.upper()
+    for trade_type, selected in trade_type_checkboxes.items()
+    if selected
+]
 trades_df = trades_df[trades_df.asset.isin(selected_assets)]
 trades_df = trades_df[trades_df.action.isin(selected_trades)]
 trades_df = trades_df.reset_index()
@@ -335,7 +379,9 @@ for col in ["price", "cost", "value", "fees"]:
 
 trades_df["quantity"] = trades_df["quantity"].apply(lambda i: f"{float(i):,.6f}")
 
-trades_df = trades_df[["asset", "date", "action", "price", "quantity", "cost", "value", "fees"]]
+trades_df = trades_df[
+    ["asset", "date", "action", "price", "quantity", "cost", "value", "fees"]
+]
 trades_df = trades_df.rename(columns={c: c.capitalize() for c in trades_df.columns})
 
 

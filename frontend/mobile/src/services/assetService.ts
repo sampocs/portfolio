@@ -131,32 +131,34 @@ export class AssetService {
     tradeData: AssetTradeData,
     currentPrice: number
   ): AssetHoldings {
-    let totalBuys = 0;           // Total money spent on buys
-    let totalSellProceeds = 0;   // Total money received from sells
+    let totalBuys = 0;           // Total real cash spent on buys (trade.cost, net of fees)
+    let totalSellProceeds = 0;   // Total real cash received from sells (trade.cost, net of fees)
     let realizedGains = 0;       // Gains/losses from completed sells
 
-    // FIFO method - maintain a queue of buy lots
+    // FIFO method - maintain a queue of buy lots. Cost basis comes from the
+    // trade's real cash cost (not quantity * price), so a lot's per-unit
+    // price is cost / quantity - this lets a partial sell consume basis
+    // proportionally to the quantity sold.
     interface BuyLot {
       quantity: number;
       price: number;
       costBasis: number;
     }
-    
+
     let buyLots: BuyLot[] = [];
 
     tradeData.trades.forEach(trade => {
       const quantity = trade.quantity;
-      const price = trade.price;
-      const tradeValue = quantity * price;
+      const cost = trade.cost;
 
       if (trade.action === 'BUY') {
-        totalBuys += tradeValue;
-        buyLots.push({ quantity, price, costBasis: tradeValue });
+        totalBuys += cost;
+        buyLots.push({ quantity, price: cost / quantity, costBasis: cost });
       } else if (trade.action === 'SELL') {
-        totalSellProceeds += tradeValue;
-        
+        totalSellProceeds += cost;
+
         let remainingToSell = quantity;
-        let sellProceeds = tradeValue;
+        let sellProceeds = cost;
         let totalSoldCostBasis = 0;
 
         // Sell from oldest lots first (FIFO)
@@ -193,20 +195,22 @@ export class AssetService {
 
     // Net invested = money in - money out (can be negative)
     const netInvested = totalBuys - totalSellProceeds;
-    
+
     // Current market value
     const currentValue = totalQuantity * currentPrice;
-    
+
     // Unrealized gains = current value - remaining cost basis
     const unrealizedGains = currentValue - totalCostBasisRemaining;
-    
-    // Total return = realized + unrealized gains
-    const totalReturn = realizedGains + unrealizedGains;
-    
-    // Calculate percentage based on absolute net invested (avoid division by zero/negative)
-    const absNetInvested = Math.abs(netInvested);
-    const totalReturnPercent = absNetInvested > 0 ? (totalReturn / absNetInvested) * 100 : 0;
-    
+
+    // Total return = "if I liquidated everything right now, what did I make
+    // across all my trades" = cash out (current value + sell proceeds) over
+    // cash in (buys). Realized and unrealized gains, computed above from the
+    // FIFO cost basis, sum exactly to this.
+    const totalReturn = currentValue + totalSellProceeds - totalBuys;
+
+    // Percentage is total return over total cash invested (0 when nothing was invested).
+    const totalReturnPercent = totalBuys > 0 ? (totalReturn / totalBuys) * 100 : 0;
+
     // Average price of current holdings (weighted by quantity)
     const averagePrice = totalQuantity > 0 ? totalCostBasisRemaining / totalQuantity : 0;
 
@@ -218,7 +222,8 @@ export class AssetService {
       realizedGains,
       unrealizedGains,
       totalQuantity,
-      averagePrice
+      averagePrice,
+      totalBuys
     };
   }
 
