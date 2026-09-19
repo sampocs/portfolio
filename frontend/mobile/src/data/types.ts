@@ -6,18 +6,23 @@ export interface Asset {
   current_price: string;
   average_price: string;
   quantity: string;
-  cost: string;
+  cost: string; // Remaining FIFO cost basis of open lots
   value: string;
-  returns: string;
+  buys: string; // Cumulative cash spent on BUY trades
+  sells: string; // Cumulative cash received from SELL trades
+  total_return: string; // value + sells - buys
+  returns: string; // Total return percent: total_return / buys * 100 (0 when buys is 0)
   current_allocation: string;
   target_allocation: string;
 }
 
 export interface PerformanceData {
   date: string;
-  cost: string;
+  cost: string; // Remaining FIFO cost basis of open lots
   value: string;
-  returns: string;
+  buys: string; // Cumulative cash spent on BUY trades through this date
+  sells: string; // Cumulative cash received from SELL trades through this date
+  returns: string; // Total return percent: (value + sells - buys) / buys * 100 (0 when buys is 0)
 }
 
 export interface AssetConfig {
@@ -35,9 +40,9 @@ export type GranularityType = "1W" | "1M" | "YTD" | "1Y" | "ALL";
 
 export interface PortfolioSummary {
   totalValue: number;
-  totalCost: number;
-  totalReturn: number;
-  totalReturnPercent: number;
+  totalCost: number; // Sum of remaining FIFO cost basis (not total cash invested)
+  totalReturn: number; // Sum of total_return across positions
+  totalReturnPercent: number; // totalReturn / sum(buys) * 100 (0 when buys sum is 0)
 }
 
 export interface MarketAllocation {

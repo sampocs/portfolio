@@ -20,7 +20,10 @@ const rawMockPositions: Asset[] = [
     quantity: "245.80",
     cost: "24277.05",
     value: "49664.92",
-    returns: "104.62",
+    buys: "24277.05",
+    sells: "0.00",
+    total_return: "25387.87",
+    returns: "104.58",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "30",
   },
@@ -34,6 +37,9 @@ const rawMockPositions: Asset[] = [
     quantity: "42.15",
     cost: "20193.58",
     value: "21595.13",
+    buys: "20193.58",
+    sells: "0.00",
+    total_return: "1401.55",
     returns: "6.94",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "14",
@@ -48,6 +54,9 @@ const rawMockPositions: Asset[] = [
     quantity: "22.35",
     cost: "5642.26",
     value: "6236.54",
+    buys: "5642.26",
+    sells: "0.00",
+    total_return: "594.28",
     returns: "10.53",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "6",
@@ -62,6 +71,9 @@ const rawMockPositions: Asset[] = [
     quantity: "18.99",
     cost: "3941.53",
     value: "4532.60",
+    buys: "3941.53",
+    sells: "0.00",
+    total_return: "591.07",
     returns: "15.00",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "4",
@@ -76,6 +88,9 @@ const rawMockPositions: Asset[] = [
     quantity: "31.45",
     cost: "1859.32",
     value: "2041.54",
+    buys: "1859.32",
+    sells: "0.00",
+    total_return: "182.22",
     returns: "9.80",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "6",
@@ -90,6 +105,9 @@ const rawMockPositions: Asset[] = [
     quantity: "43.21",
     cost: "1828.24",
     value: "1973.37",
+    buys: "1828.24",
+    sells: "0.00",
+    total_return: "145.13",
     returns: "7.94",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "2",
@@ -104,6 +122,9 @@ const rawMockPositions: Asset[] = [
     quantity: "29.87",
     cost: "4938.72",
     value: "5659.33",
+    buys: "4938.72",
+    sells: "0.00",
+    total_return: "720.61",
     returns: "14.59",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "4",
@@ -118,6 +139,9 @@ const rawMockPositions: Asset[] = [
     quantity: "185.43",
     cost: "4578.16",
     value: "5367.34",
+    buys: "4578.16",
+    sells: "0.00",
+    total_return: "789.18",
     returns: "17.24",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "3",
@@ -132,6 +156,9 @@ const rawMockPositions: Asset[] = [
     quantity: "267.89",
     cost: "4942.97",
     value: "5322.99",
+    buys: "4942.97",
+    sells: "0.00",
+    total_return: "380.02",
     returns: "7.69",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "3",
@@ -146,6 +173,9 @@ const rawMockPositions: Asset[] = [
     quantity: "23.45",
     cost: "2042.96",
     value: "2165.07",
+    buys: "2042.96",
+    sells: "0.00",
+    total_return: "122.11",
     returns: "5.98",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "2",
@@ -160,6 +190,9 @@ const rawMockPositions: Asset[] = [
     quantity: "0.85",
     cost: "38447.09",
     value: "28372.66",
+    buys: "38447.09",
+    sells: "0.00",
+    total_return: "-10074.43",
     returns: "-26.20",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "18",
@@ -174,6 +207,9 @@ const rawMockPositions: Asset[] = [
     quantity: "1.23",
     cost: "2815.62",
     value: "3305.56",
+    buys: "2815.62",
+    sells: "0.00",
+    total_return: "489.94",
     returns: "17.40",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "3",
@@ -188,9 +224,30 @@ const rawMockPositions: Asset[] = [
     quantity: "23.45",
     cost: "2789.12",
     value: "3415.47",
+    buys: "2789.12",
+    sells: "0.00",
+    total_return: "626.35",
     returns: "22.46",
     current_allocation: "0", // Will be calculated dynamically
     target_allocation: "5",
+  },
+  {
+    // Fully sold position - exercises the collapsible "Closed positions" section
+    asset: "GLXY",
+    market: "Crypto",
+    segment: "Crypto Stocks",
+    description: "Galaxy Digital",
+    current_price: "24.12",
+    average_price: "0",
+    quantity: "0",
+    cost: "0",
+    value: "0",
+    buys: "5200.00",
+    sells: "3800.00",
+    total_return: "-1400.00",
+    returns: "-26.92",
+    current_allocation: "0", // Will be calculated dynamically
+    target_allocation: "0",
   },
 ];
 
@@ -206,8 +263,12 @@ const generatePerformanceData = (): PerformanceData[] => {
   const data: PerformanceData[] = [];
   const finalValue = DATA.FINAL_PORTFOLIO_VALUE;
   const finalCost = DATA.FINAL_PORTFOLIO_COST;
+  const finalBuys = DATA.FINAL_PORTFOLIO_BUYS;
+  const finalSells = DATA.FINAL_PORTFOLIO_SELLS;
   const startValue = DATA.STARTING_PORTFOLIO_VALUE;
   const startCost = DATA.STARTING_PORTFOLIO_VALUE;
+  const startBuys = DATA.STARTING_PORTFOLIO_VALUE;
+  const startSells = 0;
   const days = DATA.MOCK_DATA_DAYS;
   
   // Generate dates starting 120 days ago
@@ -223,6 +284,8 @@ const generatePerformanceData = (): PerformanceData[] => {
     // Create realistic market progression with some volatility
     const baseValueGrowth = startValue + (finalValue - startValue) * progressRatio;
     const baseCostGrowth = startCost + (finalCost - startCost) * progressRatio;
+    const baseBuysGrowth = startBuys + (finalBuys - startBuys) * progressRatio;
+    const baseSellsGrowth = startSells + (finalSells - startSells) * progressRatio;
     
     // Add realistic market volatility using configurable parameters
     const { VOLATILITY } = CHART;
@@ -243,13 +306,19 @@ const generatePerformanceData = (): PerformanceData[] => {
     // Ensure the final day matches exactly
     const dailyValue = dayIndex === days ? finalValue : adjustedValue;
     const dailyCost = dayIndex === days ? finalCost : baseCostGrowth;
-    
-    const dailyReturnsPercentage = ((dailyValue - dailyCost) / dailyCost * 100);
-    
+    const dailyBuys = dayIndex === days ? finalBuys : baseBuysGrowth;
+    const dailySells = dayIndex === days ? finalSells : baseSellsGrowth;
+
+    // Total return percent is cash out over cash in: (value + sells - buys) / buys * 100
+    const dailyTotalReturn = dailyValue + dailySells - dailyBuys;
+    const dailyReturnsPercentage = dailyBuys > 0 ? (dailyTotalReturn / dailyBuys) * 100 : 0;
+
     data.push({
       date: currentDate.toISOString().split('T')[0],
       cost: dailyCost.toFixed(2),
       value: dailyValue.toFixed(2),
+      buys: dailyBuys.toFixed(2),
+      sells: dailySells.toFixed(2),
       returns: dailyReturnsPercentage.toFixed(2),
     });
   }

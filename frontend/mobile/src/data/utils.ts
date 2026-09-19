@@ -19,9 +19,15 @@ export const calculatePortfolioSummary = (
     (sum, asset) => sum + parseFloat(asset.cost),
     0
   );
-  const totalReturn = totalValue - totalCost;
-  const totalReturnPercent =
-    totalCost > 0 ? (totalReturn / totalCost) * 100 : 0;
+  const totalBuys = positions.reduce(
+    (sum, asset) => sum + parseFloat(asset.buys),
+    0
+  );
+  const totalReturn = positions.reduce(
+    (sum, asset) => sum + parseFloat(asset.total_return),
+    0
+  );
+  const totalReturnPercent = totalBuys > 0 ? (totalReturn / totalBuys) * 100 : 0;
 
   return {
     totalValue,
