@@ -2,7 +2,9 @@ import datetime
 from decimal import Decimal
 
 from backend import lots
+from backend.config import Asset, Market, Platform, PriceType, Segment, config
 from backend.database import crud, models
+from backend.router import transforms
 
 
 def _trade(**overrides) -> models.Trade:
@@ -21,6 +23,19 @@ def _trade(**overrides) -> models.Trade:
         "account": models.TradeAccount.BROKERAGE.value,
     }
     return models.Trade(**{**defaults, **overrides})
+
+
+def _asset_config(asset: str) -> Asset:
+    return Asset(
+        asset=asset,
+        description=asset,
+        target_allocation=Decimal("10"),
+        market=Market.STOCKS,
+        segment=Segment.STOCK_ETFS,
+        platform=Platform.IBKR,
+        price_type=PriceType.STOCKS,
+        contract_id="1",
+    )
 
 
 def test_quantity_cost_and_average_price_sum_across_accounts():
@@ -46,7 +61,7 @@ def test_quantity_cost_and_average_price_sum_across_accounts():
     assert position.average_price == position.cost / position.quantity
 
 
-def test_asset_fully_sold_out_produces_no_position():
+def test_asset_fully_sold_out_produces_zero_quantity_position():
     buy = _trade(id="b-1")
     sell = _trade(
         id="s-1",
@@ -60,4 +75,164 @@ def test_asset_fully_sold_out_produces_no_position():
     matches = lots.match_lots([buy, sell])
     positions = crud.positions_from_matches(matches)
 
+    assert len(positions) == 1
+    position = positions[0]
+    assert position.asset == "AAPL"
+    assert position.quantity == Decimal("0")
+    assert position.cost == Decimal("0")
+    assert position.average_price == Decimal("0")
+
+
+def test_asset_with_only_excluded_trades_produces_no_position():
+    excluded_buy = _trade(id="b-1", excluded=True)
+
+    matches = lots.match_lots([excluded_buy])
+    positions = crud.positions_from_matches(matches)
+
     assert positions == []
+
+
+def test_build_positions_from_trades_includes_zero_row_for_fully_sold_asset(
+    db_session, monkeypatch
+):
+    monkeypatch.setattr(
+        config, "assets", {"VT": _asset_config("VT"), "VOO": _asset_config("VOO")}
+    )
+
+    buy = _trade(id="b-1", asset="VT")
+    sell = _trade(
+        id="s-1",
+        asset="VT",
+        date=datetime.date(2026, 1, 2),
+        action=models.TradeAction.SELL.value,
+        price=Decimal("110"),
+        cost=Decimal("1100"),
+        value=Decimal("1100"),
+    )
+    open_buy = _trade(
+        id="b-2",
+        asset="VOO",
+        quantity=Decimal("3"),
+        cost=Decimal("300"),
+        value=Decimal("300"),
+    )
+    crud.store_trades(db_session, [buy, sell, open_buy])
+
+    positions = crud.build_positions_from_trades(db_session, end_date="2026-01-02")
+    positions_by_asset = {position.asset: position for position in positions}
+
+    assert set(positions_by_asset.keys()) == {"VT", "VOO"}
+    assert positions_by_asset["VT"].quantity == Decimal("0")
+    assert positions_by_asset["VT"].cost == Decimal("0")
+    assert positions_by_asset["VT"].average_price == Decimal("0")
+    assert positions_by_asset["VOO"].quantity == Decimal("3")
+
+
+def test_build_positions_from_trades_no_row_for_asset_with_no_trades(
+    db_session, monkeypatch
+):
+    monkeypatch.setattr(
+        config, "assets", {"VT": _asset_config("VT"), "VOO": _asset_config("VOO")}
+    )
+
+    buy = _trade(id="b-1", asset="VT")
+    crud.store_trades(db_session, [buy])
+
+    positions = crud.build_positions_from_trades(db_session)
+
+    assert [position.asset for position in positions] == ["VT"]
+
+
+def test_build_historical_positions_skips_zero_quantity_positions(
+    db_session, monkeypatch
+):
+    monkeypatch.setattr(config, "assets", {"VT": _asset_config("VT")})
+
+    buy = _trade(id="b-1", asset="VT")
+    sell = _trade(
+        id="s-1",
+        asset="VT",
+        date=datetime.date(2026, 1, 2),
+        action=models.TradeAction.SELL.value,
+        price=Decimal("110"),
+        cost=Decimal("1100"),
+        value=Decimal("1100"),
+    )
+    crud.store_trades(db_session, [buy, sell])
+
+    # No HistoricalPrice rows are seeded: if a zero-quantity position reached the
+    # enricher it would divide by its zero cost and raise, so an empty result here
+    # proves the position was filtered out before enrichment, not tolerated inside it.
+    historical_positions = crud.build_historical_positions(db_session, ["2026-01-02"])
+
+    assert historical_positions == []
+
+
+def test_get_enriched_positions_computes_cash_flow_based_returns(
+    db_session, monkeypatch
+):
+    monkeypatch.setattr(
+        config, "assets", {"VT": _asset_config("VT"), "VOO": _asset_config("VOO")}
+    )
+
+    # VT: fully sold out - a zero-quantity position that should still report its
+    # realized result and zero current_allocation
+    db_session.add(
+        models.Position(
+            asset="VT",
+            updated_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            average_price=Decimal("0"),
+            quantity=Decimal("0"),
+            cost=Decimal("0"),
+        )
+    )
+    # VOO: still open
+    db_session.add(
+        models.Position(
+            asset="VOO",
+            updated_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            average_price=Decimal("100"),
+            quantity=Decimal("5"),
+            cost=Decimal("500"),
+        )
+    )
+    db_session.add(models.LivePrice(asset="VT", price=Decimal("150")))
+    db_session.add(models.LivePrice(asset="VOO", price=Decimal("120")))
+    crud.store_trades(
+        db_session,
+        [
+            _trade(id="vt-b-1", asset="VT", cost=Decimal("1000")),
+            _trade(
+                id="vt-s-1",
+                asset="VT",
+                date=datetime.date(2026, 1, 2),
+                action=models.TradeAction.SELL.value,
+                cost=Decimal("1100"),
+            ),
+            _trade(
+                id="voo-b-1", asset="VOO", quantity=Decimal("5"), cost=Decimal("500")
+            ),
+        ],
+    )
+    db_session.commit()
+
+    positions = {
+        position.asset: position
+        for position in transforms.get_enriched_positions(db_session)
+    }
+
+    vt = positions["VT"]
+    assert vt.value == Decimal("0")
+    assert vt.buys == Decimal("1000")
+    assert vt.sells == Decimal("1100")
+    assert vt.total_return == Decimal("100")  # 0 + 1100 - 1000
+    assert vt.returns == Decimal("10")  # 100 / 1000 * 100
+    assert vt.current_allocation == Decimal("0")
+
+    voo = positions["VOO"]
+    assert voo.value == Decimal("600")  # 5 * 120
+    assert voo.buys == Decimal("500")
+    assert voo.sells == Decimal("0")
+    assert voo.total_return == Decimal("100")  # 600 + 0 - 500
+    assert voo.returns == Decimal("20")  # 100 / 500 * 100
+    assert voo.current_allocation == Decimal("100")  # only non-zero value
