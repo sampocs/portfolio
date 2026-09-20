@@ -24,3 +24,7 @@ export const formatPercentage = (value: number): string => {
   const sign = value >= 0 ? '+' : '';
   return `${sign}${value.toFixed(2)}%`;
 };
+
+export const formatTradeDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};

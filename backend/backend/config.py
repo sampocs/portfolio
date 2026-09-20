@@ -112,7 +112,8 @@ def validate_target_allocations(assets: list[Asset]) -> None:
     doesn't sum to exactly 100 must fail loudly at startup rather than skew every
     number by a silent margin."""
     total = sum((asset.target_allocation for asset in assets), start=Decimal(0))
-    assert total == Decimal(100), f"Target allocations must sum to 100, got {total}"
+    if total != Decimal(100):
+        raise ValueError(f"Target allocations must sum to 100, got {total}")
 
 
 class Config(BaseSettings):

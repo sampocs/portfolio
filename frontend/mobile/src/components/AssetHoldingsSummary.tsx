@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { theme } from '../styles/theme';
-import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
+import { createStyles, getTextStyle, formatCurrency, formatTradeDate } from '../styles/utils';
 import { isClosedPosition } from '../constants';
 import { AssetHoldings } from '../data/assetTypes';
 import ExpandableGains from './ExpandableGains';
@@ -21,16 +21,6 @@ function percentOfInvested(amount: number, invested: number): number {
 // fractional zeros, so no extra stripping is needed).
 function formatOwned(value: number): string {
   return value.toLocaleString('en-US', { maximumFractionDigits: 4 });
-}
-
-// Same date formatting approach as TradeRow.tsx's formatDate.
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
 }
 
 // A currency amount with an explicit "+" prefix for non-negative values (formatCurrency
@@ -56,7 +46,7 @@ function formatLifetimeDetail(symbol: string, holdings: AssetHoldings): string {
   }
 
   if (owned === 0) {
-    return lastSellDate ? `${tradesLabel} · sold out ${formatDate(lastSellDate)}` : tradesLabel;
+    return lastSellDate ? `${tradesLabel} · sold out ${formatTradeDate(lastSellDate)}` : tradesLabel;
   }
 
   return `${tradesLabel} · ${formatOwned(owned)} ${symbol} left (${formatCurrency(marketValue)})`;
@@ -90,13 +80,13 @@ export default function AssetHoldingsSummary({ symbol, holdings, isLoading = fal
           </View>
           <View style={styles.columnsContainer}>
             <View style={styles.column}>
-              <View style={styles.summaryItem}>
+              <View style={[styles.summaryItem, styles.lastItem]}>
                 <Text style={styles.summaryLabel}>Cost Basis</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>
             </View>
             <View style={styles.column}>
-              <View style={styles.summaryItem}>
+              <View style={[styles.summaryItem, styles.lastItem]}>
                 <Text style={styles.summaryLabel}>Market Value</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>

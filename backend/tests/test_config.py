@@ -29,7 +29,7 @@ def test_validate_target_allocations_raises_when_sum_is_not_100() -> None:
         _asset_with_target("VOO", Decimal(42)),
     ]
 
-    with pytest.raises(AssertionError, match="102"):
+    with pytest.raises(ValueError, match="102"):
         config.validate_target_allocations(assets)
 
 
