@@ -1,10 +1,10 @@
 import datetime
 from enum import Enum
 import json
-from typing import Any
+from typing import Annotated, Any
 import logging
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from pathlib import Path
 from ibind.oauth.oauth1a import OAuth1aConfig
 from dataclasses import dataclass
@@ -169,7 +169,11 @@ class Config(BaseSettings):
 
     # Platforms whose scrape `jobs.index_recent_trades` skips - kept so a platform can be
     # switched off on migration day without a code change, and back on if that's premature
-    disabled_sync_platforms: set[str] = Field(
+    #
+    # `NoDecode` stops pydantic-settings from JSON-decoding the raw env value before our
+    # `_parse_disabled_sync_platforms` validator runs (the default for a `set[str]` field,
+    # which fails on a plain comma-separated string like "ibkr,coinbase" or an empty string)
+    disabled_sync_platforms: Annotated[set[str], NoDecode] = Field(
         alias="DISABLED_SYNC_PLATFORMS", default_factory=set
     )
 

@@ -12,6 +12,12 @@ the `replatform` command.
 There is no sensible single default for a brand-new `custodian` column, so it is added
 nullable, backfilled from `platform`, and only then set `not null` - unlike `account` in
 `add_trade_accounts.py`, which had one.
+
+Ordering matters: this script must run against prod BEFORE the code that declares
+`custodian` as `not null` is deployed/merged. Nothing calls `create_all` at startup, so
+running the migration first only briefly breaks the old code's inserts (the next sync
+retries them), whereas deploying the code first breaks every `trades` read with a 500
+until this script is run by hand.
 """
 
 from sqlalchemy import text

@@ -82,6 +82,10 @@ def test_execute_moves_every_row_in_the_group_including_sells(db_session):
     assert db_session.get(models.Trade, "t-2").custodian == "robinhood"
     # Untouched: different account at the same source custodian
     assert db_session.get(models.Trade, "t-3").custodian == "vanguard"
+    # `platform` (where a trade was originally executed) must never move, only `custodian`
+    assert db_session.get(models.Trade, "t-1").platform == "vanguard"
+    assert db_session.get(models.Trade, "t-2").platform == "vanguard"
+    assert db_session.get(models.Trade, "t-3").platform == "vanguard"
 
 
 def test_asset_filter_narrows_the_move(db_session):
