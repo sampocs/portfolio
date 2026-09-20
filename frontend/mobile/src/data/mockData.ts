@@ -360,7 +360,9 @@ const MOCK_SPARKLINE_POINTS = 40;
 // ends at the current price, with a small wobble so it reads as a chart rather than a ramp
 const mockSparkline = (currentPrice: string, changePercent: string, seed: number): string[] => {
   const end = parseFloat(currentPrice);
-  const start = end / (1 + parseFloat(changePercent) / 100);
+  const growth = 1 + parseFloat(changePercent) / 100;
+  // A change of -100% or below has no finite starting price; draw a flat line instead
+  const start = growth > 0 ? end / growth : end;
   return Array.from({ length: MOCK_SPARKLINE_POINTS }, (_, index) => {
     const progress = index / (MOCK_SPARKLINE_POINTS - 1);
     const wobble = Math.sin(index * 1.7 + seed) * 0.02 * (1 - progress);

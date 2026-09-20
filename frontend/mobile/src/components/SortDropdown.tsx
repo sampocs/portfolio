@@ -22,6 +22,12 @@ export const ASSET_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'lowest-returns', label: 'Lowest Returns (%)' },
 ];
 
+// Menu geometry used to decide whether it fits below the trigger
+const OPTION_ROW_HEIGHT = 38;
+const MENU_MAX_HEIGHT = 300;
+
+type MenuAnchor = { top: number; right: number } | { bottom: number; right: number };
+
 interface SortDropdownProps<T extends string> {
   selectedSort: T;
   onSortChange: (sort: T) => void;
@@ -34,16 +40,21 @@ export default function SortDropdown<T extends string>({ selectedSort, onSortCha
   // The options render in a Modal (a separate native window), so the trigger's window
   // position is measured on open to anchor the menu directly beneath it, right-aligned
   const triggerRef = useRef<View>(null);
-  const [anchor, setAnchor] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+  const [anchor, setAnchor] = useState<MenuAnchor>({ top: 0, right: 0 });
 
   const selectedOption = options.find(option => option.value === selectedSort);
 
   const openDropdown = () => {
     triggerRef.current?.measureInWindow((x, y, width, height) => {
-      setAnchor({
-        top: y + height + theme.spacing.xs,
-        right: Dimensions.get('window').width - (x + width),
-      });
+      const window = Dimensions.get('window');
+      const right = window.width - (x + width);
+      const menuHeight = Math.min(options.length * OPTION_ROW_HEIGHT, MENU_MAX_HEIGHT);
+      const below = y + height + theme.spacing.xs;
+
+      // Open upward when the menu would run off the bottom of the screen, which happens
+      // for the portfolio list once its trigger has scrolled low enough
+      const fitsBelow = below + menuHeight <= window.height - theme.spacing.xl;
+      setAnchor(fitsBelow ? { top: below, right } : { bottom: window.height - y + theme.spacing.xs, right });
       setIsOpen(true);
     });
   };
@@ -76,7 +87,7 @@ export default function SortDropdown<T extends string>({ selectedSort, onSortCha
           activeOpacity={1}
           onPress={() => setIsOpen(false)}
         >
-          <View style={[styles.dropdown, { top: anchor.top, right: anchor.right }]}>
+          <View style={[styles.dropdown, anchor]}>
             <ScrollView style={styles.optionsList}>
               {options.map((option) => (
                 <TouchableOpacity
@@ -141,7 +152,7 @@ const styles = createStyles({
     borderRadius: theme.borderRadius.lg,
     // Clip the option rows (the selected one is filled) to the rounded corners
     overflow: 'hidden',
-    maxHeight: 300,
+    maxHeight: MENU_MAX_HEIGHT,
     minWidth: 180,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

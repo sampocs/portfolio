@@ -248,13 +248,21 @@ def _sparkline(
     current_price: Decimal,
 ) -> list[Decimal]:
     """
-    The closes inside a duration's window followed by the live price, thinned to at
-    most `SPARKLINE_POINTS` evenly spaced values. `closes` must be ascending by date.
+    The closes from a duration's reference close through today, followed by the live
+    price, thinned to at most `SPARKLINE_POINTS` evenly spaced values. The window
+    opens at the last close on or before the start date (the same row
+    `_reference_change` measures from) so the line's first point matches the percent
+    beside it even when the start date has no close. `closes` must be ascending.
     """
     start_date = window_start_date(duration=duration, today=today)
-    window = [
-        price for date, price in closes if start_date is None or date >= start_date
-    ]
+    if start_date is None:
+        window = [price for _, price in closes]
+    else:
+        first_index = max(
+            (index for index, (date, _) in enumerate(closes) if date <= start_date),
+            default=0,
+        )
+        window = [price for _, price in closes[first_index:]]
     return _downsample(values=window + [current_price], points=SPARKLINE_POINTS)
 
 
