@@ -41,7 +41,6 @@ export interface ProcessedPriceData {
 }
 
 export interface AssetHoldings {
-  netInvested: number;          // Total money in - total money out (can be negative)
   currentValue: number;         // Current market value of holdings
   totalReturn: number;          // Total gains/losses: currentValue + totalSellProceeds - totalBuys
   totalReturnPercent: number;   // Total return as a percentage of totalBuys

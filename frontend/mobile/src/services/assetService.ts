@@ -147,7 +147,16 @@ export class AssetService {
 
     let buyLots: BuyLot[] = [];
 
-    tradeData.trades.forEach(trade => {
+    // FIFO only works chronologically; never trust the API's row order. Same-day
+    // buys go before sells (so a rebuy can't fund the sale that paid for it) and
+    // remaining ties break on id, matching the backend lot matcher.
+    const sortedTrades = [...tradeData.trades].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+      || (a.action === 'BUY' ? 0 : 1) - (b.action === 'BUY' ? 0 : 1)
+      || a.id.localeCompare(b.id)
+    );
+
+    sortedTrades.forEach(trade => {
       const quantity = trade.quantity;
       const cost = trade.cost;
 
@@ -193,9 +202,6 @@ export class AssetService {
       totalCostBasisRemaining += lot.costBasis;
     });
 
-    // Net invested = money in - money out (can be negative)
-    const netInvested = totalBuys - totalSellProceeds;
-
     // Current market value
     const currentValue = totalQuantity * currentPrice;
 
@@ -215,7 +221,6 @@ export class AssetService {
     const averagePrice = totalQuantity > 0 ? totalCostBasisRemaining / totalQuantity : 0;
 
     return {
-      netInvested,
       currentValue,
       totalReturn,
       totalReturnPercent,
