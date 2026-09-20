@@ -17,9 +17,10 @@ function percentOfInvested(amount: number, invested: number): number {
   return invested > 0 ? (amount / invested) * 100 : 0;
 }
 
-// Quantity formatted as today: 4 decimals, trailing zeros stripped.
+// Quantity formatted with up to 4 decimals (toLocaleString already omits trailing
+// fractional zeros, so no extra stripping is needed).
 function formatOwned(value: number): string {
-  return value.toLocaleString('en-US', { maximumFractionDigits: 4 }).replace(/\.?0+$/, '');
+  return value.toLocaleString('en-US', { maximumFractionDigits: 4 });
 }
 
 // Same date formatting approach as TradeRow.tsx's formatDate.
