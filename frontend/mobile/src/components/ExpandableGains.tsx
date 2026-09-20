@@ -9,7 +9,6 @@ interface ExpandableGainsProps {
   totalReturnPercent: number;
   realizedGains: number;
   unrealizedGains: number;
-  netInvested: number;
   onExpandChange?: (isExpanded: boolean) => void;
 }
 

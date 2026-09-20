@@ -1,6 +1,7 @@
 import datetime
 from collections import defaultdict
 from dataclasses import dataclass
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 from backend.database import models
 from decimal import Decimal
@@ -33,7 +34,11 @@ def get_trades(
     date: datetime.date | None = None,
     include_excluded: bool = False,
 ):
-    """Returns all non-excluded trades with optional asset and date filters"""
+    """
+    Returns all non-excluded trades with optional asset and date filters, in the same
+    (date, BUY before SELL, id) order that `lots.match_lots` uses. The mobile asset
+    page replays these FIFO, so the order is part of the contract.
+    """
     query = db.query(models.Trade)
     if not include_excluded:
         query = query.where(models.Trade.excluded.is_(False))
@@ -41,7 +46,8 @@ def get_trades(
         query = query.where(models.Trade.asset == asset)
     if date:
         query = query.where(models.Trade.date == date)
-    return query.all()
+    buys_first = case((models.Trade.action == models.TradeAction.BUY.value, 0), else_=1)
+    return query.order_by(models.Trade.date, buys_first, models.Trade.id).all()
 
 
 def get_cash_flows(db: Session, assets: list[str] | None = None) -> dict[str, CashFlow]:
