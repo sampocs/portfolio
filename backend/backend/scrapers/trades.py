@@ -1,12 +1,21 @@
 import datetime
 import hashlib
+import zoneinfo
 from decimal import Decimal
 
 from ibind import IbkrClient
-from backend.config import config, Platform
+from backend.config import config, Platform, logger
 from backend.database import models, crud
+from backend.scrapers import robinhood
 from coinbase.rest import RESTClient
 from sqlalchemy.orm import Session
+
+# Extended-hours fills land on the next UTC day, so timestamps are read in market time
+MARKET_TIMEZONE = zoneinfo.ZoneInfo("America/New_York")
+
+# SnapTrade's activity types are open ended (splits, transfers, option exercises), and
+# only the server-side filter keeps those out, so anything else is treated as unknown
+ACCEPTED_ACTIVITY_TYPES = {"BUY", "SELL", "REI"}
 
 # IBKR transactions don't carry a commission field, so fees are estimated per share
 IBKR_FEE_PER_SHARE = Decimal("0.0035")
@@ -42,7 +51,9 @@ def resolve_ibkr_trade_id(db: Session, new_trade: models.Trade) -> str | None:
 
     base_id = _ibkr_trade_id(f"{new_trade.asset}_{new_trade.date}_{new_trade.action}")
     if any(existing.id == base_id for existing in same_day_fills):
-        suffix = f"{new_trade.quantity}_{new_trade.price}_{new_trade.cost}_{new_trade.value}"
+        suffix = (
+            f"{new_trade.quantity}_{new_trade.price}_{new_trade.cost}_{new_trade.value}"
+        )
         return _ibkr_trade_id(
             f"{new_trade.asset}_{new_trade.date}_{new_trade.action}_{suffix}"
         )
@@ -191,3 +202,167 @@ def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:
         trades.append(trade)
 
     return trades
+
+
+def get_recent_robinhood_trades(start_date: datetime.date | None) -> list[models.Trade]:
+    """
+    Scrapes recent robinhood trades through SnapTrade
+    :param start_date: First date to query transactions from, inclusively.
+                       None pulls the account's full history
+    """
+    if not config.snaptrade_configured:
+        logger.info("SnapTrade is not configured, skipping robinhood trades")
+        return []
+
+    client = robinhood.get_client()
+    connection = robinhood.get_connection(client)
+    if not connection:
+        logger.info("Robinhood is not connected, skipping robinhood trades")
+        return []
+
+    # A disabled connection keeps returning stale cached data instead of failing,
+    # so this flag is the only signal that it needs to be re-authorized
+    if connection.get("disabled"):
+        raise robinhood.RobinhoodDisconnectedError()
+
+    accounts = robinhood.get_syncable_accounts(
+        client=client, connection_id=connection["id"]
+    )
+
+    # Each activity is converted on its own so a single unusable one costs one trade
+    # instead of the batch - the next sync re-fetches the same range and would keep
+    # failing on it forever. The same start_date is used for every account; re-fetched
+    # activities upsert onto their existing row by id
+    robinhood_trades = []
+    for account in accounts:
+        activities = robinhood.get_activities(
+            client=client, account_id=account.account_id, start_date=start_date
+        )
+        for activity in activities:
+            if not _is_tracked_activity(activity):
+                continue
+
+            trade = _build_robinhood_trade(activity, account=account.trade_account)
+            if trade:
+                robinhood_trades.append(trade)
+
+    return robinhood_trades
+
+
+def _is_tracked_activity(activity: dict) -> bool:
+    """Returns whether the transaction is for an asset in the portfolio config"""
+    ticker = _get_ticker(activity)
+    if ticker and ticker in config.assets:
+        return True
+
+    # A null symbol means there's no equity to check against the config - it's likely
+    # an options activity (contract lives in option_symbol instead) or a cash transaction
+    if not ticker:
+        logger.warning(
+            "Skipping robinhood transaction with no equity symbol (likely an option "
+            f"or cash transaction): type={activity.get('type')} id={activity.get('id')}"
+        )
+    else:
+        logger.warning(f"Skipping robinhood transaction for untracked asset: {ticker}")
+
+    return False
+
+
+def _build_robinhood_trade(activity: dict, account: str) -> models.Trade | None:
+    """
+    Converts a SnapTrade transaction into a trade, or None if it can't be trusted
+
+    Every field on a SnapTrade activity is optional in its schema, so a malformed or
+    unrecognized one is skipped with a warning rather than raised - the alternative is
+    a sync that never gets past it. `account` is the ledger account (brokerage or roth)
+    the activity's SnapTrade account was mapped to, and is stamped onto the trade as-is
+    """
+    activity_id = activity.get("id")
+    activity_type = activity.get("type")
+    if activity_type not in ACCEPTED_ACTIVITY_TYPES:
+        logger.warning(
+            f"Skipping robinhood transaction {activity_id} with unexpected type: {activity_type}"
+        )
+        return None
+
+    trade_date = activity.get("trade_date")
+    raw_price = activity.get("price")
+    raw_units = activity.get("units")
+    ticker = _get_ticker(activity)
+    if (
+        not activity_id
+        or not trade_date
+        or raw_price is None
+        or raw_units is None
+        or not ticker
+    ):
+        logger.warning(
+            f"Skipping robinhood transaction {activity_id} with missing fields: {activity}"
+        )
+        return None
+
+    # A buy moves shares in and a sell moves them out, so a sign that disagrees with the
+    # type means the activity isn't what it claims, and taking abs() would inflate the position
+    units = Decimal(str(raw_units))
+    is_sell = activity_type == models.TradeAction.SELL.value
+    has_expected_sign = units < 0 if is_sell else units > 0
+    if not has_expected_sign:
+        logger.warning(
+            f"Skipping robinhood transaction {activity_id}: {activity_type} with units {units}"
+        )
+        return None
+
+    action = models.TradeAction.SELL if is_sell else models.TradeAction.BUY
+    price = Decimal(str(raw_price))
+    quantity = abs(units)
+    fees = Decimal(str(activity.get("fee") or 0))
+    value = price * quantity
+
+    # Dividend reinvestments don't always carry a cash amount, in which case the cash
+    # moved is the trade value plus the fees on a buy, or minus the fees on a sell
+    amount = activity.get("amount")
+    fee_direction = -1 if is_sell else 1
+    cost = (
+        abs(Decimal(str(amount)))
+        if amount is not None
+        else value + fee_direction * fees
+    )
+
+    return models.Trade(
+        id=f"robinhood-{activity_id}",
+        platform=Platform.ROBINHOOD.value,
+        date=_get_market_date(trade_date),
+        action=action.value,
+        asset=ticker,
+        price=price,
+        quantity=quantity,
+        fees=fees,
+        cost=cost,
+        value=value,
+        excluded=False,
+        account=account,
+    )
+
+
+def _get_ticker(activity: dict) -> str | None:
+    """Returns the activity's ticker, which is absent on non-security transactions"""
+    symbol = activity.get("symbol")
+    if not symbol:
+        return None
+
+    return symbol.get("symbol")
+
+
+def _get_market_date(trade_date: str) -> str:
+    """
+    Returns the date a transaction should be attributed to
+
+    SnapTrade timestamps are UTC, where an evening fill rolls into the next day,
+    so a timestamp carrying a UTC offset is converted to market time first;
+    a value with no offset is taken as-is
+    """
+    parsed_date = datetime.datetime.fromisoformat(trade_date.replace("Z", "+00:00"))
+    if parsed_date.tzinfo is None:
+        return parsed_date.date().isoformat()
+
+    return parsed_date.astimezone(MARKET_TIMEZONE).date().isoformat()

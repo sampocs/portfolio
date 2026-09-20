@@ -41,6 +41,25 @@ IBIND_USE_OAUTH=True
 IBEAM_PORT=8000
 ```
 
+### Robinhood (via SnapTrade)
+
+Robinhood has no official stocks API, so trades are read through SnapTrade, which connects over
+Robinhood's OAuth flow and is read-only.
+
+1. Create a Personal account at https://dashboard.snaptrade.com and generate an API key (free)
+2. Set `SNAPTRADE_CLIENT_ID`, `SNAPTRADE_CONSUMER_KEY` and `NTFY_TOPIC` in `.env` and on Railway
+3. Subscribe to the `NTFY_TOPIC` topic in the ntfy app, which is where disconnect alerts arrive
+4. Run `make robinhood-connect` and open the printed URL within 5 minutes, then log in to Robinhood
+
+The connection expires periodically. When it does, the morning sync pushes a notification - tap it
+and log in again. Transactions are published by SnapTrade once a day, so trades appear the next morning.
+
+The reconnect link embedded in that notification needs `RAILWAY_PUBLIC_DOMAIN`, which Railway injects
+automatically (see `backend/backend/alerts.py`). It isn't set when running locally, so disconnect
+alerts are skipped there.
+
+Running `make test` requires a local `.env`, since `backend.config` loads it at import time.
+
 ## Historical Exports
 
 ### Vanguard
@@ -105,6 +124,7 @@ In order to automatically track trades, they must be done as follows:
 - Stocks/ETFs: Executed through IBKR
 - Crypto: Executed through Coinbase Advanced
   - For lowest fees, place limit order at highest sell price, and set to "Post Only" (instead of "Taker")
+- Robinhood: Executed in the Robinhood app, synced through SnapTrade (appears the next morning)
 - Vanguard (Backdoor Roth): Manually added via CSV
   1. Add a CSV to `data/trades/clean/backdoor_roths/vanguard_backdoor_roth_{year}.csv` with columns: `platform,date,action,asset,price,quantity,fees,cost,value`
   2. Run `make sync-backdoor-roth`

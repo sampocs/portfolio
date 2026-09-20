@@ -2,15 +2,20 @@ import datetime
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi import Query
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from backend.database import connection, crud
 from backend.config import config, VALID_DURATIONS
 from backend.router import transforms
 from backend.jobs import jobs
+from backend import alerts
+from backend.scrapers import robinhood
 
 router = APIRouter()
 
-_last_indexed_trades = datetime.datetime.now() - datetime.timedelta(minutes=config.trades_cache_ttl_min)
+_last_indexed_trades = datetime.datetime.now() - datetime.timedelta(
+    minutes=config.trades_cache_ttl_min
+)
 
 
 def verify_token(request: Request):
@@ -33,7 +38,10 @@ def authenticate(_: HTTPAuthorizationCredentials = Depends(verify_token)):
 
 
 @router.get("/trades")
-async def get_trades(_: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)):
+async def get_trades(
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+    db: Session = Depends(connection.get_db),
+):
     """Returns all trades"""
     return crud.get_trades(db)
 
@@ -46,14 +54,18 @@ async def get_trades_by_asset(
 ):
     """Returns all trades for the given asset"""
     if asset not in config.assets.keys():
-        return HTTPException(status_code=400, detail=f"Invalid asset, must be one of {','.join(config.assets.keys())}")
+        return HTTPException(
+            status_code=400,
+            detail=f"Invalid asset, must be one of {','.join(config.assets.keys())}",
+        )
 
     return crud.get_trades(db, asset=asset)
 
 
 @router.get("/positions")
 async def get_positions(
-    _: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+    db: Session = Depends(connection.get_db),
 ):
     """Returns all trades"""
     return transforms.get_enriched_positions(db)
@@ -62,20 +74,32 @@ async def get_positions(
 @router.get("/performance/{duration}")
 async def get_performance(
     duration: str,
-    assets: str | None = Query(None, description="Comma-separated list of asset symbols"),
+    assets: str | None = Query(
+        None, description="Comma-separated list of asset symbols"
+    ),
     _: HTTPAuthorizationCredentials = Depends(verify_token),
     db: Session = Depends(connection.get_db),
 ):
     """Returns the historical performance of the portfolio over time"""
     if duration not in VALID_DURATIONS:
-        return HTTPException(status_code=400, detail=f"Invalid duration, must be on of: {','.join(VALID_DURATIONS)}")
+        return HTTPException(
+            status_code=400,
+            detail=f"Invalid duration, must be on of: {','.join(VALID_DURATIONS)}",
+        )
 
-    asset_list = [asset.strip().upper() for asset in assets.split(",") if asset.strip()] if assets else []
+    asset_list = (
+        [asset.strip().upper() for asset in assets.split(",") if asset.strip()]
+        if assets
+        else []
+    )
 
-    invalid_assets = [asset for asset in asset_list if asset not in config.assets.keys()]
+    invalid_assets = [
+        asset for asset in asset_list if asset not in config.assets.keys()
+    ]
     if invalid_assets:
         return HTTPException(
-            status_code=400, detail=f"Invalid asset(s), must be one of {','.join(config.assets.keys())}"
+            status_code=400,
+            detail=f"Invalid asset(s), must be one of {','.join(config.assets.keys())}",
         )
 
     return transforms.get_performance(db, duration=duration, assets=asset_list)
@@ -89,19 +113,25 @@ async def get_prices_by_asset(
 ):
     """Returns the historical price data for the given asset"""
     if asset not in config.assets.keys():
-        return HTTPException(status_code=400, detail=f"Invalid asset, must be one of {','.join(config.assets.keys())}")
+        return HTTPException(
+            status_code=400,
+            detail=f"Invalid asset, must be one of {','.join(config.assets.keys())}",
+        )
 
     return transforms.get_asset_prices(db, asset=asset)
 
 
 @router.post("/sync")
 async def sync_trades(
-    _: HTTPAuthorizationCredentials = Depends(verify_token), db: Session = Depends(connection.get_db)
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+    db: Session = Depends(connection.get_db),
 ):
     """Returns all trades"""
     global _last_indexed_trades
 
-    if (datetime.datetime.now() - _last_indexed_trades) < datetime.timedelta(minutes=config.trades_cache_ttl_min):
+    if (datetime.datetime.now() - _last_indexed_trades) < datetime.timedelta(
+        minutes=config.trades_cache_ttl_min
+    ):
         return {"status": "failed", "error": "rate limit exceeded"}
 
     try:
@@ -111,3 +141,27 @@ async def sync_trades(
 
     except Exception as e:
         return {"status": "failed", "error": str(e)}
+
+
+@router.get("/robinhood/connect")
+def robinhood_connect(expires: int, signature: str):
+    """
+    Redirects to a freshly minted SnapTrade Connection Portal URL
+
+    This is the link carried by the disconnect notification. It's opened from a phone
+    rather than the app, so it authenticates with a signed query string instead of the
+    bearer token, and mints the portal URL on demand because those expire in 5 minutes
+    """
+    if not alerts.is_valid_reconnect_signature(expires=expires, signature=signature):
+        raise HTTPException(status_code=403, detail="Invalid or expired link")
+
+    # With no connection to repair, the portal would link a brand new brokerage account,
+    # so a link still in circulation could attach someone else's account to this portfolio.
+    # The first connection is only ever made from the CLI
+    if not robinhood.get_connection(robinhood.get_client()):
+        raise HTTPException(
+            status_code=409,
+            detail="Robinhood is not connected, run `make robinhood-connect` to link it",
+        )
+
+    return RedirectResponse(robinhood.get_connection_portal_url())
