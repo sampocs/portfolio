@@ -72,6 +72,7 @@ class Platform(Enum):
     IBKR = "ibkr"
     COINBASE = "coinbase"
     ROBINHOOD = "robinhood"
+    VANGUARD = "vanguard"
 
 
 class PriceType(Enum):

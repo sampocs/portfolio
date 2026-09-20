@@ -8,6 +8,7 @@ def make_trade(**overrides) -> models.Trade:
     defaults = {
         "id": "t-1",
         "platform": "ibkr",
+        "custodian": "ibkr",
         "date": datetime.date(2026, 1, 1),
         "action": models.TradeAction.BUY.value,
         "asset": "AAPL",

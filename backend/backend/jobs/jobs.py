@@ -301,6 +301,7 @@ def index_backdoor_roth_trades(db: Session):
         trade = models.Trade(
             id=f"vanguard-{next_id}",
             platform=row["platform"],
+            custodian=row["platform"],
             date=row["date"],
             action=row["action"],
             asset=row["asset"],

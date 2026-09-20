@@ -37,7 +37,13 @@ class Trade(Base):
     __tablename__ = "trades"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    # Where the trade was originally executed - immutable, and how each scraper finds
+    # its own watermark. Never rewritten after insert.
     platform: Mapped[str] = mapped_column(String, nullable=False)
+    # Where the shares are held now. Equal to `platform` until a transfer moves the
+    # shares elsewhere, at which point only a buy can diverge from its platform - a
+    # sell always executes where the shares are currently held.
+    custodian: Mapped[str] = mapped_column(String, nullable=False)
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     action: Mapped[str] = mapped_column(String, nullable=False)
     asset: Mapped[str] = mapped_column(String, nullable=False)

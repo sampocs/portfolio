@@ -379,11 +379,26 @@ def store_historical_positions(
 
 
 def store_trades(db: Session, trades: list[models.Trade]):
-    """Stores trades in the DB"""
+    """
+    Stores trades in the DB, upserting by id via `db.merge`
+
+    Every scraper rebuilds its trades with `custodian = platform` on each rolling
+    re-fetch, but `db.merge` replaces every column, so re-upserting a trade whose
+    custodian was since moved by a transfer would silently revert it. Before merging,
+    an existing row's stored custodian is carried forward onto the incoming trade, so
+    scrapers - which know nothing about transfers - can't undo one.
+    """
     if not trades:
         return
 
+    existing_custodians = dict(
+        db.query(models.Trade.id, models.Trade.custodian)
+        .where(models.Trade.id.in_([trade.id for trade in trades]))
+        .all()
+    )
     for trade in trades:
+        if trade.id in existing_custodians:
+            trade.custodian = existing_custodians[trade.id]
         db.merge(trade)
     db.commit()
 

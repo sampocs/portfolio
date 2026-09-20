@@ -29,6 +29,7 @@ def test_buy_maps_to_a_trade():
 
     assert trade.id == "robinhood-abc-123"
     assert trade.platform == "robinhood"
+    assert trade.custodian == "robinhood"
     assert trade.date == "2026-09-10"
     assert trade.action == "BUY"
     assert trade.asset == "VOO"
