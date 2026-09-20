@@ -29,7 +29,7 @@ export default function AssetPriceHeader({ priceChange, isLoading = false, selec
 
   const formatPriceChange = (change: number): string => {
     const sign = change >= 0 ? '+' : '-';
-    return `${sign}$${Math.abs(change).toFixed(2)}`;
+    return `${sign}$${formatPrice(Math.abs(change))}`;
   };
 
   const formatPercentChange = (percent: number): string => {
