@@ -54,7 +54,7 @@ export default function PortfolioScreen({ navigation }: PortfolioScreenProps) {
   
   // State for modal
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
   
   // State for sync functionality

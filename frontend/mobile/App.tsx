@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ChartSpline, ChartPie, Eye } from 'lucide-react-native';
 
 import PortfolioScreen from './src/screens/PortfolioScreen';
@@ -16,7 +16,7 @@ import { theme } from './src/styles/theme';
 import SkeletonLoadingScreen from './src/components/SkeletonLoadingScreen';
 
 const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 
 // Portfolio stack navigator
 function PortfolioStack() {
@@ -24,7 +24,7 @@ function PortfolioStack() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: theme.colors.background },
+        contentStyle: { backgroundColor: theme.colors.background },
       }}
     >
       <Stack.Screen name="PortfolioMain" component={PortfolioScreen} />
@@ -39,7 +39,7 @@ function WatchListStack() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: theme.colors.background },
+        contentStyle: { backgroundColor: theme.colors.background },
       }}
     >
       <Stack.Screen name="WatchListMain" component={WatchListScreen} />
