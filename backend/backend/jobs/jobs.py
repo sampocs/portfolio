@@ -14,6 +14,11 @@ from backend.config import InvalidPriceResponse
 SNAPSHOT_REBUILD_WARN_DAYS = 30
 
 
+def _sync_disabled(platform: Platform) -> bool:
+    """Whether `platform` is listed in DISABLED_SYNC_PLATFORMS and should skip its scrape"""
+    return platform.value in config.disabled_sync_platforms
+
+
 def _get_date_range(start_date: datetime.date, end_date: datetime.date) -> list[str]:
     """
     Given a date object of the last run, returns a list of date strings for each day
@@ -186,6 +191,10 @@ def _rebuild_stale_position_snapshots(
 def index_recent_trades(db: Session, send_alerts: bool = False):
     """
     Checks for any recent stock, crypto, or robinhood trades and saves them in the database
+
+    A platform listed in DISABLED_SYNC_PLATFORMS has its scrape skipped entirely, so it
+    contributes no trades this run - its existing rows are left untouched, and the other
+    platforms sync normally.
     :param send_alerts: Whether a broken robinhood connection should push a notification.
                         Only the scheduled run sets this - the app's sync endpoint runs
                         far more often and would notify repeatedly
@@ -212,42 +221,62 @@ def index_recent_trades(db: Session, send_alerts: bool = False):
         .scalar()
     )
 
-    try:
-        logger.info(f"Checking for stock trades since {last_ibkr_trade_date}...")
-        stock_trades = trades.get_recent_ibkr_trades(
-            db=db, start_date=last_ibkr_trade_date
-        )
-        logger.info(f"Found {len(stock_trades)} stock trades")
-    except Exception as e:
-        logger.error(f"Failed to scrape stock trades: {e}")
-        stock_trades = []
-
-    try:
-        logger.info(f"Checking for crypto trades since {last_coinbase_trade_date}...")
-        crypto_trades = trades.get_recent_coinbase_trades(
-            start_date=last_coinbase_trade_date
-        )
-        logger.info(f"Found {len(crypto_trades)} crypto trades")
-    except Exception as e:
-        logger.error(f"Failed to scrape crypto trades: {e}")
-        crypto_trades = []
-
-    try:
+    if _sync_disabled(Platform.IBKR):
         logger.info(
-            f"Checking for robinhood trades since {last_robinhood_trade_date}..."
+            f"Skipping {Platform.IBKR.value} sync - disabled via DISABLED_SYNC_PLATFORMS"
         )
-        robinhood_trades = trades.get_recent_robinhood_trades(
-            start_date=last_robinhood_trade_date
+        stock_trades = []
+    else:
+        try:
+            logger.info(f"Checking for stock trades since {last_ibkr_trade_date}...")
+            stock_trades = trades.get_recent_ibkr_trades(
+                db=db, start_date=last_ibkr_trade_date
+            )
+            logger.info(f"Found {len(stock_trades)} stock trades")
+        except Exception as e:
+            logger.error(f"Failed to scrape stock trades: {e}")
+            stock_trades = []
+
+    if _sync_disabled(Platform.COINBASE):
+        logger.info(
+            f"Skipping {Platform.COINBASE.value} sync - disabled via DISABLED_SYNC_PLATFORMS"
         )
-        logger.info(f"Found {len(robinhood_trades)} robinhood trades")
-    except robinhood.RobinhoodDisconnectedError:
-        logger.error("Robinhood connection is disabled and must be re-authorized")
+        crypto_trades = []
+    else:
+        try:
+            logger.info(
+                f"Checking for crypto trades since {last_coinbase_trade_date}..."
+            )
+            crypto_trades = trades.get_recent_coinbase_trades(
+                start_date=last_coinbase_trade_date
+            )
+            logger.info(f"Found {len(crypto_trades)} crypto trades")
+        except Exception as e:
+            logger.error(f"Failed to scrape crypto trades: {e}")
+            crypto_trades = []
+
+    if _sync_disabled(Platform.ROBINHOOD):
+        logger.info(
+            f"Skipping {Platform.ROBINHOOD.value} sync - disabled via DISABLED_SYNC_PLATFORMS"
+        )
         robinhood_trades = []
-        if send_alerts:
-            alerts.send_robinhood_disconnected_alert()
-    except Exception as e:
-        logger.error(f"Failed to scrape robinhood trades: {e}")
-        robinhood_trades = []
+    else:
+        try:
+            logger.info(
+                f"Checking for robinhood trades since {last_robinhood_trade_date}..."
+            )
+            robinhood_trades = trades.get_recent_robinhood_trades(
+                start_date=last_robinhood_trade_date
+            )
+            logger.info(f"Found {len(robinhood_trades)} robinhood trades")
+        except robinhood.RobinhoodDisconnectedError:
+            logger.error("Robinhood connection is disabled and must be re-authorized")
+            robinhood_trades = []
+            if send_alerts:
+                alerts.send_robinhood_disconnected_alert()
+        except Exception as e:
+            logger.error(f"Failed to scrape robinhood trades: {e}")
+            robinhood_trades = []
 
     all_trades = stock_trades + crypto_trades + robinhood_trades
 

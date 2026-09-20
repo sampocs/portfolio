@@ -139,6 +139,14 @@ In order to automatically track trades, they must be done as follows:
 - `make sync-tax-lots` triggers a manual rebuild, useful after a hand-inserted Vanguard sale.
 - `make export-tax-lots` exports the table to `data/tax_lots.csv`, ordered by `date_sold, asset, id`.
 
+## Moving Shares Between Custodians
+
+- When shares physically transfer from one platform to another (e.g. an in-flight Vanguard IRA -> Robinhood Roth IRA transfer), run `make replatform FROM=vanguard TO=robinhood ACCOUNT=roth [ASSET=VT] [EXECUTE=1]` to update where those trades' shares are now held. `platform` (where a trade was originally executed) is never touched, only `custodian` (where the shares live now).
+- Every trade in the matched group moves, buys and sells alike - narrowing to only buys would strand the old custodian's sells without lots to match against.
+- The command defaults to a dry run: it prints every affected row and per-asset net share totals, and changes nothing. Pass `EXECUTE=1` to commit the move and rebuild tax lots.
+- `FROM` and `TO` must be valid platforms (see `Platform` in `backend/backend/config.py`); an unknown value is refused. A filter that matches no rows is reported as a no-op.
+- To pause a platform's automatic sync (e.g. while a migration is in flight), set `DISABLED_SYNC_PLATFORMS` in `.env` to a comma-separated list of platforms, e.g. `DISABLED_SYNC_PLATFORMS=ibkr`. Its existing rows are left alone - only the scrape is skipped.
+
 ## Adding a New Asset
 
 - Add the asset to the config.yaml
