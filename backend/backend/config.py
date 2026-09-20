@@ -207,8 +207,18 @@ class Config(BaseSettings):
     def _parse_disabled_sync_platforms(cls, value: object) -> set[str]:
         """Parses the comma-separated `DISABLED_SYNC_PLATFORMS` env var into a set of values"""
         if not isinstance(value, str):
-            return set(value) if value else set()
-        return {item.strip() for item in value.split(",") if item.strip()}
+            parsed = set(value) if value else set()
+        else:
+            parsed = {item.strip() for item in value.split(",") if item.strip()}
+
+        valid_values = [platform.value for platform in Platform]
+        invalid_values = [item for item in parsed if item not in valid_values]
+        if invalid_values:
+            raise ValueError(
+                f"Unknown platform(s) in DISABLED_SYNC_PLATFORMS: {', '.join(invalid_values)}. "
+                f"Valid values: {', '.join(valid_values)}"
+            )
+        return parsed
 
     @model_validator(mode="after")
     def validate_ibind_config(self) -> "Config":

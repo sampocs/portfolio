@@ -71,3 +71,10 @@ def test_disabled_sync_platforms_unset_is_empty_set(monkeypatch) -> None:
     monkeypatch.delenv("DISABLED_SYNC_PLATFORMS", raising=False)
 
     assert config.Config().disabled_sync_platforms == set()
+
+
+def test_disabled_sync_platforms_rejects_unknown_platform(monkeypatch) -> None:
+    monkeypatch.setenv("DISABLED_SYNC_PLATFORMS", "ibrk")
+
+    with pytest.raises(ValueError, match="ibrk"):
+        config.Config()

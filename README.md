@@ -147,6 +147,7 @@ In order to automatically track trades, they must be done as follows:
 - `FROM` and `TO` must be valid platforms (see `Platform` in `backend/backend/config.py`); an unknown value is refused. A filter that matches no rows is reported as a no-op.
 - To pause a platform's automatic sync (e.g. while a migration is in flight), set `DISABLED_SYNC_PLATFORMS` in `.env` to a comma-separated list of platforms, e.g. `DISABLED_SYNC_PLATFORMS=ibkr`. Its existing rows are left alone - only the scrape is skipped.
 - `trades.custodian` is `not null` with no startup `create_all`, so `python -m backend.bootstrap.add_trade_custodians` must be run against prod BEFORE this code is deployed/merged - running the migration first only briefly breaks the old code's inserts (the next sync retries them), while deploying first breaks every `trades` read with a 500.
+- `index_backdoor_roth_trades` inserts new rows with `custodian = row["platform"]`, so after a Vanguard -> Robinhood Roth move, a later `make sync-backdoor-roth` lands new buys back at the old custodian. Re-run `replatform` after any new backdoor Roth import, or record new contributions under the new platform.
 
 ## Adding a New Asset
 

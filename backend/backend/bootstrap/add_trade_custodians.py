@@ -69,6 +69,23 @@ def _print_custodian_account_totals(db: Session):
         print(f"  {custodian}/{account}: {total_quantity}")
 
 
+def _print_custodian_platform_mismatch_count(db: Session):
+    """
+    Prints the count of rows where `custodian` differs from `platform`.
+
+    Expected to be 0 immediately after a fresh backfill, since every row starts with
+    `custodian = platform`. A nonzero count is only expected once a `replatform` run
+    has intentionally moved some trades to a different custodian.
+    """
+    mismatch_count = db.execute(
+        text("select count(*) from trades where custodian is distinct from platform")
+    ).scalar()
+    print(
+        f"Rows where custodian != platform: {mismatch_count} "
+        "(expected 0 immediately after a fresh backfill)"
+    )
+
+
 def main():
     with connection.SessionLocal() as db:
         _add_custodian_column(db)
@@ -77,6 +94,7 @@ def main():
         db.commit()
 
         _print_custodian_account_totals(db)
+        _print_custodian_platform_mismatch_count(db)
 
 
 if __name__ == "__main__":

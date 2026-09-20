@@ -52,6 +52,15 @@ def _validate_platform(value: str, *, label: str) -> None:
         )
 
 
+def _validate_account(value: str) -> None:
+    """Raises ValueError naming the valid TradeAccount values if `value` isn't one of them"""
+    valid_values = [account.value for account in models.TradeAccount]
+    if value not in valid_values:
+        raise ValueError(
+            f"Unknown account '{value}'. Valid values: {', '.join(valid_values)}"
+        )
+
+
 def _filter_criteria(
     from_platform: str, account: str, asset: str | None
 ) -> list[ColumnElement[bool]]:
@@ -115,12 +124,14 @@ def run_replatform(
     Core replatform logic, kept independent of the click CLI so it's directly
     unit-testable against an in-memory session.
 
-    Validates both platform values, reports an empty match as a no-op, and - only when
-    `execute` is set - commits the custodian move and rebuilds tax lots, reporting any
-    unmatched sell the rebuild surfaces rather than crashing with a bare traceback.
+    Validates both platform values and the account, reports an empty match as a no-op,
+    and - only when `execute` is set - commits the custodian move and rebuilds tax
+    lots, reporting any unmatched sell the rebuild surfaces rather than crashing with
+    a bare traceback.
     """
     _validate_platform(from_platform, label="source")
     _validate_platform(to_platform, label="destination")
+    _validate_account(account)
 
     matched_trades = _matching_trades(
         db, from_platform=from_platform, account=account, asset=asset
@@ -154,7 +165,12 @@ def run_replatform(
     try:
         jobs.rebuild_tax_lots(db)
     except lots.UnmatchedSellError as e:
-        logger.error(f"Tax lot rebuild found an unmatched sell after the move: {e}")
+        logger.error(
+            f"Tax lot rebuild found an unmatched sell after the move: {e}. "
+            f"The move is already committed - re-run with FROM={to_platform} "
+            f"TO={from_platform} to undo it, or run `make sync-tax-lots` once the "
+            "missing buys are recorded."
+        )
 
     return ReplatformResult(matched_trades=matched_trades, executed=True)
 

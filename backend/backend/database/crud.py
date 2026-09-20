@@ -398,6 +398,8 @@ def store_trades(db: Session, trades: list[models.Trade]):
     )
     for trade in trades:
         if trade.id in existing_custodians:
+            # Mutates the caller's Trade object in place before merging, so a caller
+            # that reuses `trades` afterward sees the carried-forward custodian too
             trade.custodian = existing_custodians[trade.id]
         db.merge(trade)
     db.commit()

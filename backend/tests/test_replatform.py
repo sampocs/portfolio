@@ -158,6 +158,30 @@ def test_unknown_platform_error_lists_valid_values(db_session):
         )
 
 
+def test_unknown_account_is_refused(db_session):
+    with pytest.raises(ValueError, match="Unknown account 'ira'"):
+        replatform.run_replatform(
+            db_session,
+            from_platform="vanguard",
+            to_platform="robinhood",
+            account="ira",
+            asset=None,
+            execute=True,
+        )
+
+
+def test_unknown_account_error_lists_valid_values(db_session):
+    with pytest.raises(ValueError, match="brokerage"):
+        replatform.run_replatform(
+            db_session,
+            from_platform="vanguard",
+            to_platform="robinhood",
+            account="ira",
+            asset=None,
+            execute=True,
+        )
+
+
 def test_empty_match_is_a_no_op(db_session):
     _seed(
         db_session,
