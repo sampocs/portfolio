@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 IBKR_FEE_PER_SHARE = Decimal("0.0035")
 
 
-def resolve_ibkr_trade_id(db: Session, new_trade: models.Trade) -> str:
+def resolve_ibkr_trade_id(db: Session, new_trade: models.Trade) -> str | None:
     """
     IBKR transactions carry no stable ID, so a trade's ID is a hash of its asset, date,
     and action, and the sync re-fetches from the last trade date every run. The same
@@ -23,19 +23,22 @@ def resolve_ibkr_trade_id(db: Session, new_trade: models.Trade) -> str:
     Only IBKR rows are candidates: a same-day trade recorded by hand for another
     platform (a Vanguard sale, say) shares the asset/date bucket but can never share an
     ID with an IBKR fill. If an existing IBKR row for the same action matches within
-    tolerance, its ID is reused. Otherwise a genuinely distinct second fill on the same
-    day gets a value-suffixed ID so it doesn't overwrite the first.
+    tolerance, its ID is reused, or None if that row was excluded by hand, since
+    re-inserting it would undo the exclusion. Otherwise a genuinely distinct second
+    fill on the same day gets a value-suffixed ID so it doesn't overwrite the first.
     """
     same_day_fills = [
         existing
-        for existing in crud.get_trades(db, asset=new_trade.asset, date=new_trade.date)
+        for existing in crud.get_trades(
+            db, asset=new_trade.asset, date=new_trade.date, include_excluded=True
+        )
         if existing.platform == Platform.IBKR.value
         and existing.action == new_trade.action
     ]
 
     for existing in same_day_fills:
         if _is_same_fill(existing=existing, candidate=new_trade):
-            return existing.id
+            return None if existing.excluded else existing.id
 
     base_id = _ibkr_trade_id(f"{new_trade.asset}_{new_trade.date}_{new_trade.action}")
     if any(existing.id == base_id for existing in same_day_fills):
@@ -96,9 +99,12 @@ def get_recent_ibkr_trades(
             trade = _build_ibkr_trade(transaction, asset=asset_info.asset)
 
             # Re-fetched fills upsert onto their existing row; only a distinct
-            # same-day fill gets a fresh ID
-            trade.id = resolve_ibkr_trade_id(db, new_trade=trade)
+            # same-day fill gets a fresh ID, and an excluded fill is left alone
+            trade_id = resolve_ibkr_trade_id(db, new_trade=trade)
+            if trade_id is None:
+                continue
 
+            trade.id = trade_id
             trades.append(trade)
 
     return trades

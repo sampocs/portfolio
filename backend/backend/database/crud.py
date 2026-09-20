@@ -28,10 +28,15 @@ class DailyCashFlow:
 
 
 def get_trades(
-    db: Session, asset: str | None = None, date: datetime.date | None = None
+    db: Session,
+    asset: str | None = None,
+    date: datetime.date | None = None,
+    include_excluded: bool = False,
 ):
-    """Returns all trades with optional asset filter"""
-    query = db.query(models.Trade).where(models.Trade.excluded.is_(False))
+    """Returns all non-excluded trades with optional asset and date filters"""
+    query = db.query(models.Trade)
+    if not include_excluded:
+        query = query.where(models.Trade.excluded.is_(False))
     if asset:
         query = query.where(models.Trade.asset == asset)
     if date:
