@@ -51,7 +51,9 @@ def resolve_ibkr_trade_id(db: Session, new_trade: models.Trade) -> str | None:
 
     base_id = _ibkr_trade_id(f"{new_trade.asset}_{new_trade.date}_{new_trade.action}")
     if any(existing.id == base_id for existing in same_day_fills):
-        suffix = f"{new_trade.quantity}_{new_trade.price}_{new_trade.cost}_{new_trade.value}"
+        suffix = (
+            f"{new_trade.quantity}_{new_trade.price}_{new_trade.cost}_{new_trade.value}"
+        )
         return _ibkr_trade_id(
             f"{new_trade.asset}_{new_trade.date}_{new_trade.action}_{suffix}"
         )
@@ -223,22 +225,26 @@ def get_recent_robinhood_trades(start_date: datetime.date | None) -> list[models
     if connection.get("disabled"):
         raise robinhood.RobinhoodDisconnectedError()
 
-    account_id = robinhood.get_account_id(client=client, connection_id=connection["id"])
-    activities = robinhood.get_activities(
-        client=client, account_id=account_id, start_date=start_date
+    accounts = robinhood.get_syncable_accounts(
+        client=client, connection_id=connection["id"]
     )
 
     # Each activity is converted on its own so a single unusable one costs one trade
     # instead of the batch - the next sync re-fetches the same range and would keep
-    # failing on it forever
+    # failing on it forever. The same start_date is used for every account; re-fetched
+    # activities upsert onto their existing row by id
     robinhood_trades = []
-    for activity in activities:
-        if not _is_tracked_activity(activity):
-            continue
+    for account in accounts:
+        activities = robinhood.get_activities(
+            client=client, account_id=account.account_id, start_date=start_date
+        )
+        for activity in activities:
+            if not _is_tracked_activity(activity):
+                continue
 
-        trade = _build_robinhood_trade(activity)
-        if trade:
-            robinhood_trades.append(trade)
+            trade = _build_robinhood_trade(activity, account=account.trade_account)
+            if trade:
+                robinhood_trades.append(trade)
 
     return robinhood_trades
 
@@ -262,13 +268,14 @@ def _is_tracked_activity(activity: dict) -> bool:
     return False
 
 
-def _build_robinhood_trade(activity: dict) -> models.Trade | None:
+def _build_robinhood_trade(activity: dict, account: str) -> models.Trade | None:
     """
     Converts a SnapTrade transaction into a trade, or None if it can't be trusted
 
     Every field on a SnapTrade activity is optional in its schema, so a malformed or
     unrecognized one is skipped with a warning rather than raised - the alternative is
-    a sync that never gets past it
+    a sync that never gets past it. `account` is the ledger account (brokerage or roth)
+    the activity's SnapTrade account was mapped to, and is stamped onto the trade as-is
     """
     activity_id = activity.get("id")
     activity_type = activity.get("type")
@@ -333,7 +340,7 @@ def _build_robinhood_trade(activity: dict) -> models.Trade | None:
         cost=cost,
         value=value,
         excluded=False,
-        account=models.TradeAccount.BROKERAGE.value,
+        account=account,
     )
 
 

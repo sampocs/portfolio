@@ -1,11 +1,13 @@
 import datetime
 import json
+from dataclasses import dataclass
 from typing import Any
 
 import click
 from snaptrade_client import SnapTrade, SnapTradeAuth
 
 from backend.config import config, logger
+from backend.database import models
 
 BROKERAGE_SLUG = "ROBINHOOD"
 CONNECTION_TYPE_READ_ONLY = "read"
@@ -13,6 +15,22 @@ TRADE_ACTIVITY_TYPES = "BUY,SELL,REI"
 INVESTMENT_ACCOUNT_CATEGORY = "INVESTMENT"
 ACTIVITY_PAGE_SIZE = 1000
 MAX_ACTIVITY_PAGES = 100
+
+# Only these raw account types are synced into trades - crypto comes through Coinbase
+# instead (Robinhood crypto has a separate API), and non-investment accounts like a
+# credit card have no trades to sync at all
+RAW_TYPE_TO_TRADE_ACCOUNT = {
+    "INDIVIDUAL": models.TradeAccount.BROKERAGE.value,
+    "ROTH_IRA": models.TradeAccount.ROTH.value,
+}
+
+
+@dataclass
+class RobinhoodAccount:
+    """A SnapTrade account to sync, tagged with the ledger account its trades belong to"""
+
+    account_id: str
+    trade_account: str
 
 
 class RobinhoodDisconnectedError(Exception):
@@ -37,10 +55,12 @@ def get_connection(client: SnapTrade) -> dict | None:
     return _find_connection(_response_json(response))
 
 
-def get_account_id(client: SnapTrade, connection_id: str) -> str:
-    """Returns the ID of the Robinhood account under the given connection"""
+def get_syncable_accounts(
+    client: SnapTrade, connection_id: str
+) -> list[RobinhoodAccount]:
+    """Returns every account under the given connection whose trades should be synced"""
     response = client.account_information.list_user_accounts()
-    return _find_account_id(
+    return _find_syncable_accounts(
         accounts=_response_json(response), connection_id=connection_id
     )
 
@@ -125,13 +145,19 @@ def _find_connection(authorizations: list[dict]) -> dict | None:
     return robinhood_authorizations[0]
 
 
-def _find_account_id(accounts: list[dict], connection_id: str) -> str:
+def _find_syncable_accounts(
+    accounts: list[dict], connection_id: str
+) -> list[RobinhoodAccount]:
     """
-    Returns the ID of the brokerage account under the given connection
+    Returns the accounts under the given connection whose trades should be synced
 
-    A robinhood connection can also expose non-brokerage accounts (e.g. spending), which
-    the account category tells apart. Brokerages that don't report a category fall back
-    to requiring a single account, where an ambiguous result is raised rather than guessed at
+    A robinhood connection exposes more than the taxable brokerage account: a crypto
+    account (synced separately, via Coinbase, since Robinhood crypto has its own API),
+    a Roth IRA, and non-investment accounts like a credit card (an LOC, not INVESTMENT).
+    Each investment account's raw_type is mapped to the ledger account its trades belong
+    to; anything that doesn't map is skipped rather than guessed at. A connection that
+    yields no syncable account would otherwise mean the portfolio quietly goes stale, so
+    that case raises instead of returning an empty list.
     """
     connection_accounts = [
         account
@@ -139,19 +165,36 @@ def _find_account_id(accounts: list[dict], connection_id: str) -> str:
         if account["brokerage_authorization"] == connection_id
     ]
 
-    investment_accounts = [
-        account
-        for account in connection_accounts
-        if account.get("account_category") == INVESTMENT_ACCOUNT_CATEGORY
-    ]
-    if len(investment_accounts) == 1:
-        return investment_accounts[0]["id"]
+    syncable_accounts = []
+    for account in connection_accounts:
+        name = account.get("name")
+        raw_type = account.get("raw_type")
 
-    account_ids = [account["id"] for account in connection_accounts]
-    assert len(account_ids) == 1, (
-        f"Expected one robinhood account, found {len(account_ids)}: {account_ids}"
+        if account.get("account_category") != INVESTMENT_ACCOUNT_CATEGORY:
+            logger.info(
+                f"Skipping robinhood account (not an investment account): name={name} raw_type={raw_type}"
+            )
+            continue
+
+        trade_account = RAW_TYPE_TO_TRADE_ACCOUNT.get(raw_type)
+        if trade_account is None:
+            logger.info(
+                f"Skipping robinhood account (unmapped raw_type): name={name} raw_type={raw_type}"
+            )
+            continue
+
+        syncable_accounts.append(
+            RobinhoodAccount(account_id=account["id"], trade_account=trade_account)
+        )
+
+    seen_accounts = [
+        f"{account.get('name')} ({account.get('raw_type')})"
+        for account in connection_accounts
+    ]
+    assert syncable_accounts, (
+        f"No syncable robinhood account found among: {seen_accounts}"
     )
-    return account_ids[0]
+    return syncable_accounts
 
 
 @click.command()
