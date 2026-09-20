@@ -1,4 +1,6 @@
-import { AssetPriceData, AssetTradeData, AssetTrade, AssetPriceHistory } from './assetTypes';
+import { AssetPriceData, AssetTradeData, AssetTrade, AssetPriceHistory, AssetDuration } from './assetTypes';
+import { AssetPerformance, AssetPerformancePoint } from './types';
+import { mockPositions } from './mockData';
 
 // Helper function to generate realistic price history
 const generatePriceHistory = (
@@ -256,6 +258,93 @@ export const getAssetTradeData = async (symbol: string): Promise<AssetTradeData>
   }
   
   return data;
+};
+
+/**
+ * Number of trailing days each duration covers, mirroring
+ * AssetService.processPriceDataForDuration so demo and live windows line up.
+ * 'YTD' is excluded because it starts from Jan 1 rather than a fixed day count.
+ */
+const DURATION_TRAILING_DAYS: Record<Exclude<AssetDuration, 'YTD'>, number> = {
+  '1D': 1,
+  '1W': 7,
+  '1M': 30,
+  '1Y': 365,
+  '5Y': 1825,
+};
+
+/**
+ * The historical prices inside a duration's window, ascending by date. '1D' keeps only
+ * the most recent close, matching how the price chart pairs it with the live point.
+ */
+const getPriceHistoryForDuration = (
+  historicalPrices: AssetPriceHistory[],
+  duration: AssetDuration
+): AssetPriceHistory[] => {
+  const ascendingPrices = [...historicalPrices].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  if (duration === '1D') {
+    return ascendingPrices.slice(-1);
+  }
+
+  const today = new Date();
+  const cutoffDate = new Date(today);
+  if (duration === 'YTD') {
+    cutoffDate.setTime(new Date(today.getFullYear(), 0, 1).getTime());
+  } else {
+    cutoffDate.setDate(today.getDate() - DURATION_TRAILING_DAYS[duration]);
+  }
+
+  return ascendingPrices.filter(item => new Date(item.date) >= cutoffDate);
+};
+
+/**
+ * Build a demo asset performance response: the mock price series scaled by the mock
+ * position's quantity. Cash flows are pinned to the position's all-time totals across
+ * the whole window, so every in-window flow is zero and the demo gain is simply the
+ * change in value.
+ */
+export const getAssetPerformanceData = async (
+  symbol: string,
+  duration: AssetDuration
+): Promise<AssetPerformance> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  const priceData = mockAssetPriceData[symbol];
+  if (!priceData) {
+    throw new Error(`Price data not found for asset: ${symbol}`);
+  }
+
+  const position = mockPositions.find(item => item.asset === symbol);
+  if (!position) {
+    throw new Error(`Position not found for asset: ${symbol}`);
+  }
+
+  const quantity = parseFloat(position.quantity);
+  const windowPrices = getPriceHistoryForDuration(priceData.historical_prices, duration);
+
+  const history: AssetPerformancePoint[] = windowPrices.map(item => ({
+    date: item.date,
+    value: (parseFloat(item.price) * quantity).toFixed(2),
+    buys: position.buys,
+    sells: position.sells,
+  }));
+
+  // An empty window (no mock history that far back) falls back to today's position, which
+  // leaves the baseline equal to the live point and reports a flat gain rather than crashing
+  const firstPoint = history[0];
+  const todayString = new Date().toISOString().split('T')[0];
+
+  return {
+    start_date: firstPoint ? firstPoint.date : todayString,
+    start_value: firstPoint ? firstPoint.value : position.value,
+    start_buys: position.buys,
+    start_sells: position.sells,
+    history,
+  };
 };
 
 export const getAssetDetailData = async (symbol: string) => {

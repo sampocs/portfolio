@@ -1,26 +1,9 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import { AssetPriceChange } from '../data/assetTypes';
 import RollingText from './RollingText';
-
-// Asset image mapping
-const assetImages: { [key: string]: any } = {
-  'VT': require('../../assets/images/VT.png'),
-  'VOO': require('../../assets/images/VOO.png'),
-  'VO': require('../../assets/images/VO.png'),
-  'VB': require('../../assets/images/VB.png'),
-  'VXUS': require('../../assets/images/VXUS.png'),
-  'VWO': require('../../assets/images/VWO.png'),
-  'COIN': require('../../assets/images/COIN.png'),
-  'HOOD': require('../../assets/images/HOOD.png'),
-  'AAAU': require('../../assets/images/AAAU.png'),
-  'VNQ': require('../../assets/images/VNQ.png'),
-  'BTC': require('../../assets/images/BTC.png'),
-  'ETH': require('../../assets/images/ETH.png'),
-  'SOL': require('../../assets/images/SOL.png'),
-};
 
 interface AssetPriceHeaderProps {
   priceChange: AssetPriceChange;

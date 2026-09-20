@@ -1,4 +1,4 @@
-import { PortfolioDuration } from "./assetTypes";
+import { PortfolioDuration, ProcessedPriceData } from "./assetTypes";
 
 export interface Asset {
   asset: string;
@@ -25,6 +25,37 @@ export interface WatchlistAsset {
   current_price: string;
   changes: Record<PortfolioDuration, string>; // Percent move for each portfolio duration
 }
+
+export interface AssetPerformancePoint {
+  date: string;
+  value: string; // Market value of the holding on this date
+  buys: string; // Cumulative cash spent on BUY trades through this date
+  sells: string; // Cumulative cash received from SELL trades through this date
+}
+
+/**
+ * The cumulative state on a performance window's start date. Gains over the window are
+ * measured against it, so only cash that moved inside the window counts.
+ */
+export interface AssetPerformanceBaseline {
+  start_value: string; // Holding value on start_date (0 when the asset was not yet held)
+  start_buys: string; // Cumulative buys through start_date, inclusive
+  start_sells: string; // Cumulative sells through start_date, inclusive
+}
+
+export interface AssetPerformance extends AssetPerformanceBaseline {
+  start_date: string;
+  history: AssetPerformancePoint[];
+}
+
+/**
+ * A point on the portfolio-mode value chart. `price` is the parsed holding value, so the
+ * chart helpers built for price series work unchanged, while the raw value and cumulative
+ * cash flows ride along so a scrubbed point can be re-gained against the window baseline.
+ */
+export interface ProcessedValueData
+  extends ProcessedPriceData,
+    AssetPerformancePoint {}
 
 export interface PerformanceData {
   date: string;

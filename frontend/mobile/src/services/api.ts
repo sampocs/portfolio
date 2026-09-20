@@ -1,4 +1,5 @@
-import { Asset, PerformanceData, WatchlistAsset } from "../data/types";
+import { Asset, AssetPerformance, PerformanceData, WatchlistAsset } from "../data/types";
+import { AssetDuration } from "../data/assetTypes";
 import { StorageService } from "./storage";
 import { API } from "../constants";
 
@@ -111,6 +112,19 @@ class ApiService {
    */
   async getWatchlist(): Promise<WatchlistAsset[]> {
     return await this.makeRequest<WatchlistAsset[]>("/watchlist");
+  }
+
+  /**
+   * Fetch an asset's value history and cash-flow baseline over a duration window,
+   * used by the asset page's portfolio mode to compute gain net of cash flows
+   */
+  async getAssetPerformance(
+    symbol: string,
+    duration: AssetDuration
+  ): Promise<AssetPerformance> {
+    return await this.makeRequest<AssetPerformance>(
+      `/positions/${symbol}/performance/${duration}`
+    );
   }
 
   /**
