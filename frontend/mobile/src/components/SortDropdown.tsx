@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
-export type SortOption = 
+export type SortOption =
   | 'alphabetical'
   | 'highest-value'
   | 'lowest-value'
@@ -12,12 +12,7 @@ export type SortOption =
   | 'highest-returns'
   | 'lowest-returns';
 
-interface SortDropdownProps {
-  selectedSort: SortOption;
-  onSortChange: (sort: SortOption) => void;
-}
-
-const sortOptions: { value: SortOption; label: string }[] = [
+export const ASSET_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'alphabetical', label: 'Alphabetical' },
   { value: 'highest-value', label: 'Highest Value' },
   { value: 'lowest-value', label: 'Lowest Value' },
@@ -27,12 +22,18 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'lowest-returns', label: 'Lowest Returns (%)' },
 ];
 
-export default function SortDropdown({ selectedSort, onSortChange }: SortDropdownProps) {
+interface SortDropdownProps<T extends string> {
+  selectedSort: T;
+  onSortChange: (sort: T) => void;
+  options: { value: T; label: string }[];
+}
+
+export default function SortDropdown<T extends string>({ selectedSort, onSortChange, options }: SortDropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const selectedOption = sortOptions.find(option => option.value === selectedSort);
+  const selectedOption = options.find(option => option.value === selectedSort);
 
-  const handleOptionSelect = (option: SortOption) => {
+  const handleOptionSelect = (option: T) => {
     onSortChange(option);
     setIsOpen(false);
   };
@@ -62,7 +63,7 @@ export default function SortDropdown({ selectedSort, onSortChange }: SortDropdow
         >
           <View style={styles.dropdown}>
             <ScrollView style={styles.optionsList}>
-              {sortOptions.map((option) => (
+              {options.map((option) => (
                 <TouchableOpacity
                   key={option.value}
                   style={[

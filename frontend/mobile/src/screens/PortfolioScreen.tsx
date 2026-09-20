@@ -183,7 +183,8 @@ export default function PortfolioScreen({ navigation }: PortfolioScreenProps) {
   const handleAssetPress = (asset: Asset) => {
     navigation.navigate('AssetDetail', {
       symbol: asset.asset,
-      assetName: asset.description
+      assetName: asset.description,
+      mode: 'portfolio'
     });
   };
 

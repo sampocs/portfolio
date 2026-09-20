@@ -1,4 +1,4 @@
-import { Asset, PerformanceData } from "../data/types";
+import { Asset, PerformanceData, WatchlistAsset } from "../data/types";
 import { StorageService } from "./storage";
 import { API } from "../constants";
 
@@ -103,6 +103,14 @@ class ApiService {
     }
 
     return await this.makeRequest<PerformanceData[]>(endpoint);
+  }
+
+  /**
+   * Fetch watch list assets (configured assets with a non-zero target allocation)
+   * with their current price and percent change over each portfolio duration
+   */
+  async getWatchlist(): Promise<WatchlistAsset[]> {
+    return await this.makeRequest<WatchlistAsset[]>("/watchlist");
   }
 
   /**

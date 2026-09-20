@@ -1,3 +1,5 @@
+import { PortfolioDuration } from "./assetTypes";
+
 export interface Asset {
   asset: string;
   market: string;
@@ -14,6 +16,14 @@ export interface Asset {
   returns: string; // Total return percent: total_return / buys * 100 (0 when buys is 0)
   current_allocation: string;
   target_allocation: string;
+}
+
+export interface WatchlistAsset {
+  asset: string;
+  description: string;
+  market: string;
+  current_price: string;
+  changes: Record<PortfolioDuration, string>; // Percent move for each portfolio duration
 }
 
 export interface PerformanceData {

@@ -4,10 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { ChartSpline, ChartPie } from 'lucide-react-native';
+import { ChartSpline, ChartPie, Eye } from 'lucide-react-native';
 
 import PortfolioScreen from './src/screens/PortfolioScreen';
 import AllocationsScreen from './src/screens/AllocationsScreen';
+import WatchListScreen from './src/screens/WatchListScreen';
 import AssetDetailScreen from './src/screens/AssetDetailScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import { DataProvider, useData } from './src/contexts/DataContext';
@@ -27,6 +28,21 @@ function PortfolioStack() {
       }}
     >
       <Stack.Screen name="PortfolioMain" component={PortfolioScreen} />
+      <Stack.Screen name="AssetDetail" component={AssetDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Watch list stack navigator - mirrors PortfolioStack so back returns to the watch list
+function WatchListStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { backgroundColor: theme.colors.background },
+      }}
+    >
+      <Stack.Screen name="WatchListMain" component={WatchListScreen} />
       <Stack.Screen name="AssetDetail" component={AssetDetailScreen} />
     </Stack.Navigator>
   );
@@ -54,9 +70,12 @@ function AppContent() {
   // Show main app if authenticated
   return (
     <Tab.Navigator
+      initialRouteName="Portfolio"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
-          if (route.name === 'Portfolio') {
+          if (route.name === 'Watch List') {
+            return <Eye size={size} color={color} />;
+          } else if (route.name === 'Portfolio') {
             return <ChartSpline size={size} color={color} />;
           } else if (route.name === 'Allocations') {
             return <ChartPie size={size} color={color} />;
@@ -78,6 +97,7 @@ function AppContent() {
         headerShown: false,
       })}
     >
+      <Tab.Screen name="Watch List" component={WatchListStack} />
       <Tab.Screen name="Portfolio" component={PortfolioStack} />
       <Tab.Screen name="Allocations" component={AllocationsScreen} />
     </Tab.Navigator>

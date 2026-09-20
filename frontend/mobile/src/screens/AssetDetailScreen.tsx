@@ -43,6 +43,7 @@ interface AssetDetailScreenProps {
     params: {
       symbol: string;
       assetName?: string;
+      mode: 'price' | 'portfolio';
     };
   };
   navigation: {

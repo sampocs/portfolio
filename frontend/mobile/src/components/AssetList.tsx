@@ -6,7 +6,7 @@ import { createStyles, getTextStyle } from '../styles/utils';
 import { UI, isClosedPosition } from '../constants';
 import { Asset } from '../data/types';
 import AssetRow from './AssetRow';
-import SortDropdown, { SortOption } from './SortDropdown';
+import SortDropdown, { SortOption, ASSET_SORT_OPTIONS } from './SortDropdown';
 
 interface AssetListProps {
   assets: Asset[];
@@ -95,6 +95,7 @@ export default function AssetList({ assets, selectedCategories, onAssetPress }: 
         <SortDropdown
           selectedSort={selectedSort}
           onSortChange={setSelectedSort}
+          options={ASSET_SORT_OPTIONS}
         />
       </View>
 
