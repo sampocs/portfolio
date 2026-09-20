@@ -20,29 +20,14 @@ import AssetHoldingsSummary from '../components/AssetHoldingsSummary';
 import TradesList from '../components/TradesList';
 import { useData } from '../contexts/DataContext';
 import { DURATIONS } from '../constants';
-
-// Asset image mapping
-const assetImages: { [key: string]: any } = {
-  'VT': require('../../assets/images/VT.png'),
-  'VOO': require('../../assets/images/VOO.png'),
-  'VO': require('../../assets/images/VO.png'),
-  'VB': require('../../assets/images/VB.png'),
-  'VXUS': require('../../assets/images/VXUS.png'),
-  'VWO': require('../../assets/images/VWO.png'),
-  'COIN': require('../../assets/images/COIN.png'),
-  'HOOD': require('../../assets/images/HOOD.png'),
-  'AAAU': require('../../assets/images/AAAU.png'),
-  'VNQ': require('../../assets/images/VNQ.png'),
-  'BTC': require('../../assets/images/BTC.png'),
-  'ETH': require('../../assets/images/ETH.png'),
-  'SOL': require('../../assets/images/SOL.png'),
-};
+import { getAssetLogo } from '../utils/assetRegistry';
 
 interface AssetDetailScreenProps {
   route: {
     params: {
       symbol: string;
       assetName?: string;
+      mode: 'price' | 'portfolio';
     };
   };
   navigation: {
@@ -83,11 +68,16 @@ function SkeletonBox({ width, height, style }: { width: number | string, height:
 }
 
 export default function AssetDetailScreen({ route, navigation }: AssetDetailScreenProps) {
-  const { symbol, assetName } = route.params;
-  const { dataMode } = useData();
-  
-  // Get image source from mapping
-  const imageSource = assetImages[symbol];
+  const { symbol, assetName, mode } = route.params;
+  const { dataMode, positions } = useData();
+
+  // Portfolio mode charts the holding's value, so it needs the position behind the
+  // symbol. A missing position should not happen, but falling back to price mode keeps
+  // the screen usable instead of failing to load.
+  const position = positions.find(item => item.asset === symbol);
+  const isPortfolioMode = mode === 'portfolio' && position !== undefined;
+
+  const imageSource = getAssetLogo(symbol);
   const [selectedDuration, setSelectedDuration] = useState<AssetDuration>(DURATIONS.INITIAL_ASSET);
   const [isLoading, setIsLoading] = useState(true);
   const [isChartLoading, setIsChartLoading] = useState(false);
@@ -95,11 +85,18 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
   const [selectedDataPoint, setSelectedDataPoint] = useState<any>(null);
   const [isDurationChanging, setIsDurationChanging] = useState(false);
 
+  const fetchAssetData = (duration: AssetDuration) => {
+    if (isPortfolioMode) {
+      return AssetService.getAssetPortfolioDetails(symbol, duration, dataMode, position);
+    }
+    return AssetService.getAssetDetails(symbol, duration, dataMode);
+  };
+
   useEffect(() => {
     const loadAssetData = async () => {
       try {
         setIsLoading(true);
-        const data = await AssetService.getAssetDetails(symbol, DURATIONS.INITIAL_ASSET, dataMode);
+        const data = await fetchAssetData(DURATIONS.INITIAL_ASSET);
         setAssetData(data);
       } catch (error) {
         console.error('Error loading asset data:', error);
@@ -109,7 +106,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
     };
 
     loadAssetData();
-  }, [symbol, dataMode]); // Removed selectedDuration from dependencies
+  }, [symbol, dataMode, isPortfolioMode]); // Removed selectedDuration from dependencies
 
   const handleDurationChange = async (duration: AssetDuration) => {
     setSelectedDuration(duration);
@@ -117,7 +114,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
     setIsDurationChanging(true);
     
     try {
-      const data = await AssetService.getAssetDetails(symbol, duration, dataMode);
+      const data = await fetchAssetData(duration);
       setAssetData(data);
     } catch (error) {
       console.error('Error loading asset data for duration:', error);
@@ -135,6 +132,12 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
   // Get price change data for display - use selected data point if available
   const getCurrentPriceChange = () => {
     if (selectedDataPoint && assetData) {
+      // Portfolio mode measures the scrubbed point against the window baseline using the
+      // point's own cumulative cash flows, so the gain stays net of buys and sells
+      if (isPortfolioMode) {
+        return AssetService.computeWindowGain(selectedDataPoint, assetData.baseline);
+      }
+
       const selectedPrice = selectedDataPoint.price || selectedDataPoint.value;
       // Calculate change relative to the first price in the current timeframe
       const firstPrice = assetData.processedPriceData[0]?.price || selectedPrice;
@@ -158,7 +161,8 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
     await handleDurationChange(duration);
   };
 
-  // Transform price data for chart
+  // Transform a series for the chart - prices in price mode, holding values in
+  // portfolio mode, where each point also carries its cash flows via originalData
   const transformPriceDataForChart = (priceData: ProcessedPriceData[]): ChartDataPoint[] => {
     return priceData.map((item, index) => ({
       x: index,
@@ -299,7 +303,9 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
         </View>
         
         <FinancialChart
-          data={transformPriceDataForChart(assetData.processedPriceData)}
+          data={transformPriceDataForChart(
+            isPortfolioMode ? assetData.processedValueData : assetData.processedPriceData
+          )}
           onDataPointSelected={handleDataPointSelected}
           isLoading={isChartLoading}
           isPositive={assetData.priceChange.isPositive}

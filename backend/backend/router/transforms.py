@@ -5,7 +5,21 @@ from sqlalchemy import func
 from backend.database import crud, models
 from backend.scrapers import prices
 from backend.router import schemas
-from backend.config import config, DURATION_TO_TIMEDELTA
+from backend.config import config, DURATION_TO_TIMEDELTA, VALID_DURATIONS
+
+
+def window_start_date(duration: str, today: datetime.date) -> datetime.date | None:
+    """
+    Returns the first date of a duration's window, with no buffer (unlike
+    `get_performance`, which pads by 2 days). `YTD` starts on Jan 1st of `today`'s
+    year, `ALL` has no start (returns `None`), and every other duration starts
+    `DURATION_TO_TIMEDELTA[duration]` before `today`.
+    """
+    if duration == "YTD":
+        return datetime.date(today.year, 1, 1)
+    if duration == "ALL":
+        return None
+    return today - DURATION_TO_TIMEDELTA[duration]
 
 
 def get_enriched_positions(db: Session) -> list[schemas.Position]:
@@ -170,4 +184,143 @@ def get_asset_prices(db: Session, asset: str) -> schemas.AssetPriceHistory:
             schemas.HistoricalPrice(date=str(p.date), price=p.price)
             for p in historical_prices
         ],
+    )
+
+
+def get_watchlist(db: Session) -> list[schemas.WatchlistAsset]:
+    """
+    Returns one entry per `config.watchlist_assets` (target_allocation > 0, yaml
+    order), each with the live price and the percent change from every
+    `VALID_DURATIONS` reference close to that live price.
+    """
+    today = datetime.date.today()
+    live_prices = prices.get_cached_asset_prices(db)
+
+    watchlist = []
+    for asset in config.watchlist_assets:
+        asset_config = config.assets[asset]
+        current_price = live_prices[asset]
+
+        changes = {
+            duration: _reference_change(
+                db,
+                asset=asset,
+                duration=duration,
+                today=today,
+                current_price=current_price,
+            )
+            for duration in VALID_DURATIONS
+        }
+
+        watchlist.append(
+            schemas.WatchlistAsset(
+                asset=asset,
+                description=asset_config.description,
+                market=asset_config.market.value,
+                current_price=current_price,
+                changes=changes,
+            )
+        )
+
+    return watchlist
+
+
+def _reference_change(
+    db: Session,
+    asset: str,
+    duration: str,
+    today: datetime.date,
+    current_price: Decimal,
+) -> Decimal:
+    """
+    Percent move from a duration's reference close to `current_price`. The reference
+    is the earliest stored close for `ALL`, otherwise the close on or before the
+    duration's window start date. `0` when there is no reference row or it is `0`.
+    """
+    if duration == "ALL":
+        reference = crud.get_earliest_close_price(db, asset=asset)
+        return (
+            (current_price - reference) / reference * 100 if reference else Decimal(0)
+        )
+
+    start_date = window_start_date(duration=duration, today=today)
+    assert start_date is not None, f"'{duration}' has a start date; only 'ALL' does not"
+    reference = crud.get_close_price_on_or_before(db, asset=asset, date=start_date)
+
+    if not reference:
+        return Decimal(0)
+
+    return (current_price - reference) / reference * 100
+
+
+def get_asset_performance(
+    db: Session, asset: str, duration: str
+) -> schemas.AssetPerformance:
+    """
+    Returns one asset's value history and cash-flow baseline from `duration`'s window
+    start to today. `start_date` is that window start, clamped forward to the latest
+    date with a stored `HistoricalPosition` row when the window start is later than
+    that (rows are only built through `last_price_date` by the daily position-history
+    job, so a raw window start can be ahead of the data for `1D` before that job runs,
+    or on a day it fails). `start_value` is the `HistoricalPosition.value` on
+    `start_date`, or `0` when the asset held no position that day. `start_buys`/
+    `start_sells` are cumulative trade cash flows through `start_date` inclusive,
+    independent of whether a position row exists. `history` covers every
+    `HistoricalPosition` row from `start_date` onward, each with its own cumulative
+    buys/sells. Gain is left for the caller to compute.
+    """
+    today = datetime.date.today()
+    window_start = window_start_date(duration=duration, today=today)
+    assert window_start is not None, (
+        f"'{duration}' has no start date; ASSET_DURATIONS must exclude 'ALL'"
+    )
+
+    latest_built_date = db.query(func.max(models.HistoricalPosition.date)).scalar()
+    start_date = (
+        latest_built_date
+        if latest_built_date is not None and latest_built_date < window_start
+        else window_start
+    )
+
+    start_position = (
+        db.query(models.HistoricalPosition.value)
+        .where(models.HistoricalPosition.asset == asset)
+        .where(models.HistoricalPosition.date == start_date)
+        .first()
+    )
+    start_value = start_position[0] if start_position else Decimal(0)
+
+    history_rows = (
+        db.query(models.HistoricalPosition)
+        .where(models.HistoricalPosition.asset == asset)
+        .where(models.HistoricalPosition.date >= start_date)
+        .order_by(models.HistoricalPosition.date)
+        .all()
+    )
+
+    # Cash flows are trade-derived and independent of the history rows, so the
+    # running baseline is computed once over [start_date, *history dates]
+    daily_cash_flows = crud.get_daily_cash_flows(db, assets=[asset])
+    running_cash_flows = _accumulate_running_cash_flows(
+        dates=[start_date] + [row.date for row in history_rows],
+        daily_cash_flows=daily_cash_flows,
+    )
+    start_cash_flow, history_cash_flows = running_cash_flows[0], running_cash_flows[1:]
+
+    history = [
+        schemas.AssetPerformancePoint(
+            date=str(row.date),
+            value=row.value,
+            buys=cash_flow.buys,
+            sells=cash_flow.sells,
+        )
+        for row, cash_flow in zip(history_rows, history_cash_flows)
+    ]
+
+    return schemas.AssetPerformance(
+        start_date=str(start_date),
+        start_value=start_value,
+        start_buys=start_cash_flow.buys,
+        start_sells=start_cash_flow.sells,
+        history=history,
     )

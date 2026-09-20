@@ -1,10 +1,10 @@
 import datetime
 from enum import Enum
 import json
-from typing import Any
+from typing import Annotated, Any
 import logging
-from pydantic import Field, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from pathlib import Path
 from ibind.oauth.oauth1a import OAuth1aConfig
 from dataclasses import dataclass
@@ -19,12 +19,15 @@ ENV_FILE = ".env"
 ASSETS_FILE = "assets.yaml"
 
 VALID_DURATIONS = ["1W", "1M", "YTD", "1Y", "5Y", "ALL"]
+ASSET_DURATIONS = ["1D", "1W", "1M", "YTD", "1Y", "5Y"]
 DURATION_TO_TIMEDELTA = {
+    "1D": datetime.timedelta(days=1),
     "1W": datetime.timedelta(days=7),
     "1M": datetime.timedelta(days=30),
     "1Y": datetime.timedelta(days=365),
     "5Y": datetime.timedelta(days=365 * 5),
 }
+
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -69,6 +72,7 @@ class Platform(Enum):
     IBKR = "ibkr"
     COINBASE = "coinbase"
     ROBINHOOD = "robinhood"
+    VANGUARD = "vanguard"
 
 
 class PriceType(Enum):
@@ -163,6 +167,16 @@ class Config(BaseSettings):
     ntfy_topic: str = Field(alias="NTFY_TOPIC", default="")
     railway_public_domain: str = Field(alias="RAILWAY_PUBLIC_DOMAIN", default="")
 
+    # Platforms whose scrape `jobs.index_recent_trades` skips - kept so a platform can be
+    # switched off on migration day without a code change, and back on if that's premature
+    #
+    # `NoDecode` stops pydantic-settings from JSON-decoding the raw env value before our
+    # `_parse_disabled_sync_platforms` validator runs (the default for a `set[str]` field,
+    # which fails on a plain comma-separated string like "ibkr,coinbase" or an empty string)
+    disabled_sync_platforms: Annotated[set[str], NoDecode] = Field(
+        alias="DISABLED_SYNC_PLATFORMS", default_factory=set
+    )
+
     postgres_url: str = Field(alias="POSTGRES_URL")
     fastapi_secret: str = Field(alias="FASTAPI_SECRET")
 
@@ -187,6 +201,24 @@ class Config(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow"
     )
+
+    @field_validator("disabled_sync_platforms", mode="before")
+    @classmethod
+    def _parse_disabled_sync_platforms(cls, value: object) -> set[str]:
+        """Parses the comma-separated `DISABLED_SYNC_PLATFORMS` env var into a set of values"""
+        if not isinstance(value, str):
+            parsed = set(value) if value else set()
+        else:
+            parsed = {item.strip() for item in value.split(",") if item.strip()}
+
+        valid_values = [platform.value for platform in Platform]
+        invalid_values = [item for item in parsed if item not in valid_values]
+        if invalid_values:
+            raise ValueError(
+                f"Unknown platform(s) in DISABLED_SYNC_PLATFORMS: {', '.join(invalid_values)}. "
+                f"Valid values: {', '.join(valid_values)}"
+            )
+        return parsed
 
     @model_validator(mode="after")
     def validate_ibind_config(self) -> "Config":
@@ -357,6 +389,15 @@ class Config(BaseSettings):
             for asset_id, asset_info in self.assets.items()
             if asset_info.price_type == PriceType.CRYPTO
         }
+
+    @property
+    def watchlist_assets(self) -> list[str]:
+        """Returns asset ids with a non-zero target allocation, in yaml order"""
+        return [
+            asset_id
+            for asset_id, asset_info in self.assets.items()
+            if asset_info.target_allocation > 0
+        ]
 
 
 config = Config()  # type: ignore

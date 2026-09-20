@@ -143,6 +143,7 @@ def _build_ibkr_trade(transaction: dict, asset: str) -> models.Trade:
     return models.Trade(
         id=_ibkr_trade_id(f"{asset}_{date}_{action}"),
         platform=Platform.IBKR.value,
+        custodian=Platform.IBKR.value,
         date=date,
         action=action,
         asset=asset,
@@ -187,6 +188,7 @@ def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:
         trade = models.Trade(
             id=trade_id,
             platform=Platform.COINBASE.value,
+            custodian=Platform.COINBASE.value,
             date=date,
             action=str(order["side"]),
             asset=asset,
@@ -331,6 +333,7 @@ def _build_robinhood_trade(activity: dict, account: str) -> models.Trade | None:
     return models.Trade(
         id=f"robinhood-{activity_id}",
         platform=Platform.ROBINHOOD.value,
+        custodian=Platform.ROBINHOOD.value,
         date=_get_market_date(trade_date),
         action=action.value,
         asset=ticker,

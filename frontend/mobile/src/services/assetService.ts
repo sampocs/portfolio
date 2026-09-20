@@ -6,7 +6,8 @@ import {
   AssetHoldings, 
   AssetPriceChange 
 } from '../data/assetTypes';
-import { getAssetDetailData } from '../data/mockAssetData';
+import { getAssetDetailData, getAssetPerformanceData, getAssetPriceData, getAssetTradeData } from '../data/mockAssetData';
+import { Asset, AssetPerformanceBaseline, AssetPerformancePoint, ProcessedValueData } from '../data/types';
 import { DataMode } from '../contexts/DataContext';
 import { apiService } from './api';
 
@@ -121,6 +122,39 @@ export class AssetService {
       changeAmount,
       changePercent,
       isPositive: changeAmount >= 0
+    };
+  }
+
+  /**
+   * Calculate a holding's gain over a performance window, net of the cash that moved
+   * inside it. Buys during the window are money the holding was handed rather than money
+   * it earned, and sells are money it gave back, so both are backed out of the raw change
+   * in value and the buys are added to the base the percentage is measured against.
+   *
+   * Returned as an `AssetPriceChange` so `AssetPriceHeader` renders it unchanged: the
+   * "price" is the holding's value and the "change" is its gain.
+   */
+  static computeWindowGain(
+    point: Pick<AssetPerformancePoint, 'value' | 'buys' | 'sells'>,
+    baseline: AssetPerformanceBaseline
+  ): AssetPriceChange {
+    const startValue = parseFloat(baseline.start_value);
+    const endValue = parseFloat(point.value);
+    const buysInWindow = parseFloat(point.buys) - parseFloat(baseline.start_buys);
+    const sellsInWindow = parseFloat(point.sells) - parseFloat(baseline.start_sells);
+
+    const gain = endValue + sellsInWindow - buysInWindow - startValue;
+
+    // Base is what was at risk over the window: the opening value plus anything added to it
+    const base = startValue + buysInWindow;
+    const changePercent = base > 0 ? (gain / base) * 100 : 0;
+
+    return {
+      currentPrice: endValue,
+      previousPrice: startValue,
+      changeAmount: gain,
+      changePercent,
+      isPositive: gain >= 0
     };
   }
 
@@ -275,6 +309,66 @@ export class AssetService {
       processedPriceData: this.processPriceDataForDuration(data.priceData, duration),
       priceChange: this.calculatePriceChange(data.priceData, duration),
       holdings: this.calculateHoldings(data.tradeData, currentPrice),
+      updatedAt
+    };
+  }
+
+  /**
+   * Get asset detail data for portfolio mode: the holding's value over the duration
+   * window instead of its price, with gain measured net of cash flows. Prices are still
+   * fetched because holdings and the "updated at" stamp come from them, and trades feed
+   * the same holdings summary as price mode.
+   */
+  static async getAssetPortfolioDetails(
+    symbol: string,
+    duration: AssetDuration,
+    dataMode: DataMode,
+    position: Asset
+  ) {
+    const [priceData, tradeData, performance] =
+      dataMode === 'demo'
+        ? await Promise.all([
+            getAssetPriceData(symbol),
+            getAssetTradeData(symbol),
+            getAssetPerformanceData(symbol, duration)
+          ])
+        : await Promise.all([
+            this.fetchAssetPriceData(symbol),
+            this.fetchAssetTradeData(symbol),
+            apiService.getAssetPerformance(symbol, duration)
+          ]);
+
+    // The history only runs through the last stored day, so today's live value is appended
+    // from the position, whose buys/sells are all-time and therefore current
+    const livePoint: ProcessedValueData = {
+      date: new Date().toISOString().split('T')[0],
+      price: parseFloat(position.value),
+      value: position.value,
+      buys: position.buys,
+      sells: position.sells
+    };
+
+    const processedValueData: ProcessedValueData[] = [
+      ...performance.history.map(point => ({ ...point, price: parseFloat(point.value) })),
+      livePoint
+    ];
+
+    // The baseline travels with the response so the screen can re-gain a scrubbed point
+    const baseline: AssetPerformanceBaseline = performance;
+    const currentPrice = parseFloat(priceData.live_price);
+    const updatedAt =
+      dataMode === 'demo'
+        ? new Date().toISOString()
+        : priceData.updated_at || new Date().toISOString();
+
+    return {
+      symbol,
+      priceData,
+      tradeData,
+      processedValueData,
+      baseline,
+      priceChange: this.computeWindowGain(livePoint, baseline),
+      holdings: this.calculateHoldings(tradeData, currentPrice),
       updatedAt
     };
   }

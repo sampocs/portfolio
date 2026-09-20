@@ -76,6 +76,18 @@ ifndef ASSET
 endif
 	@(cd backend && $(PYTHON) -m backend.scrapers.ibkr --contract-id --asset $(ASSET))
 
+replatform:
+ifndef FROM
+	$(error FROM environment variable is required)
+endif
+ifndef TO
+	$(error TO environment variable is required)
+endif
+ifndef ACCOUNT
+	$(error ACCOUNT environment variable is required)
+endif
+	@(cd backend && $(PYTHON) -m backend.bootstrap.replatform --from $(FROM) --to $(TO) --account $(ACCOUNT)$(if $(ASSET), --asset $(ASSET),)$(if $(filter 1 true yes,$(EXECUTE)), --execute,))
+
 install-dev:
 	@$(PYTHON) -m pip install -r backend/requirements-dev.txt
 

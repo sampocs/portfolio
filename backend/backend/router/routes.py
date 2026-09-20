@@ -5,7 +5,7 @@ from fastapi import Query
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from backend.database import connection, crud
-from backend.config import config, VALID_DURATIONS
+from backend.config import config, ASSET_DURATIONS, VALID_DURATIONS
 from backend.router import transforms
 from backend.jobs import jobs
 from backend import alerts
@@ -69,6 +69,38 @@ async def get_positions(
 ):
     """Returns all trades"""
     return transforms.get_enriched_positions(db)
+
+
+@router.get("/positions/{asset}/performance/{duration}")
+async def get_asset_performance(
+    asset: str,
+    duration: str,
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+    db: Session = Depends(connection.get_db),
+):
+    """Returns one asset's value history and cash-flow baseline over the duration"""
+    if asset not in config.assets.keys():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid asset, must be one of {','.join(config.assets.keys())}",
+        )
+
+    if duration not in ASSET_DURATIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid duration, must be one of: {','.join(ASSET_DURATIONS)}",
+        )
+
+    return transforms.get_asset_performance(db, asset=asset, duration=duration)
+
+
+@router.get("/watchlist")
+async def get_watchlist(
+    _: HTTPAuthorizationCredentials = Depends(verify_token),
+    db: Session = Depends(connection.get_db),
+):
+    """Returns the current price and percent change for every watch-list asset"""
+    return transforms.get_watchlist(db)
 
 
 @router.get("/performance/{duration}")

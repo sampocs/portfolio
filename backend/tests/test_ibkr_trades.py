@@ -21,6 +21,7 @@ def test_buy_maps_to_a_trade():
     trade = trades._build_ibkr_trade(_transaction(), asset="COIN")
 
     assert trade.platform == "ibkr"
+    assert trade.custodian == "ibkr"
     assert trade.date == "2026-04-01"
     assert trade.action == "BUY"
     assert trade.asset == "COIN"
@@ -73,7 +74,9 @@ def _ibkr_sell(**overrides) -> models.Trade:
 
 
 def test_first_fill_of_the_day_gets_the_base_id(db_session):
-    resolved = trades.resolve_ibkr_trade_id(db_session, new_trade=_ibkr_sell(id="unset"))
+    resolved = trades.resolve_ibkr_trade_id(
+        db_session, new_trade=_ibkr_sell(id="unset")
+    )
 
     assert resolved == trades._ibkr_trade_id("HOOD_2026-09-18_SELL")
 
@@ -93,7 +96,9 @@ def test_refetched_fill_reuses_its_row_despite_a_same_day_sale_on_another_platfo
     db_session.add_all([stored, vanguard_sale])
     db_session.commit()
 
-    resolved = trades.resolve_ibkr_trade_id(db_session, new_trade=_ibkr_sell(id="unset"))
+    resolved = trades.resolve_ibkr_trade_id(
+        db_session, new_trade=_ibkr_sell(id="unset")
+    )
 
     assert resolved == stored.id
 
@@ -103,7 +108,9 @@ def test_refetched_fill_with_settlement_drift_reuses_its_row(db_session):
     db_session.add(stored)
     db_session.commit()
 
-    drifted = _ibkr_sell(id="unset", quantity=Decimal("37.5470"), price=Decimal("113.68"))
+    drifted = _ibkr_sell(
+        id="unset", quantity=Decimal("37.5470"), price=Decimal("113.68")
+    )
     resolved = trades.resolve_ibkr_trade_id(db_session, new_trade=drifted)
 
     assert resolved == stored.id
@@ -130,7 +137,9 @@ def test_same_day_buy_does_not_affect_a_sell(db_session):
     db_session.add(_ibkr_sell(id="buy-row", action=models.TradeAction.BUY.value))
     db_session.commit()
 
-    resolved = trades.resolve_ibkr_trade_id(db_session, new_trade=_ibkr_sell(id="unset"))
+    resolved = trades.resolve_ibkr_trade_id(
+        db_session, new_trade=_ibkr_sell(id="unset")
+    )
 
     assert resolved == trades._ibkr_trade_id("HOOD_2026-09-18_SELL")
 
@@ -139,7 +148,9 @@ def test_refetch_of_an_excluded_fill_is_dropped(db_session):
     db_session.add(_ibkr_sell(excluded=True))
     db_session.commit()
 
-    resolved = trades.resolve_ibkr_trade_id(db_session, new_trade=_ibkr_sell(id="unset"))
+    resolved = trades.resolve_ibkr_trade_id(
+        db_session, new_trade=_ibkr_sell(id="unset")
+    )
 
     assert resolved is None
 

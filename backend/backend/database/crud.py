@@ -379,13 +379,55 @@ def store_historical_positions(
 
 
 def store_trades(db: Session, trades: list[models.Trade]):
-    """Stores trades in the DB"""
+    """
+    Stores trades in the DB, upserting by id via `db.merge`
+
+    Every scraper rebuilds its trades with `custodian = platform` on each rolling
+    re-fetch, but `db.merge` replaces every column, so re-upserting a trade whose
+    custodian was since moved by a transfer would silently revert it. Before merging,
+    an existing row's stored custodian is carried forward onto the incoming trade, so
+    scrapers - which know nothing about transfers - can't undo one.
+    """
     if not trades:
         return
 
+    existing_custodians = dict(
+        db.query(models.Trade.id, models.Trade.custodian)
+        .where(models.Trade.id.in_([trade.id for trade in trades]))
+        .all()
+    )
     for trade in trades:
+        if trade.id in existing_custodians:
+            # Mutates the caller's Trade object in place before merging, so a caller
+            # that reuses `trades` afterward sees the carried-forward custodian too
+            trade.custodian = existing_custodians[trade.id]
         db.merge(trade)
     db.commit()
+
+
+def get_close_price_on_or_before(
+    db: Session, asset: str, date: datetime.date
+) -> Decimal | None:
+    """Returns the HistoricalPrice row's close price with the greatest date <= `date`"""
+    price = (
+        db.query(models.HistoricalPrice.price)
+        .where(models.HistoricalPrice.asset == asset)
+        .where(models.HistoricalPrice.date <= date)
+        .order_by(models.HistoricalPrice.date.desc())
+        .first()
+    )
+    return price[0] if price else None
+
+
+def get_earliest_close_price(db: Session, asset: str) -> Decimal | None:
+    """Returns the close price from the earliest stored HistoricalPrice row"""
+    price = (
+        db.query(models.HistoricalPrice.price)
+        .where(models.HistoricalPrice.asset == asset)
+        .order_by(models.HistoricalPrice.date.asc())
+        .first()
+    )
+    return price[0] if price else None
 
 
 def get_latest_asset_price(db: Session, asset: str, date: str) -> Decimal:

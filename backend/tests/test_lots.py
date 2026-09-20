@@ -11,6 +11,7 @@ def _trade(**overrides) -> models.Trade:
     defaults = {
         "id": "t-1",
         "platform": "ibkr",
+        "custodian": "ibkr",
         "date": datetime.date(2026, 1, 1),
         "action": models.TradeAction.BUY.value,
         "asset": "AAPL",
@@ -101,18 +102,22 @@ def test_lots_pooled_per_account_roth_not_consumed_by_brokerage_sell():
     }
 
 
-def test_lots_pooled_per_platform_ibkr_not_consumed_by_vanguard_sell():
+def test_lots_pooled_per_custodian_ibkr_not_consumed_by_vanguard_sell():
+    # Both buys share the same platform on purpose, so this fails if grouping ever
+    # reverts to (asset, platform, account) instead of (asset, custodian, account)
     buy_ibkr = _trade(
         id="b-ibkr",
         date=datetime.date(2026, 1, 1),
         quantity=Decimal("10"),
         platform="ibkr",
+        custodian="ibkr",
     )
     buy_vanguard = _trade(
         id="b-van",
         date=datetime.date(2026, 1, 1),
         quantity=Decimal("10"),
-        platform="vanguard",
+        platform="ibkr",
+        custodian="vanguard",
     )
     sell_vanguard = _trade(
         id="s-van",
@@ -120,6 +125,7 @@ def test_lots_pooled_per_platform_ibkr_not_consumed_by_vanguard_sell():
         action=models.TradeAction.SELL.value,
         quantity=Decimal("10"),
         platform="vanguard",
+        custodian="vanguard",
     )
 
     matches = lots.match_lots([buy_ibkr, buy_vanguard, sell_vanguard])
@@ -130,6 +136,36 @@ def test_lots_pooled_per_platform_ibkr_not_consumed_by_vanguard_sell():
     assert matches.open_lots == {
         "AAPL": [lots.OpenLot(buy=buy_ibkr, quantity=Decimal("10"))]
     }
+
+
+def test_sell_consumes_a_transferred_lot_at_its_new_custodian():
+    # Bought at Vanguard, then transferred to Robinhood: the buy's platform stays
+    # "vanguard" (where it happened) but its custodian is now "robinhood" (where the
+    # shares sit). The Robinhood sell must consume it despite the platform mismatch.
+    transferred_buy = _trade(
+        id="b-van",
+        date=datetime.date(2026, 1, 1),
+        quantity=Decimal("10"),
+        platform="vanguard",
+        custodian="robinhood",
+    )
+    robinhood_sell = _trade(
+        id="s-rh",
+        date=datetime.date(2026, 1, 2),
+        action=models.TradeAction.SELL.value,
+        quantity=Decimal("10"),
+        platform="robinhood",
+        custodian="robinhood",
+    )
+
+    matches = lots.match_lots([transferred_buy, robinhood_sell])
+
+    # The slice keeps the original buy trade, so its cost basis and acquisition date
+    # survive the transfer intact
+    assert matches.slices == [
+        lots.LotSlice(buy=transferred_buy, sell=robinhood_sell, quantity=Decimal("10"))
+    ]
+    assert matches.open_lots == {"AAPL": []}
 
 
 def test_same_day_buy_is_not_consumed_by_the_sell_that_funded_it():
@@ -190,7 +226,7 @@ def test_sell_that_outruns_its_lots_raises_unmatched_sell_error():
 
     error = excinfo.value
     assert error.asset == "AAPL"
-    assert error.platform == "ibkr"
+    assert error.custodian == "ibkr"
     assert error.account == models.TradeAccount.BROKERAGE.value
     assert error.sell_id == "s-1"
     assert error.unmatched_quantity == Decimal("3")

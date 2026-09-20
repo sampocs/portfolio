@@ -1,6 +1,7 @@
-import { Asset, PerformanceData } from "./types";
+import { Asset, PerformanceData, WatchlistAsset } from "./types";
+import { PortfolioDuration } from "./assetTypes";
 import { calculateCurrentAllocations } from "./utils";
-import { DATA, CHART } from "../constants";
+import { DATA, CHART, DURATIONS } from "../constants";
 
 /**
  * Mock Data Generator
@@ -327,3 +328,40 @@ const generatePerformanceData = (): PerformanceData[] => {
 };
 
 export const mockPerformanceData: PerformanceData[] = generatePerformanceData();
+
+// Fixed, hand-written percent changes per asset and duration for the watch list demo view.
+// These are illustrative only and don't need to reconcile with mockPositions' returns.
+const mockWatchlistChanges: Record<string, Record<PortfolioDuration, string>> = {
+  VT: { '1W': '0.85', '1M': '2.34', YTD: '9.12', '1Y': '15.30', '5Y': '68.40', ALL: '104.58' },
+  VOO: { '1W': '1.05', '1M': '2.98', YTD: '11.40', '1Y': '18.20', '5Y': '84.60', ALL: '121.35' },
+  VO: { '1W': '0.62', '1M': '1.85', YTD: '7.30', '1Y': '10.53', '5Y': '52.10', ALL: '70.25' },
+  VB: { '1W': '0.91', '1M': '2.40', YTD: '8.95', '1Y': '15.00', '5Y': '58.30', ALL: '76.40' },
+  VXUS: { '1W': '0.45', '1M': '1.20', YTD: '5.80', '1Y': '9.80', '5Y': '32.10', ALL: '41.75' },
+  VWO: { '1W': '0.38', '1M': '0.95', YTD: '4.60', '1Y': '7.94', '5Y': '22.40', ALL: '29.85' },
+  COIN: { '1W': '-2.10', '1M': '5.60', YTD: '18.30', '1Y': '14.59', '5Y': '145.20', ALL: '210.50' },
+  HOOD: { '1W': '-1.45', '1M': '6.80', YTD: '22.10', '1Y': '17.24', '5Y': '168.90', ALL: '195.40' },
+  AAAU: { '1W': '0.28', '1M': '1.10', YTD: '6.40', '1Y': '7.69', '5Y': '45.20', ALL: '58.60' },
+  VNQ: { '1W': '0.15', '1M': '0.85', YTD: '3.90', '1Y': '5.98', '5Y': '18.30', ALL: '24.50' },
+  BTC: { '1W': '-4.20', '1M': '-8.60', YTD: '-15.40', '1Y': '-26.20', '5Y': '180.40', ALL: '310.60' },
+  ETH: { '1W': '-2.85', '1M': '3.40', YTD: '12.60', '1Y': '17.40', '5Y': '95.30', ALL: '142.80' },
+  SOL: { '1W': '3.15', '1M': '9.40', YTD: '28.60', '1Y': '22.46', '5Y': '220.10', ALL: '350.90' },
+};
+
+// Flat fallback so a future mock position with no entry in mockWatchlistChanges renders
+// a zeroed row instead of WatchListRow crashing on an undefined `changes` value
+const zeroWatchlistChanges: Record<PortfolioDuration, string> = DURATIONS.PORTFOLIO.reduce(
+  (changes, duration) => ({ ...changes, [duration]: '0' }),
+  {} as Record<PortfolioDuration, string>,
+);
+
+// Watch list is every mock position with a non-zero target allocation, mirroring the
+// backend's /watchlist filter (assets.yaml entries with target_allocation > 0)
+export const mockWatchlist: WatchlistAsset[] = mockPositions
+  .filter(position => parseFloat(position.target_allocation) > 0)
+  .map(position => ({
+    asset: position.asset,
+    description: position.description,
+    market: position.market,
+    current_price: position.current_price,
+    changes: mockWatchlistChanges[position.asset] ?? zeroWatchlistChanges,
+  }));
