@@ -19,12 +19,29 @@ ENV_FILE = ".env"
 ASSETS_FILE = "assets.yaml"
 
 VALID_DURATIONS = ["1W", "1M", "YTD", "1Y", "5Y", "ALL"]
+ASSET_DURATIONS = ["1D", "1W", "1M", "YTD", "1Y", "5Y"]
 DURATION_TO_TIMEDELTA = {
+    "1D": datetime.timedelta(days=1),
     "1W": datetime.timedelta(days=7),
     "1M": datetime.timedelta(days=30),
     "1Y": datetime.timedelta(days=365),
     "5Y": datetime.timedelta(days=365 * 5),
 }
+
+
+def window_start_date(duration: str, today: datetime.date) -> datetime.date | None:
+    """
+    Returns the first date of a duration's window, with no buffer (unlike
+    `get_performance`, which pads by 2 days). `YTD` starts on Jan 1st of `today`'s
+    year, `ALL` has no start (returns `None`), and every other duration starts
+    `DURATION_TO_TIMEDELTA[duration]` before `today`.
+    """
+    if duration == "YTD":
+        return datetime.date(today.year, 1, 1)
+    if duration == "ALL":
+        return None
+    return today - DURATION_TO_TIMEDELTA[duration]
+
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -357,6 +374,15 @@ class Config(BaseSettings):
             for asset_id, asset_info in self.assets.items()
             if asset_info.price_type == PriceType.CRYPTO
         }
+
+    @property
+    def watchlist_assets(self) -> list[str]:
+        """Returns asset ids with a non-zero target allocation, in yaml order"""
+        return [
+            asset_id
+            for asset_id, asset_info in self.assets.items()
+            if asset_info.target_allocation > 0
+        ]
 
 
 config = Config()  # type: ignore

@@ -66,3 +66,44 @@ class AssetPriceHistory(BaseModel):
     live_price: Decimal
     updated_at: datetime.datetime
     historical_prices: list[HistoricalPrice]
+
+
+class WatchlistAsset(BaseModel):
+    """
+    Defines the schema for a single entry in the /watchlist API response. `changes`
+    maps each of `VALID_DURATIONS` to the percent move from that duration's reference
+    close to `current_price`; `0` when there is no reference row or it is `0`.
+    """
+
+    asset: str
+    description: str
+    market: str
+    current_price: Decimal
+    changes: dict[str, Decimal]
+
+
+class AssetPerformancePoint(BaseModel):
+    """One point in an asset's /positions/{asset}/performance/{duration} history"""
+
+    date: str
+    value: Decimal
+    buys: Decimal
+    sells: Decimal
+
+
+class AssetPerformance(BaseModel):
+    """
+    Defines the schema for the /positions/{asset}/performance/{duration} API
+    response. `start_value` is the asset's `HistoricalPosition.value` on `start_date`,
+    or `0` when the asset had no position row that day (not yet held). `start_buys`/
+    `start_sells` are cumulative trade cash flows through `start_date` inclusive, and
+    are independent of whether a position row exists. `history` holds every
+    `HistoricalPosition` row for the asset from `start_date` onward, each carrying its
+    own cumulative `buys`/`sells` through its date. Gain is computed client-side.
+    """
+
+    start_date: str
+    start_value: Decimal
+    start_buys: Decimal
+    start_sells: Decimal
+    history: list[AssetPerformancePoint]

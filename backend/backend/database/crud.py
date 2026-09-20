@@ -388,6 +388,31 @@ def store_trades(db: Session, trades: list[models.Trade]):
     db.commit()
 
 
+def get_close_price_on_or_before(
+    db: Session, asset: str, date: datetime.date
+) -> Decimal | None:
+    """Returns the HistoricalPrice row's close price with the greatest date <= `date`"""
+    price = (
+        db.query(models.HistoricalPrice.price)
+        .where(models.HistoricalPrice.asset == asset)
+        .where(models.HistoricalPrice.date <= date)
+        .order_by(models.HistoricalPrice.date.desc())
+        .first()
+    )
+    return price[0] if price else None
+
+
+def get_earliest_close_price(db: Session, asset: str) -> Decimal | None:
+    """Returns the close price from the earliest stored HistoricalPrice row"""
+    price = (
+        db.query(models.HistoricalPrice.price)
+        .where(models.HistoricalPrice.asset == asset)
+        .order_by(models.HistoricalPrice.date.asc())
+        .first()
+    )
+    return price[0] if price else None
+
+
 def get_latest_asset_price(db: Session, asset: str, date: str) -> Decimal:
     """Retrieves the latest price for the given asset before the specified date"""
     previous_price = (
