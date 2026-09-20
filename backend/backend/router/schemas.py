@@ -94,12 +94,15 @@ class AssetPerformancePoint(BaseModel):
 class AssetPerformance(BaseModel):
     """
     Defines the schema for the /positions/{asset}/performance/{duration} API
-    response. `start_value` is the asset's `HistoricalPosition.value` on `start_date`,
-    or `0` when the asset had no position row that day (not yet held). `start_buys`/
-    `start_sells` are cumulative trade cash flows through `start_date` inclusive, and
-    are independent of whether a position row exists. `history` holds every
-    `HistoricalPosition` row for the asset from `start_date` onward, each carrying its
-    own cumulative `buys`/`sells` through its date. Gain is computed client-side.
+    response. `start_date` is the duration's window start, clamped forward to the
+    latest date with a stored `HistoricalPosition` row when the window start is later
+    than that (rows lag behind the daily position-history job). `start_value` is the
+    asset's `HistoricalPosition.value` on `start_date`, or `0` when the asset had no
+    position row that day (not yet held). `start_buys`/`start_sells` are cumulative
+    trade cash flows through `start_date` inclusive, and are independent of whether a
+    position row exists. `history` holds every `HistoricalPosition` row for the asset
+    from `start_date` onward, each carrying its own cumulative `buys`/`sells` through
+    its date. Gain is computed client-side.
     """
 
     start_date: str

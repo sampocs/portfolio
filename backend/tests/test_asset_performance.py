@@ -103,6 +103,49 @@ def test_start_value_matches_row_and_start_buys_includes_trades_on_start_date(
     assert performance.start_buys == Decimal("300")  # trade made ON the start date
 
 
+def test_1d_window_start_clamps_to_latest_built_position_date(db_session, monkeypatch):
+    """
+    HistoricalPosition rows are only built through last_price_date by the daily job, so
+    a 1D request made before that job has run (or on a day it failed) has no row for
+    the raw window start (yesterday). The window should clamp to the latest built date
+    instead of falling back to a zero start_value and empty history.
+    """
+    monkeypatch.setattr(config, "assets", {"VT": _asset_config("VT")})
+    today = datetime.date.today()
+    stale_date = today - datetime.timedelta(days=3)
+    latest_built_date = today - datetime.timedelta(days=2)  # last date the job built
+    trade_date = today - datetime.timedelta(days=1)  # after the latest built position
+
+    db_session.add_all(
+        [
+            factories.make_historical_position(
+                asset="VT", date=stale_date, value=Decimal("100")
+            ),
+            factories.make_historical_position(
+                asset="VT", date=latest_built_date, value=Decimal("222.22")
+            ),
+        ]
+    )
+    crud.store_trades(
+        db_session,
+        [
+            factories.make_trade(
+                id="b-1", asset="VT", date=trade_date, cost=Decimal("900")
+            )
+        ],
+    )
+    db_session.commit()
+
+    performance = transforms.get_asset_performance(
+        db_session, asset="VT", duration="1D"
+    )
+
+    assert performance.start_date == str(latest_built_date)
+    assert performance.start_value == Decimal("222.22")
+    assert performance.start_buys == Decimal("0")  # trade is after the clamped start
+    assert performance.history[0].date == str(latest_built_date)
+
+
 def test_fully_sold_asset_history_ends_on_its_last_held_day(db_session, monkeypatch):
     monkeypatch.setattr(config, "assets", {"VT": _asset_config("VT")})
     today = datetime.date.today()

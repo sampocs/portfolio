@@ -70,7 +70,12 @@ Response:
 
 - `duration` must be in `ASSET_DURATIONS`, `asset` must be configured; otherwise 400 (use
   `raise HTTPException`, not `return HTTPException`).
-- `start_date = window_start_date(duration, today)`.
+- `start_date = window_start_date(duration, today)`, clamped forward to
+  `latest_built_date = db.query(func.max(HistoricalPosition.date)).scalar()` when that
+  date exists and is earlier than the raw window start. `HistoricalPosition` rows are
+  only built through `last_price_date` by the daily 05:00 America/Chicago job, so
+  without the clamp a `1D` request made before that job runs (or on a day it fails)
+  would fall back to `start_value = 0` and an empty `history`.
 - `start_value` is the `value` of the `HistoricalPosition` row for `(asset, start_date)`,
   or `0` when there is no row. Rows exist for every calendar day an asset is held, so a
   missing row means the asset was not held on that date.

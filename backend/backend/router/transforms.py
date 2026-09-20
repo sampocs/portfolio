@@ -245,17 +245,28 @@ def get_asset_performance(
 ) -> schemas.AssetPerformance:
     """
     Returns one asset's value history and cash-flow baseline from `duration`'s window
-    start to today. `start_value` is the `HistoricalPosition.value` on the start date,
-    or `0` when the asset held no position that day. `start_buys`/`start_sells` are
-    cumulative trade cash flows through the start date inclusive, independent of
-    whether a position row exists. `history` covers every `HistoricalPosition` row
-    from the start date onward, each with its own cumulative buys/sells. Gain is left
-    for the caller to compute.
+    start to today. `start_date` is that window start, clamped forward to the latest
+    date with a stored `HistoricalPosition` row when the window start is later than
+    that (rows are only built through `last_price_date` by the daily position-history
+    job, so a raw window start can be ahead of the data for `1D` before that job runs,
+    or on a day it fails). `start_value` is the `HistoricalPosition.value` on
+    `start_date`, or `0` when the asset held no position that day. `start_buys`/
+    `start_sells` are cumulative trade cash flows through `start_date` inclusive,
+    independent of whether a position row exists. `history` covers every
+    `HistoricalPosition` row from `start_date` onward, each with its own cumulative
+    buys/sells. Gain is left for the caller to compute.
     """
     today = datetime.date.today()
-    start_date = window_start_date(duration=duration, today=today)
-    assert start_date is not None, (
+    window_start = window_start_date(duration=duration, today=today)
+    assert window_start is not None, (
         f"'{duration}' has no start date; ASSET_DURATIONS must exclude 'ALL'"
+    )
+
+    latest_built_date = db.query(func.max(models.HistoricalPosition.date)).scalar()
+    start_date = (
+        latest_built_date
+        if latest_built_date is not None and latest_built_date < window_start
+        else window_start
     )
 
     start_position = (
