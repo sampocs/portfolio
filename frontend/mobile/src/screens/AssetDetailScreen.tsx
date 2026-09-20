@@ -307,6 +307,7 @@ export default function AssetDetailScreen({ route, navigation }: AssetDetailScre
         />
         
         <AssetHoldingsSummary
+          symbol={symbol}
           holdings={assetData.holdings}
           isLoading={false}
         />
