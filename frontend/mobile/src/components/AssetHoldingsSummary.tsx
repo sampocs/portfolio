@@ -79,13 +79,13 @@ export default function AssetHoldingsSummary({ symbol, holdings, isLoading = fal
             <Text style={styles.stripDetail}>---.--</Text>
           </View>
           <View style={styles.columnsContainer}>
-            <View style={styles.column}>
+            <View style={styles.leftColumn}>
               <View style={[styles.summaryItem, styles.lastItem]}>
                 <Text style={styles.summaryLabel}>Cost Basis</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>
             </View>
-            <View style={styles.column}>
+            <View style={styles.rightColumn}>
               <View style={[styles.summaryItem, styles.lastItem]}>
                 <Text style={styles.summaryLabel}>Market Value</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
@@ -100,7 +100,7 @@ export default function AssetHoldingsSummary({ symbol, holdings, isLoading = fal
             <Text style={styles.stripDetail}>---.--</Text>
           </View>
           <View style={styles.columnsContainer}>
-            <View style={styles.column}>
+            <View style={styles.leftColumn}>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Invested</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
@@ -110,7 +110,7 @@ export default function AssetHoldingsSummary({ symbol, holdings, isLoading = fal
                 <Text style={styles.summaryValue}>---.--</Text>
               </View>
             </View>
-            <View style={styles.column}>
+            <View style={styles.rightColumn}>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Sold</Text>
                 <Text style={styles.summaryValue}>---.--</Text>
@@ -152,14 +152,14 @@ export default function AssetHoldingsSummary({ symbol, holdings, isLoading = fal
               <Text style={styles.stripDetail}>{formatOwned(owned)} {symbol}</Text>
             </View>
             <View style={styles.columnsContainer}>
-              <View style={styles.column}>
+              <View style={styles.leftColumn}>
                 <View style={[styles.summaryItem, styles.lastItem]}>
                   <Text style={styles.summaryLabel}>Cost Basis</Text>
                   <Text style={styles.summaryValue}>{formatCurrency(costBasis)}</Text>
                   <Text style={styles.summarySubLine}>avg {formatCurrency(averagePrice)}</Text>
                 </View>
               </View>
-              <View style={styles.column}>
+              <View style={styles.rightColumn}>
                 <View style={[styles.summaryItem, styles.lastItem]}>
                   <Text style={styles.summaryLabel}>Market Value</Text>
                   <Text style={styles.summaryValue}>{formatCurrency(marketValue)}</Text>
@@ -179,7 +179,7 @@ export default function AssetHoldingsSummary({ symbol, holdings, isLoading = fal
           <Text style={styles.stripDetail}>{formatLifetimeDetail(symbol, holdings)}</Text>
         </View>
         <View style={styles.columnsContainer}>
-          <View style={styles.column}>
+          <View style={styles.leftColumn}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Invested</Text>
               <Text style={styles.summaryValue}>{formatCurrency(invested)}</Text>
@@ -195,7 +195,7 @@ export default function AssetHoldingsSummary({ symbol, holdings, isLoading = fal
             </View>
           </View>
 
-          <View style={styles.column}>
+          <View style={styles.rightColumn}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Sold</Text>
               <Text style={styles.summaryValue}>{formatCurrency(sold)}</Text>
@@ -290,7 +290,13 @@ const styles = createStyles({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  column: {
+  // Only the right column reserves width: it holds the dollar-plus-pill gains
+  // cell, and two fixed-width columns would not fit inside the card
+  leftColumn: {
+    alignItems: 'flex-start',
+    flexShrink: 1,
+  },
+  rightColumn: {
     alignItems: 'flex-start',
     minWidth: 180,
   },
