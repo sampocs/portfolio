@@ -3,7 +3,7 @@ from enum import Enum
 import json
 from typing import Any
 import logging
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 from ibind.oauth.oauth1a import OAuth1aConfig
@@ -167,6 +167,12 @@ class Config(BaseSettings):
     ntfy_topic: str = Field(alias="NTFY_TOPIC", default="")
     railway_public_domain: str = Field(alias="RAILWAY_PUBLIC_DOMAIN", default="")
 
+    # Platforms whose scrape `jobs.index_recent_trades` skips - kept so a platform can be
+    # switched off on migration day without a code change, and back on if that's premature
+    disabled_sync_platforms: set[str] = Field(
+        alias="DISABLED_SYNC_PLATFORMS", default_factory=set
+    )
+
     postgres_url: str = Field(alias="POSTGRES_URL")
     fastapi_secret: str = Field(alias="FASTAPI_SECRET")
 
@@ -191,6 +197,14 @@ class Config(BaseSettings):
     model_config = SettingsConfigDict(
         case_sensitive=True, env_file=PROJECT_HOME / ".env", extra="allow"
     )
+
+    @field_validator("disabled_sync_platforms", mode="before")
+    @classmethod
+    def _parse_disabled_sync_platforms(cls, value: object) -> set[str]:
+        """Parses the comma-separated `DISABLED_SYNC_PLATFORMS` env var into a set of values"""
+        if not isinstance(value, str):
+            return set(value) if value else set()
+        return {item.strip() for item in value.split(",") if item.strip()}
 
     @model_validator(mode="after")
     def validate_ibind_config(self) -> "Config":
