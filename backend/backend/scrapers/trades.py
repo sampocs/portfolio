@@ -12,43 +12,53 @@ from sqlalchemy.orm import Session
 IBKR_FEE_PER_SHARE = Decimal("0.0035")
 
 
-def trade_has_id_conflict(db: Session, new_trade: models.Trade) -> bool:
+def resolve_ibkr_trade_id(db: Session, new_trade: models.Trade) -> str | None:
     """
-    The values in the IBKR response can change mildly as the order is filled, but there's
-    no single ID field we can use to know this for sure
+    IBKR transactions carry no stable ID, so a trade's ID is a hash of its asset, date,
+    and action, and the sync re-fetches from the last trade date every run. The same
+    fill therefore comes back on later runs, sometimes with values that drift slightly
+    as the order settles, and it must upsert onto its existing row rather than insert
+    a second one.
 
-    To handle this, we check if we have other trades on that date for that asset, that have
-    a price/quantity within 0.01% of each other - in which case it is considered a duplicate
-
-    Importantly, if there is a duplicate, we return that there is NO conflict
-    The reason for this is that we will want to keep the same ID to allow the values
-    to be overriden with the upsert
-
-    If there is an existing trade on that date (meaning with the same ID), that does
-    NOT seem to be a duplicate, then we consider that a conflict, which lets us know
-    that we need to generate a new ID
+    Only IBKR rows are candidates: a same-day trade recorded by hand for another
+    platform (a Vanguard sale, say) shares the asset/date bucket but can never share an
+    ID with an IBKR fill. If an existing IBKR row for the same action matches within
+    tolerance, its ID is reused, or None if that row was excluded by hand, since
+    re-inserting it would undo the exclusion. Otherwise a genuinely distinct second
+    fill on the same day gets a value-suffixed ID so it doesn't overwrite the first.
     """
-    existing_trades = crud.get_trades(db, asset=new_trade.asset, date=new_trade.date)
-    for existing in existing_trades:
-        if existing.action != new_trade.action:
-            continue
-
-        # Skip if existing values are zero (would cause division by zero)
-        if existing.quantity == 0 or existing.price == 0:
-            continue
-
-        # Check if quantity and price are within 0.01% tolerance
-        tolerance = Decimal("0.0001")
-        qty_diff_pct = abs(existing.quantity - new_trade.quantity) / abs(
-            existing.quantity
+    same_day_fills = [
+        existing
+        for existing in crud.get_trades(
+            db, asset=new_trade.asset, date=new_trade.date, include_excluded=True
         )
-        price_diff_pct = abs((existing.price - new_trade.price)) / existing.price
+        if existing.platform == Platform.IBKR.value
+        and existing.action == new_trade.action
+    ]
 
-        # If the trade is sufficiently different, then we have an ID conflict
-        if qty_diff_pct > tolerance or price_diff_pct > tolerance:
-            return True
+    for existing in same_day_fills:
+        if _is_same_fill(existing=existing, candidate=new_trade):
+            return None if existing.excluded else existing.id
 
-    return False
+    base_id = _ibkr_trade_id(f"{new_trade.asset}_{new_trade.date}_{new_trade.action}")
+    if any(existing.id == base_id for existing in same_day_fills):
+        suffix = f"{new_trade.quantity}_{new_trade.price}_{new_trade.cost}_{new_trade.value}"
+        return _ibkr_trade_id(
+            f"{new_trade.asset}_{new_trade.date}_{new_trade.action}_{suffix}"
+        )
+
+    return base_id
+
+
+def _is_same_fill(existing: models.Trade, candidate: models.Trade) -> bool:
+    """Whether two same-day trades are the same fill, allowing for settlement drift"""
+    if existing.quantity == 0 or existing.price == 0:
+        return False
+
+    tolerance = Decimal("0.0001")
+    qty_diff_pct = abs(existing.quantity - candidate.quantity) / abs(existing.quantity)
+    price_diff_pct = abs(existing.price - candidate.price) / existing.price
+    return qty_diff_pct <= tolerance and price_diff_pct <= tolerance
 
 
 def get_recent_ibkr_trades(
@@ -88,16 +98,13 @@ def get_recent_ibkr_trades(
 
             trade = _build_ibkr_trade(transaction, asset=asset_info.asset)
 
-            # See if we have an ID conflict with a trade on the same date with
-            # a different quantity or price
-            # If we do, we need to generate a new ID; if we don't, we can just leave
-            # it as is which will upsert on conflict with the latest value for dupes
-            if trade_has_id_conflict(db, trade):
-                suffix = f"{trade.quantity}_{trade.price}_{trade.cost}_{trade.value}"
-                trade.id = _ibkr_trade_id(
-                    f"{trade.asset}_{trade.date}_{trade.action}_{suffix}"
-                )
+            # Re-fetched fills upsert onto their existing row; only a distinct
+            # same-day fill gets a fresh ID, and an excluded fill is left alone
+            trade_id = resolve_ibkr_trade_id(db, new_trade=trade)
+            if trade_id is None:
+                continue
 
+            trade.id = trade_id
             trades.append(trade)
 
     return trades
