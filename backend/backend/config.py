@@ -107,6 +107,14 @@ class Asset:
         )
 
 
+def validate_target_allocations(assets: list[Asset]) -> None:
+    """Every allocation delta divides by this total implicitly, so a config that
+    doesn't sum to exactly 100 must fail loudly at startup rather than skew every
+    number by a silent margin."""
+    total = sum((asset.target_allocation for asset in assets), start=Decimal(0))
+    assert total == Decimal(100), f"Target allocations must sum to 100, got {total}"
+
+
 class Config(BaseSettings):
     project_home: Path = Field(default=PROJECT_HOME)
     assets_config: Path = Field(default=PROJECT_HOME / ASSETS_FILE)
@@ -238,8 +246,9 @@ class Config(BaseSettings):
 
     @model_validator(mode="after")
     def load_assets(self) -> "Config":
-        """Access assets to trigger yaml read and error early if not configured properly"""
-        _ = self.assets
+        """Access assets to trigger yaml read and error early if not configured properly,
+        including a mis-summed set of target allocations"""
+        validate_target_allocations(list(self.assets.values()))
         return self
 
     def _create_temp_key_file(self, content: str, suffix: str) -> str:

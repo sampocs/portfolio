@@ -223,10 +223,10 @@ export const aggregateAssetsBySegment = (
 export const getSegmentColor = (segment: string): string => {
   const segmentColors: { [key: string]: string } = {
     "Stock ETFs": "#34D86C",
-    "Crypto Stocks": "#8B5CF6",
+    "Crypto Stocks": "#B35B8A",
     "Crypto Tokens": "#06A9C6",
-    Gold: "#AFD4FD",
-    "Real Estate": "#B35B8A",
+    Gold: "#8B5CF6",
+    "Real Estate": "#AFD4FD",
   };
 
   return segmentColors[segment] || "#999999"; // Default to muted color

@@ -1,7 +1,7 @@
 assets:
   - asset: VT
     description: Total World
-    target_allocation: 32
+    target_allocation: 35
     market: Stocks
     segment: Stock ETFs
     platform: ibkr
@@ -9,7 +9,7 @@ assets:
     contract_id: 52197301
   - asset: VOO
     description: Large Cap
-    target_allocation: 13
+    target_allocation: 15
     market: Stocks
     segment: Stock ETFs
     platform: ibkr
@@ -49,7 +49,7 @@ assets:
     contract_id: 27684033
   - asset: COIN
     description: "Coinbase"
-    target_allocation: 4
+    target_allocation: 0
     market: Crypto
     segment: Crypto Stocks
     platform: ibkr
@@ -57,7 +57,7 @@ assets:
     contract_id: 481691285
   - asset: HOOD
     description: "Robinhood"
-    target_allocation: 4
+    target_allocation: 0
     market: Crypto
     segment: Crypto Stocks
     platform: ibkr
@@ -65,7 +65,7 @@ assets:
     contract_id: 504546674
   - asset: GLXY
     description: "Galaxy Digital"
-    target_allocation: 2
+    target_allocation: 0
     market: Crypto
     segment: Crypto Stocks
     platform: ibkr
@@ -73,7 +73,7 @@ assets:
     contract_id: 784233662
   - asset: AAAU
     description: "Gold"
-    target_allocation: 5
+    target_allocation: 8
     market: Alternatives
     segment: Gold
     platform: ibkr
@@ -89,21 +89,21 @@ assets:
     contract_id: 31230302
   - asset: BTC
     description: Bitcoin
-    target_allocation: 12
+    target_allocation: 15
     market: Crypto
     segment: Crypto Tokens
     platform: coinbase
     price_type: crypto
   - asset: ETH
     description: Ethereum
-    target_allocation: 3
+    target_allocation: 0
     market: Crypto
     segment: Crypto Tokens
     platform: coinbase
     price_type: crypto
   - asset: SOL
     description: Solana
-    target_allocation: 3
+    target_allocation: 5
     market: Crypto
     segment: Crypto Tokens
     platform: coinbase

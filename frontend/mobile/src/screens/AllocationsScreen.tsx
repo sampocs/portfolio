@@ -12,6 +12,7 @@ import SkeletonLoadingScreen from '../components/SkeletonLoadingScreen';
 import { useData } from '../contexts/DataContext';
 import { GenericAllocation } from '../data/types';
 import { aggregateAssetsByMarket, aggregateAssetsBySegment, marketToGeneric, segmentToGeneric, getMarketColor, getSegmentColor } from '../data/utils';
+import { isClosedPosition } from '../constants';
 
 export default function AllocationsScreen() {
   const [selectedGrouping, setSelectedGrouping] = useState<AllocationGroupingType>('markets');
@@ -21,10 +22,15 @@ export default function AllocationsScreen() {
   // Use shared data context instead of local state
   const { positions, isLoading, refreshData } = useData();
 
-  // Exclude closed (fully sold) positions from every allocation view - they
-  // hold no current value and would otherwise show up as $0 rows.
+  // Hide only zero-target dust: a closed position nobody is targeting anymore
+  // would otherwise show as a slice no one will ever rebalance, and drag its
+  // empty segment (e.g. Crypto Stocks) along with it. A zero-target asset that
+  // still holds real money stays visible since it still needs selling down.
   const openPositions = useMemo(
-    () => positions.filter(asset => parseFloat(asset.quantity) > 0),
+    () =>
+      positions.filter(
+        asset => !(parseFloat(asset.target_allocation) === 0 && isClosedPosition(parseFloat(asset.value)))
+      ),
     [positions]
   );
 
