@@ -1,7 +1,7 @@
 import { Asset, PerformanceData, WatchlistAsset } from "./types";
 import { PortfolioDuration } from "./assetTypes";
 import { calculateCurrentAllocations } from "./utils";
-import { DATA, CHART } from "../constants";
+import { DATA, CHART, DURATIONS } from "../constants";
 
 /**
  * Mock Data Generator
@@ -347,6 +347,13 @@ const mockWatchlistChanges: Record<string, Record<PortfolioDuration, string>> = 
   SOL: { '1W': '3.15', '1M': '9.40', YTD: '28.60', '1Y': '22.46', '5Y': '220.10', ALL: '350.90' },
 };
 
+// Flat fallback so a future mock position with no entry in mockWatchlistChanges renders
+// a zeroed row instead of WatchListRow crashing on an undefined `changes` value
+const zeroWatchlistChanges: Record<PortfolioDuration, string> = DURATIONS.PORTFOLIO.reduce(
+  (changes, duration) => ({ ...changes, [duration]: '0' }),
+  {} as Record<PortfolioDuration, string>,
+);
+
 // Watch list is every mock position with a non-zero target allocation, mirroring the
 // backend's /watchlist filter (assets.yaml entries with target_allocation > 0)
 export const mockWatchlist: WatchlistAsset[] = mockPositions
@@ -356,5 +363,5 @@ export const mockWatchlist: WatchlistAsset[] = mockPositions
     description: position.description,
     market: position.market,
     current_price: position.current_price,
-    changes: mockWatchlistChanges[position.asset],
+    changes: mockWatchlistChanges[position.asset] ?? zeroWatchlistChanges,
   }));

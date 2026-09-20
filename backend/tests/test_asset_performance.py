@@ -1,43 +1,11 @@
 import datetime
 from decimal import Decimal
 
-import fastapi
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from backend.config import config
-from backend.database import connection, crud, models
-from backend.router import routes, transforms
+from backend.database import crud, models
+from backend.router import transforms
 from tests import factories
 from tests.conftest import _asset_config
-
-
-@pytest.fixture
-def client() -> TestClient:
-    """
-    Serves the router against its own in-memory db. TestClient dispatches requests
-    from a worker thread, so - unlike `db_session`, which relies on a single
-    thread-local connection - the engine needs a `StaticPool` connection shared
-    across threads, or the route would see an empty, table-less database.
-    """
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    models.Base.metadata.create_all(engine)
-    session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    app = fastapi.FastAPI()
-    app.include_router(routes.router)
-    # A plain lambda, not `session_local` itself - FastAPI introspects the dependency
-    # callable's signature, and sessionmaker.__call__ takes **kwargs that read as
-    # spurious query parameters
-    app.dependency_overrides[connection.get_db] = lambda: session_local()
-    return TestClient(app)
 
 
 def _auth_headers() -> dict[str, str]:

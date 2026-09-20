@@ -2,8 +2,8 @@ import dataclasses
 import datetime
 from decimal import Decimal
 
-from backend.config import Asset, config
-from backend.database import models
+from backend.config import Asset, VALID_DURATIONS, config
+from backend.database import connection, models
 from backend.router import transforms
 from tests import factories
 from tests.conftest import _asset_config
@@ -13,6 +13,10 @@ def _watchlist_asset_config(asset: str, target_allocation: str) -> Asset:
     return dataclasses.replace(
         _asset_config(asset), target_allocation=Decimal(target_allocation)
     )
+
+
+def _auth_headers() -> dict[str, str]:
+    return {"Authorization": f"Bearer {config.fastapi_secret}"}
 
 
 def test_watchlist_omits_asset_with_zero_target_allocation(db_session, monkeypatch):
@@ -105,3 +109,36 @@ def test_watchlist_zero_reference_yields_zero(db_session, monkeypatch):
     watchlist = transforms.get_watchlist(db_session)
 
     assert watchlist[0].changes["1Y"] == Decimal("0")
+
+
+# --- GET /watchlist -------------------------------------------------------------------
+
+
+def test_watchlist_route_returns_assets_in_config_order(client, monkeypatch):
+    monkeypatch.setattr(
+        config,
+        "assets",
+        {
+            "VT": _watchlist_asset_config("VT", "10"),
+            "TIA": _watchlist_asset_config("TIA", "5"),
+        },
+    )
+
+    # The client fixture overrides `connection.get_db` with a lambda bound to its own
+    # in-memory `StaticPool` engine - calling it directly gives a session on that same
+    # shared db, so seeded rows are visible to the route.
+    db = client.app.dependency_overrides[connection.get_db]()
+    db.add(models.LivePrice(asset="VT", price=Decimal("150")))
+    db.add(models.LivePrice(asset="TIA", price=Decimal("5")))
+    db.commit()
+
+    response = client.get("/watchlist", headers=_auth_headers())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [entry["asset"] for entry in body] == ["VT", "TIA"]
+    for entry in body:
+        assert {"asset", "description", "market", "current_price", "changes"} <= set(
+            entry.keys()
+        )
+        assert set(entry["changes"].keys()) == set(VALID_DURATIONS)

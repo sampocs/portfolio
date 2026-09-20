@@ -29,20 +29,6 @@ DURATION_TO_TIMEDELTA = {
 }
 
 
-def window_start_date(duration: str, today: datetime.date) -> datetime.date | None:
-    """
-    Returns the first date of a duration's window, with no buffer (unlike
-    `get_performance`, which pads by 2 days). `YTD` starts on Jan 1st of `today`'s
-    year, `ALL` has no start (returns `None`), and every other duration starts
-    `DURATION_TO_TIMEDELTA[duration]` before `today`.
-    """
-    if duration == "YTD":
-        return datetime.date(today.year, 1, 1)
-    if duration == "ALL":
-        return None
-    return today - DURATION_TO_TIMEDELTA[duration]
-
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )

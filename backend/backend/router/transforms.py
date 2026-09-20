@@ -5,12 +5,21 @@ from sqlalchemy import func
 from backend.database import crud, models
 from backend.scrapers import prices
 from backend.router import schemas
-from backend.config import (
-    config,
-    DURATION_TO_TIMEDELTA,
-    VALID_DURATIONS,
-    window_start_date,
-)
+from backend.config import config, DURATION_TO_TIMEDELTA, VALID_DURATIONS
+
+
+def window_start_date(duration: str, today: datetime.date) -> datetime.date | None:
+    """
+    Returns the first date of a duration's window, with no buffer (unlike
+    `get_performance`, which pads by 2 days). `YTD` starts on Jan 1st of `today`'s
+    year, `ALL` has no start (returns `None`), and every other duration starts
+    `DURATION_TO_TIMEDELTA[duration]` before `today`.
+    """
+    if duration == "YTD":
+        return datetime.date(today.year, 1, 1)
+    if duration == "ALL":
+        return None
+    return today - DURATION_TO_TIMEDELTA[duration]
 
 
 def get_enriched_positions(db: Session) -> list[schemas.Position]:
@@ -230,9 +239,13 @@ def _reference_change(
     """
     if duration == "ALL":
         reference = crud.get_earliest_close_price(db, asset=asset)
-    else:
-        start_date = window_start_date(duration=duration, today=today)
-        reference = crud.get_close_price_on_or_before(db, asset=asset, date=start_date)
+        return (
+            (current_price - reference) / reference * 100 if reference else Decimal(0)
+        )
+
+    start_date = window_start_date(duration=duration, today=today)
+    assert start_date is not None, f"'{duration}' has a start date; only 'ALL' does not"
+    reference = crud.get_close_price_on_or_before(db, asset=asset, date=start_date)
 
     if not reference:
         return Decimal(0)

@@ -147,18 +147,22 @@ export default function WatchListScreen({ navigation }: WatchListScreenProps) {
           />
         </View>
 
-        <View style={styles.assetsList}>
-          {sortedWatchlist.map((asset, index) => (
-            <WatchListRow
-              key={asset.asset}
-              asset={asset}
-              duration={selectedDuration}
-              isFirst={index === 0}
-              isLast={index === sortedWatchlist.length - 1}
-              onPress={handleAssetPress}
-            />
-          ))}
-        </View>
+        {!isLoading && dataMode === 'live' && watchlist.length === 0 ? (
+          <Text style={styles.emptyText}>Failed to load watch list</Text>
+        ) : (
+          <View style={styles.assetsList}>
+            {sortedWatchlist.map((asset, index) => (
+              <WatchListRow
+                key={asset.asset}
+                asset={asset}
+                duration={selectedDuration}
+                isFirst={index === 0}
+                isLast={index === sortedWatchlist.length - 1}
+                onPress={handleAssetPress}
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -192,5 +196,11 @@ const styles = createStyles({
   },
   assetsList: {
     // Assets list styling
+  },
+  emptyText: {
+    color: theme.colors.muted,
+    textAlign: 'center',
+    marginTop: theme.spacing.xl,
+    ...getTextStyle('md'),
   },
 });
