@@ -63,6 +63,13 @@ sync-positions:
 sync-backdoor-roth:
 	@(cd backend && $(PYTHON) -m backend.jobs.jobs --backdoor-roth)
 
+sync-tax-lots:
+	@(cd backend && $(PYTHON) -m backend.jobs.jobs --tax-lots)
+
+export-tax-lots:
+	@psql "$(shell grep '^POSTGRES_URL=' .env | cut -d= -f2-)" \
+		-c "\copy (select * from tax_lots order by date_sold, asset, id) to 'data/tax_lots.csv' csv header"
+
 contract-id:
 ifndef ASSET
 	$(error ASSET environment variable is required)

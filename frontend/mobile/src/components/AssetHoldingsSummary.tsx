@@ -10,8 +10,13 @@ interface AssetHoldingsSummaryProps {
   isLoading?: boolean;
 }
 
+// Percent of total cash invested that a given gain/loss represents (0 when nothing was invested).
+function percentOfTotalBuys(amount: number, totalBuys: number): number {
+  return totalBuys > 0 ? (amount / totalBuys) * 100 : 0;
+}
+
 export default function AssetHoldingsSummary({ holdings, isLoading = false }: AssetHoldingsSummaryProps) {
-  const { netInvested, currentValue, totalReturn, totalReturnPercent, totalQuantity, realizedGains, unrealizedGains } = holdings;
+  const { netInvested, currentValue, totalReturn, totalReturnPercent, totalQuantity, realizedGains, unrealizedGains, totalBuys } = holdings;
   const isPositiveReturn = totalReturn >= 0;
   const [isGainsExpanded, setIsGainsExpanded] = React.useState(false);
 
@@ -116,7 +121,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
                   {formatCurrency(realizedGains)}
                 </Text>
                 <Text style={styles.breakdownPercent}>
-                  {((Math.abs(netInvested) > 0 ? (realizedGains / Math.abs(netInvested)) * 100 : 0) >= 0 ? '+' : '')}{(Math.abs(netInvested) > 0 ? (realizedGains / Math.abs(netInvested)) * 100 : 0).toFixed(1)}%
+                  {(percentOfTotalBuys(realizedGains, totalBuys) >= 0 ? '+' : '')}{percentOfTotalBuys(realizedGains, totalBuys).toFixed(1)}%
                 </Text>
               </View>
             </View>
@@ -131,7 +136,7 @@ export default function AssetHoldingsSummary({ holdings, isLoading = false }: As
                   {formatCurrency(unrealizedGains)}
                 </Text>
                 <Text style={styles.breakdownPercent}>
-                  {((Math.abs(netInvested) > 0 ? (unrealizedGains / Math.abs(netInvested)) * 100 : 0) >= 0 ? '+' : '')}{(Math.abs(netInvested) > 0 ? (unrealizedGains / Math.abs(netInvested)) * 100 : 0).toFixed(1)}%
+                  {(percentOfTotalBuys(unrealizedGains, totalBuys) >= 0 ? '+' : '')}{percentOfTotalBuys(unrealizedGains, totalBuys).toFixed(1)}%
                 </Text>
               </View>
             </View>

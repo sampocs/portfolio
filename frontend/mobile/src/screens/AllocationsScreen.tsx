@@ -21,17 +21,24 @@ export default function AllocationsScreen() {
   // Use shared data context instead of local state
   const { positions, isLoading, refreshData } = useData();
 
+  // Exclude closed (fully sold) positions from every allocation view - they
+  // hold no current value and would otherwise show up as $0 rows.
+  const openPositions = useMemo(
+    () => positions.filter(asset => parseFloat(asset.quantity) > 0),
+    [positions]
+  );
+
   // Calculate market data from positions
   const marketData = useMemo(() => {
-    if (positions.length === 0) return [];
-    return aggregateAssetsByMarket(positions);
-  }, [positions]);
+    if (openPositions.length === 0) return [];
+    return aggregateAssetsByMarket(openPositions);
+  }, [openPositions]);
 
   // Calculate segment data from positions
   const segmentData = useMemo(() => {
-    if (positions.length === 0) return [];
-    return aggregateAssetsBySegment(positions);
-  }, [positions]);
+    if (openPositions.length === 0) return [];
+    return aggregateAssetsBySegment(openPositions);
+  }, [openPositions]);
 
   // Convert to generic format for the unified components
   const genericMarketData = useMemo(() => 
@@ -118,7 +125,7 @@ export default function AllocationsScreen() {
           ) : (
             <>
               <AssetChartLegend />
-              <AssetAllocationList assets={positions} />
+              <AssetAllocationList assets={openPositions} />
             </>
           )}
         </TouchableOpacity>

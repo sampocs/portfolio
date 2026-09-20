@@ -2,7 +2,7 @@ import click
 import datetime
 import pandas as pd
 from decimal import Decimal
-from backend import alerts
+from backend import alerts, lots
 from backend.database import crud, models, connection
 from backend.scrapers import prices, trades, robinhood
 from backend.config import config, logger, Platform
@@ -75,6 +75,15 @@ def _fill_historical_positions(db: Session):
 
     historical_positions = crud.build_historical_positions(db, target_dates)
     crud.store_historical_positions(db, historical_positions)
+
+
+def rebuild_tax_lots(db: Session):
+    """Rebuilds the tax_lots table from every trade, sharing the position matcher's FIFO"""
+    all_trades = crud.get_trades(db)
+    matches = lots.match_lots(all_trades)
+    tax_lots = crud.build_tax_lots(matches)
+    crud.store_tax_lots(db, tax_lots)
+    logger.info(f"Rebuilt {len(tax_lots)} tax lot rows")
 
 
 def fill_prices_and_positions(db: Session):
@@ -256,6 +265,9 @@ def index_recent_trades(db: Session, send_alerts: bool = False):
     positions = crud.build_positions_from_trades(db)
     crud.store_positions(db, positions)
 
+    logger.info("Rebuilding tax lots")
+    rebuild_tax_lots(db)
+
     logger.info("Done")
 
 
@@ -298,6 +310,7 @@ def index_backdoor_roth_trades(db: Session):
             cost=Decimal(str(row["cost"])),
             value=Decimal(str(row["value"])),
             excluded=False,
+            account=models.TradeAccount.ROTH.value,
         )
         trade_objects.append(trade)
         next_id += 1
@@ -317,6 +330,9 @@ def index_backdoor_roth_trades(db: Session):
     positions = crud.build_positions_from_trades(db)
     crud.store_positions(db, positions)
 
+    logger.info("Rebuilding tax lots")
+    rebuild_tax_lots(db)
+
     logger.info("Done")
 
 
@@ -332,8 +348,13 @@ def index_backdoor_roth_trades(db: Session):
     is_flag=True,
     help="Index backdoor roth trades from CSVs",
 )
+@click.option("--tax-lots", "run_tax_lots", is_flag=True, help="Rebuild tax lots")
 def main(
-    run_trades: bool, run_prices: bool, run_positions: bool, run_backdoor_roth: bool
+    run_trades: bool,
+    run_prices: bool,
+    run_positions: bool,
+    run_backdoor_roth: bool,
+    run_tax_lots: bool,
 ):
     with connection.SessionLocal() as db:
         if run_trades:
@@ -344,6 +365,8 @@ def main(
             _fill_historical_positions(db)
         if run_backdoor_roth:
             index_backdoor_roth_trades(db)
+        if run_tax_lots:
+            rebuild_tax_lots(db)
 
 
 if __name__ == "__main__":

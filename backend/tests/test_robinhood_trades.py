@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 
 from backend.config import Config
+from backend.database import models
 from backend.scrapers import trades
 
 
@@ -32,6 +33,7 @@ def test_buy_maps_to_a_trade():
     assert trade.quantity == Decimal("2")
     assert trade.cost == Decimal("1000")
     assert trade.value == Decimal("1000")
+    assert trade.account == models.TradeAccount.BROKERAGE.value
 
 
 def test_sell_uses_positive_quantity():

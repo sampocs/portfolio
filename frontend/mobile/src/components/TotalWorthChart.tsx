@@ -128,14 +128,13 @@ function TotalWorthChart({ data, onDataPointSelected, isLoading = false, isCache
     return Math.max(...chartData.map(d => d.y));
   }, [chartData]);
 
-  // Determine if overall return is positive
-  const totalReturn = useMemo(() => {
+  // Determine if overall return is positive from the latest point's total return percent
+  const latestReturns = useMemo(() => {
     if (chartData.length === 0) return 0;
-    const latest = chartData[chartData.length - 1];
-    return latest.value - latest.cost;
+    return chartData[chartData.length - 1].returns;
   }, [chartData]);
 
-  const isPositiveReturn = totalReturn >= 0;
+  const isPositiveReturn = latestReturns >= 0;
   const lineColor = isPositiveReturn ? theme.colors.success : theme.colors.destructive;
 
   // Initialize press state with proper structure for single y key

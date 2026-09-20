@@ -1,0 +1,5 @@
+[copy]
+include = .env*
+
+[hooks]
+postCreate = make install

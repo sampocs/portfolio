@@ -1,21 +1,105 @@
 import datetime
+from collections import defaultdict
+from dataclasses import dataclass
 from sqlalchemy.orm import Session
 from backend.database import models
 from decimal import Decimal
-from collections import defaultdict
+from dateutil.relativedelta import relativedelta
+from backend import lots
 from backend.config import config
 from tqdm import tqdm  # type: ignore
 
 
+@dataclass
+class CashFlow:
+    """Total cash moved by trades: what was paid out (buys) and taken in (sells)"""
+
+    buys: Decimal
+    sells: Decimal
+
+
+@dataclass
+class DailyCashFlow:
+    """A single trade date's buys and sells, not cumulative"""
+
+    date: datetime.date
+    buys: Decimal
+    sells: Decimal
+
+
 def get_trades(
-    db: Session, asset: str | None = None, date: datetime.date | None = None
+    db: Session,
+    asset: str | None = None,
+    date: datetime.date | None = None,
+    include_excluded: bool = False,
 ):
-    """Returns all trades with optional asset filter"""
-    query = db.query(models.Trade).where(models.Trade.excluded.is_(False))
+    """Returns all non-excluded trades with optional asset and date filters"""
+    query = db.query(models.Trade)
+    if not include_excluded:
+        query = query.where(models.Trade.excluded.is_(False))
     if asset:
         query = query.where(models.Trade.asset == asset)
     if date:
         query = query.where(models.Trade.date == date)
+    return query.all()
+
+
+def get_cash_flows(db: Session, assets: list[str] | None = None) -> dict[str, CashFlow]:
+    """
+    Returns total buys and sells (Trade.cost) per asset, over non-excluded trades.
+    Optional asset filter narrows which trades are considered; trades for assets not
+    in the filter (or, with no filter, not in `config.assets`) are ignored.
+    """
+    trades = _get_non_excluded_trades(db, assets=assets)
+
+    cash_flows: dict[str, CashFlow] = {}
+    for trade in trades:
+        cash_flow = cash_flows.setdefault(
+            trade.asset, CashFlow(buys=Decimal(0), sells=Decimal(0))
+        )
+        if trade.action == models.TradeAction.BUY:
+            cash_flow.buys += trade.cost
+        else:
+            cash_flow.sells += trade.cost
+
+    return cash_flows
+
+
+def get_daily_cash_flows(
+    db: Session, assets: list[str] | None = None
+) -> list[DailyCashFlow]:
+    """
+    Returns buys and sells (Trade.cost) for each trade date, ascending, over
+    non-excluded trades. Each entry covers only that single date, not a cumulative
+    total. Optional asset filter narrows which trades are considered; trades for
+    assets not in the filter (or, with no filter, not in `config.assets`) are ignored.
+    """
+    trades = _get_non_excluded_trades(db, assets=assets)
+
+    cash_flows_by_date: dict[datetime.date, DailyCashFlow] = {}
+    for trade in trades:
+        cash_flow = cash_flows_by_date.setdefault(
+            trade.date,
+            DailyCashFlow(date=trade.date, buys=Decimal(0), sells=Decimal(0)),
+        )
+        if trade.action == models.TradeAction.BUY:
+            cash_flow.buys += trade.cost
+        else:
+            cash_flow.sells += trade.cost
+
+    return sorted(cash_flows_by_date.values(), key=lambda flow: flow.date)
+
+
+def _get_non_excluded_trades(
+    db: Session, assets: list[str] | None
+) -> list[models.Trade]:
+    """
+    Fetches non-excluded trades, optionally filtered to a set of assets. With no
+    filter, falls back to the configured assets, so trades for an asset removed from
+    `assets.yaml` are ignored rather than skewing unfiltered totals.
+    """
+    query = db.query(models.Trade).where(models.Trade.excluded.is_(False))
+    query = query.where(models.Trade.asset.in_(assets or list(config.assets.keys())))
     return query.all()
 
 
@@ -58,60 +142,54 @@ def build_positions_from_trades(
         db.query(models.Trade)
         .where(models.Trade.date <= end_date)
         .order_by(models.Trade.date)
+        .all()
     )
+    matchable_trades = [trade for trade in trades if trade.asset in config.assets]
 
-    # Group trades by asset
-    asset_trades = defaultdict(list)
-    for trade in trades:
-        if trade.asset not in config.assets.keys():
-            continue
-        asset_trades[trade.asset].append(trade)
+    matches = lots.match_lots(matchable_trades)
+    return positions_from_matches(matches)
 
-    # Build position for each asset
-    positions = []
-    for asset, trades_list in asset_trades.items():
-        # Use buy logs to correctly calculate average price when there's a sell
-        buy_lots = []  # Each lot: {'quantity': Decimal, 'price': Decimal}
 
-        for trade in trades_list:
-            if trade.excluded:
-                continue
+def positions_from_matches(matches: lots.LotMatches) -> list[models.Position]:
+    """
+    Aggregates matched open lots into one Position per asset, pooling across accounts
+    and platforms. Cost is the sum of each remaining lot's quantity times its buy price;
+    average price is cost divided by quantity. Assets fully sold out (zero remaining
+    quantity) still produce a position, with quantity, cost, and average_price all zero,
+    so realized-only assets aren't dropped from downstream totals. Assets with no
+    matchable (non-excluded) trades at all produce no position.
+    """
+    # An asset with at least one non-excluded trade normally gets a key in
+    # matches.open_lots, even fully sold out (its open lots list ends up empty). Also
+    # pull asset names from the matched slices so a fully sold asset still produces a
+    # row even if that weren't the case.
+    assets = set(matches.open_lots.keys()) | {
+        lot_slice.buy.asset for lot_slice in matches.slices
+    }
 
-            if trade.action == models.TradeAction.BUY:
-                buy_lots.append({"quantity": trade.quantity, "price": trade.price})
+    positions: list[models.Position] = []
+    for asset in sorted(assets):
+        open_lots = matches.open_lots.get(asset, [])
+        total_quantity = sum((lot.quantity for lot in open_lots), Decimal(0))
 
-            elif trade.action == models.TradeAction.SELL:
-                remaining_to_sell = trade.quantity
-
-                # Sell from oldest lots first (FIFO)
-                while remaining_to_sell > 0 and buy_lots:
-                    lot = buy_lots[0]
-
-                    if lot["quantity"] <= remaining_to_sell:
-                        # Sell entire lot
-                        remaining_to_sell -= lot["quantity"]
-                        buy_lots.pop(0)
-                    else:
-                        # Partial sell of lot
-                        lot["quantity"] -= remaining_to_sell
-                        remaining_to_sell = Decimal(0)
-
-        # Calculate totals from remaining lots
-        total_quantity = sum(lot["quantity"] for lot in buy_lots)
         if total_quantity == 0:
-            continue
+            total_cost = Decimal(0)
+            average_price = Decimal(0)
+        else:
+            total_cost = sum(
+                (lot.quantity * lot.buy.price for lot in open_lots), Decimal(0)
+            )
+            average_price = total_cost / total_quantity
 
-        total_cost = sum(lot["quantity"] * lot["price"] for lot in buy_lots)
-        average_price = total_cost / total_quantity
-
-        position = models.Position(
-            asset=asset,
-            updated_at=datetime.datetime.now(datetime.timezone.utc),
-            average_price=average_price,
-            quantity=total_quantity,
-            cost=total_cost,
+        positions.append(
+            models.Position(
+                asset=asset,
+                updated_at=datetime.datetime.now(datetime.timezone.utc),
+                average_price=average_price,
+                quantity=total_quantity,
+                cost=total_cost,
+            )
         )
-        positions.append(position)
 
     return positions
 
@@ -155,7 +233,9 @@ def build_historical_positions(
     db: Session, target_dates: list[str], log_progress: bool = False
 ) -> list[models.HistoricalPosition]:
     """
-    Build the historical positions table for each of the specified dates
+    Build the historical positions table for each of the specified dates. Zero-quantity
+    (fully sold) positions are skipped here, before enriching, so the table's per-asset
+    `returns` (unrealized gain over remaining cost) is left with no zero-cost rows.
     """
     historical_positions = []
     for end_date in (
@@ -167,6 +247,7 @@ def build_historical_positions(
         historical_positions += [
             enrich_historical_position(db, end_date, position)
             for position in positions_raw
+            if position.quantity != 0
         ]
 
     return historical_positions
@@ -210,6 +291,76 @@ def store_positions(db: Session, positions: list[models.Position]):
     """Stores the current position records, overwriting anything currently in the DB"""
     db.query(models.Position).delete()
     db.bulk_save_objects(positions)
+    db.commit()
+
+
+def build_tax_lots(matches: lots.LotMatches) -> list[models.TaxLot]:
+    """
+    Builds one TaxLot row per lot slice whose sell was made in the brokerage account.
+    Roth sells produce no rows, since Roth gains aren't taxable. Ids count slices within
+    a sell from 0, so they stay stable across rebuilds. Proceeds and cost prorate each
+    side's fees and value by the slice's share of the sell's and buy's total quantity.
+    """
+    slice_index_by_sell: dict[str, int] = defaultdict(int)
+    tax_lots: list[models.TaxLot] = []
+
+    for lot_slice in matches.slices:
+        sell = lot_slice.sell
+        if sell.account != models.TradeAccount.BROKERAGE.value:
+            continue
+
+        buy = lot_slice.buy
+        quantity = lot_slice.quantity
+        slice_index = slice_index_by_sell[sell.id]
+        slice_index_by_sell[sell.id] += 1
+
+        date_acquired = buy.date
+        date_sold = sell.date
+        holding_period = (
+            models.HoldingPeriod.LONG_TERM
+            if date_sold > date_acquired + relativedelta(years=1)
+            else models.HoldingPeriod.SHORT_TERM
+        )
+
+        proceeds = (sell.value - sell.fees) * quantity / sell.quantity
+        cost = (buy.value + buy.fees) * quantity / buy.quantity
+
+        tax_lots.append(
+            models.TaxLot(
+                id=f"{sell.id}-{slice_index}",
+                platform=sell.platform,
+                account=sell.account,
+                asset=sell.asset,
+                holding_period=holding_period.value,
+                # The description keeps the slice's full-precision quantity on purpose
+                # (matching how a 1099-B prints it), even though the `quantity` column
+                # rounds to 6 decimals
+                description=f"{_format_quantity(quantity)} {sell.asset}",
+                date_acquired=date_acquired,
+                date_sold=date_sold,
+                quantity=quantity,
+                acquisition_price=buy.price,
+                sale_price=sell.price,
+                proceeds=proceeds,
+                cost=cost,
+            )
+        )
+
+    return tax_lots
+
+
+def _format_quantity(quantity: Decimal) -> str:
+    """Formats a decimal quantity without trailing zeros or scientific notation"""
+    text = f"{quantity:f}"
+    if "." not in text:
+        return text
+    return text.rstrip("0").rstrip(".")
+
+
+def store_tax_lots(db: Session, tax_lots: list[models.TaxLot]):
+    """Stores the tax lot records, overwriting anything currently in the DB"""
+    db.query(models.TaxLot).delete()
+    db.bulk_save_objects(tax_lots)
     db.commit()
 
 

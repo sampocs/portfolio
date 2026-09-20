@@ -17,42 +17,57 @@ MARKET_TIMEZONE = zoneinfo.ZoneInfo("America/New_York")
 # only the server-side filter keeps those out, so anything else is treated as unknown
 ACCEPTED_ACTIVITY_TYPES = {"BUY", "SELL", "REI"}
 
+# IBKR transactions don't carry a commission field, so fees are estimated per share
+IBKR_FEE_PER_SHARE = Decimal("0.0035")
 
-def trade_has_id_conflict(db: Session, new_trade: models.Trade) -> bool:
+
+def resolve_ibkr_trade_id(db: Session, new_trade: models.Trade) -> str | None:
     """
-    The values in the IBKR response can change mildly as the order is filled, but there's
-    no single ID field we can use to know this for sure
+    IBKR transactions carry no stable ID, so a trade's ID is a hash of its asset, date,
+    and action, and the sync re-fetches from the last trade date every run. The same
+    fill therefore comes back on later runs, sometimes with values that drift slightly
+    as the order settles, and it must upsert onto its existing row rather than insert
+    a second one.
 
-    To handle this, we check if we have other trades on that date for that asset, that have
-    a price/quantity within 0.01% of each other - in which case it is considered a duplicate
-
-    Importantly, if there is a duplicate, we return that there is NO conflict
-    The reason for this is that we will want to keep the same ID to allow the values
-    to be overriden with the upsert
-
-    If there is an existing trade on that date (meaning with the same ID), that does
-    NOT seem to be a duplicate, then we consider that a conflict, which lets us know
-    that we need to generate a new ID
+    Only IBKR rows are candidates: a same-day trade recorded by hand for another
+    platform (a Vanguard sale, say) shares the asset/date bucket but can never share an
+    ID with an IBKR fill. If an existing IBKR row for the same action matches within
+    tolerance, its ID is reused, or None if that row was excluded by hand, since
+    re-inserting it would undo the exclusion. Otherwise a genuinely distinct second
+    fill on the same day gets a value-suffixed ID so it doesn't overwrite the first.
     """
-    existing_trades = crud.get_trades(db, asset=new_trade.asset, date=new_trade.date)
-    for existing in existing_trades:
-        if existing.action != new_trade.action:
-            continue
+    same_day_fills = [
+        existing
+        for existing in crud.get_trades(
+            db, asset=new_trade.asset, date=new_trade.date, include_excluded=True
+        )
+        if existing.platform == Platform.IBKR.value
+        and existing.action == new_trade.action
+    ]
 
-        # Skip if existing values are zero (would cause division by zero)
-        if existing.quantity == 0 or existing.price == 0:
-            continue
+    for existing in same_day_fills:
+        if _is_same_fill(existing=existing, candidate=new_trade):
+            return None if existing.excluded else existing.id
 
-        # Check if quantity and price are within 0.01% tolerance
-        tolerance = Decimal("0.0001")
-        qty_diff_pct = abs((existing.quantity - new_trade.quantity)) / existing.quantity
-        price_diff_pct = abs((existing.price - new_trade.price)) / existing.price
+    base_id = _ibkr_trade_id(f"{new_trade.asset}_{new_trade.date}_{new_trade.action}")
+    if any(existing.id == base_id for existing in same_day_fills):
+        suffix = f"{new_trade.quantity}_{new_trade.price}_{new_trade.cost}_{new_trade.value}"
+        return _ibkr_trade_id(
+            f"{new_trade.asset}_{new_trade.date}_{new_trade.action}_{suffix}"
+        )
 
-        # If the trade is sufficiently different, then we have an ID conflict
-        if qty_diff_pct > tolerance or price_diff_pct > tolerance:
-            return True
+    return base_id
 
-    return False
+
+def _is_same_fill(existing: models.Trade, candidate: models.Trade) -> bool:
+    """Whether two same-day trades are the same fill, allowing for settlement drift"""
+    if existing.quantity == 0 or existing.price == 0:
+        return False
+
+    tolerance = Decimal("0.0001")
+    qty_diff_pct = abs(existing.quantity - candidate.quantity) / abs(existing.quantity)
+    price_diff_pct = abs(existing.price - candidate.price) / existing.price
+    return qty_diff_pct <= tolerance and price_diff_pct <= tolerance
 
 
 def get_recent_ibkr_trades(
@@ -90,48 +105,57 @@ def get_recent_ibkr_trades(
             if transaction["type"] not in ["Buy", "Sell"]:
                 continue
 
-            action = str(transaction["type"]).upper()
-            quantity = Decimal(str(transaction["qty"]))
-            cost = abs(Decimal(str(transaction["amt"])))
-            price = Decimal(str(transaction["pr"]))
-            date = datetime.datetime.strptime(
-                str(transaction["rawDate"]), "%Y%m%d"
-            ).strftime("%Y-%m-%d")
-            fees = Decimal("0.0035") * quantity
-            value = price * quantity
+            trade = _build_ibkr_trade(transaction, asset=asset_info.asset)
 
-            # Note: This intentionally causes trades on the same day for the same asset have the same ID
-            # We handle these cases separately, which are rare since the main user of this product
-            # does not place multiple trades for the same asset in the same day
-            id_string = f"{asset_info.asset}_{date}_{action}"
-            trade_id = f"ibkr-{hashlib.sha256(id_string.encode()).hexdigest()[:20]}"
+            # Re-fetched fills upsert onto their existing row; only a distinct
+            # same-day fill gets a fresh ID, and an excluded fill is left alone
+            trade_id = resolve_ibkr_trade_id(db, new_trade=trade)
+            if trade_id is None:
+                continue
 
-            trade = models.Trade(
-                id=trade_id,
-                platform=Platform.IBKR.value,
-                date=date,
-                action=action,
-                asset=asset_info.asset,
-                price=price,
-                quantity=quantity,
-                fees=fees,
-                cost=cost,
-                value=value,
-                excluded=False,
-            )
-
-            # See if we have an ID conflict with a trade on the same date with
-            # a different quantity or price
-            # If we do, we need to generate a new ID; if we don't, we can just leave
-            # it as is which will upsert on conflict with the latest value for dupes
-            if trade_has_id_conflict(db, trade):
-                suffix = f"{quantity}_{price}_{cost}_{value}"
-                id_string = f"{id_string}_{suffix}"
-                trade.id = f"ibkr-{hashlib.sha256(id_string.encode()).hexdigest()[:20]}"
-
+            trade.id = trade_id
             trades.append(trade)
 
     return trades
+
+
+def _build_ibkr_trade(transaction: dict, asset: str) -> models.Trade:
+    """
+    Converts an IBKR transaction into a trade
+
+    IBKR reports a sell's quantity as negative, but the action already carries the
+    direction, so the quantity is normalized to positive like every other platform.
+    The lot matcher relies on this - it rejects sells with a non-positive quantity
+    """
+    action = str(transaction["type"]).upper()
+    quantity = abs(Decimal(str(transaction["qty"])))
+    cost = abs(Decimal(str(transaction["amt"])))
+    price = Decimal(str(transaction["pr"]))
+    date = datetime.datetime.strptime(str(transaction["rawDate"]), "%Y%m%d").strftime(
+        "%Y-%m-%d"
+    )
+
+    # Note: This intentionally causes trades on the same day for the same asset have the same ID
+    # We handle these cases separately, which are rare since the main user of this product
+    # does not place multiple trades for the same asset in the same day
+    return models.Trade(
+        id=_ibkr_trade_id(f"{asset}_{date}_{action}"),
+        platform=Platform.IBKR.value,
+        date=date,
+        action=action,
+        asset=asset,
+        price=price,
+        quantity=quantity,
+        fees=IBKR_FEE_PER_SHARE * quantity,
+        cost=cost,
+        value=price * quantity,
+        excluded=False,
+        account=models.TradeAccount.BROKERAGE.value,
+    )
+
+
+def _ibkr_trade_id(id_string: str) -> str:
+    return f"ibkr-{hashlib.sha256(id_string.encode()).hexdigest()[:20]}"
 
 
 def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:
@@ -170,6 +194,7 @@ def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:
             cost=Decimal(str(order["total_value_after_fees"])),
             value=Decimal(str(order["filled_value"])),
             excluded=False,
+            account=models.TradeAccount.BROKERAGE.value,
         )
 
         trades.append(trade)
@@ -308,6 +333,7 @@ def _build_robinhood_trade(activity: dict) -> models.Trade | None:
         cost=cost,
         value=value,
         excluded=False,
+        account=models.TradeAccount.BROKERAGE.value,
     )
 
 

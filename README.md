@@ -128,6 +128,16 @@ In order to automatically track trades, they must be done as follows:
 - Vanguard (Backdoor Roth): Manually added via CSV
   1. Add a CSV to `data/trades/clean/backdoor_roths/vanguard_backdoor_roth_{year}.csv` with columns: `platform,date,action,asset,price,quantity,fees,cost,value`
   2. Run `make sync-backdoor-roth`
+- Vanguard (taxable account, no API): Recorded by hand
+  1. Append the trade to `data/trades/clean/vanguard_sales/vanguard_sales_{year}.csv` using the next `vanguard-{n}` ID, and set `account=brokerage`
+  2. Insert the same row into the `trades` table directly, then rebuild positions and run `make sync-tax-lots`
+
+## Tax Lots
+
+- The `tax_lots` table breaks every brokerage-account sell into the buy-lot slices it consumed under FIFO, with holding period, proceeds, cost, and gain/loss per slice. Roth sells aren't included, since Roth gains aren't taxable.
+- It's fully rebuilt from the `trades` table after every trade sync (`make sync-trades` and `make sync-backdoor-roth` both trigger a rebuild), so it's always consistent with the trades. It's documentation for tax time, read from psql or exported as CSV; the brokers' own 1099-Bs remain the filing source.
+- `make sync-tax-lots` triggers a manual rebuild, useful after a hand-inserted Vanguard sale.
+- `make export-tax-lots` exports the table to `data/tax_lots.csv`, ordered by `date_sold, asset, id`.
 
 ## Adding a New Asset
 

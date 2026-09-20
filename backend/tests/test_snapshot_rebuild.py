@@ -2,34 +2,24 @@ import datetime
 from decimal import Decimal
 
 import pytest
-import sqlalchemy
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from backend.database import models
 from backend.jobs import jobs
-
-
-@pytest.fixture
-def db():
-    engine = sqlalchemy.create_engine("sqlite:///:memory:")
-    models.Base.metadata.create_all(engine)
-    with sessionmaker(bind=engine)() as session:
-        yield session
+from tests import factories
 
 
 def _trade(trade_id: str, date: str) -> models.Trade:
-    return models.Trade(
+    """A robinhood buy, which is what arrives late enough to invalidate a snapshot"""
+    return factories.make_trade(
         id=trade_id,
         platform="robinhood",
         date=date,
-        action="BUY",
         asset="VOO",
         price=Decimal("500"),
         quantity=Decimal("1"),
-        fees=Decimal("0"),
         cost=Decimal("500"),
         value=Decimal("500"),
-        excluded=False,
     )
 
 
@@ -63,46 +53,46 @@ def _seed(db: Session, *rows: models.Trade | models.HistoricalPosition) -> None:
     db.commit()
 
 
-def test_only_unstored_trades_are_new(db):
-    _seed(db, _trade(trade_id="robinhood-1", date="2026-09-10"))
+def test_only_unstored_trades_are_new(db_session):
+    _seed(db_session, _trade(trade_id="robinhood-1", date="2026-09-10"))
 
     scraped = [_trade(trade_id="robinhood-1", date="2026-09-10"), _trade(trade_id="robinhood-2", date="2026-09-11")]
-    assert [trade.id for trade in jobs._get_new_trades(db, scraped)] == ["robinhood-2"]
+    assert [trade.id for trade in jobs._get_new_trades(db_session, scraped)] == ["robinhood-2"]
 
 
-def test_late_trade_clears_snapshots_from_its_date(db):
-    _seed(db, _snapshot("2026-09-09"), _snapshot("2026-09-10"), _snapshot("2026-09-11"))
+def test_late_trade_clears_snapshots_from_its_date(db_session):
+    _seed(db_session, _snapshot("2026-09-09"), _snapshot("2026-09-10"), _snapshot("2026-09-11"))
 
-    jobs._clear_stale_position_snapshots(db, [_trade(trade_id="robinhood-2", date="2026-09-10")])
+    jobs._clear_stale_position_snapshots(db_session, [_trade(trade_id="robinhood-2", date="2026-09-10")])
 
-    remaining = [row.date for row in db.query(models.HistoricalPosition).all()]
+    remaining = [row.date for row in db_session.query(models.HistoricalPosition).all()]
     assert remaining == [datetime.date(2026, 9, 9)]
 
 
-def test_trade_after_the_last_snapshot_clears_nothing(db):
-    _seed(db, _snapshot("2026-09-09"), _snapshot("2026-09-10"))
+def test_trade_after_the_last_snapshot_clears_nothing(db_session):
+    _seed(db_session, _snapshot("2026-09-09"), _snapshot("2026-09-10"))
 
-    jobs._clear_stale_position_snapshots(db, [_trade(trade_id="robinhood-2", date="2026-09-11")])
+    jobs._clear_stale_position_snapshots(db_session, [_trade(trade_id="robinhood-2", date="2026-09-11")])
 
-    assert db.query(models.HistoricalPosition).count() == 2
-
-
-def test_no_snapshots_clears_nothing(db):
-    jobs._clear_stale_position_snapshots(db, [_trade(trade_id="robinhood-2", date="2026-09-11")])
-
-    assert db.query(models.HistoricalPosition).count() == 0
+    assert db_session.query(models.HistoricalPosition).count() == 2
 
 
-def test_no_new_trades_clears_nothing(db):
-    _seed(db, _snapshot("2026-09-10"))
+def test_no_snapshots_clears_nothing(db_session):
+    jobs._clear_stale_position_snapshots(db_session, [_trade(trade_id="robinhood-2", date="2026-09-11")])
 
-    jobs._clear_stale_position_snapshots(db, [])
-
-    assert db.query(models.HistoricalPosition).count() == 1
+    assert db_session.query(models.HistoricalPosition).count() == 0
 
 
-def test_failed_refill_leaves_snapshots_intact(db, monkeypatch):
-    _seed(db, _snapshot("2026-09-09"), _snapshot("2026-09-10"), _snapshot("2026-09-11"))
+def test_no_new_trades_clears_nothing(db_session):
+    _seed(db_session, _snapshot("2026-09-10"))
+
+    jobs._clear_stale_position_snapshots(db_session, [])
+
+    assert db_session.query(models.HistoricalPosition).count() == 1
+
+
+def test_failed_refill_leaves_snapshots_intact(db_session, monkeypatch):
+    _seed(db_session, _snapshot("2026-09-09"), _snapshot("2026-09-10"), _snapshot("2026-09-11"))
 
     def failing_refill(session: Session) -> None:
         raise AssertionError("Daily close price not found for VOO on 2026-09-10")
@@ -111,12 +101,12 @@ def test_failed_refill_leaves_snapshots_intact(db, monkeypatch):
 
     with pytest.raises(AssertionError):
         jobs._rebuild_stale_position_snapshots(
-            db, [_trade(trade_id="robinhood-2", date="2026-09-10")]
+            db_session, [_trade(trade_id="robinhood-2", date="2026-09-10")]
         )
 
     remaining = [
         row.date
-        for row in db.query(models.HistoricalPosition)
+        for row in db_session.query(models.HistoricalPosition)
         .order_by(models.HistoricalPosition.date)
         .all()
     ]
