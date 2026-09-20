@@ -187,11 +187,16 @@ def get_asset_prices(db: Session, asset: str) -> schemas.AssetPriceHistory:
     )
 
 
+# Points per watch list sparkline; enough to show the shape of a year at 64pt wide
+SPARKLINE_POINTS = 40
+
+
 def get_watchlist(db: Session) -> list[schemas.WatchlistAsset]:
     """
     Returns one entry per `config.watchlist_assets` (target_allocation > 0, yaml
-    order), each with the live price and the percent change from every
-    `VALID_DURATIONS` reference close to that live price.
+    order), each with the live price, the percent change from every
+    `VALID_DURATIONS` reference close to that live price, and a downsampled
+    sparkline of closes over each duration's window.
     """
     today = datetime.date.today()
     live_prices = prices.get_cached_asset_prices(db)
@@ -200,11 +205,21 @@ def get_watchlist(db: Session) -> list[schemas.WatchlistAsset]:
     for asset in config.watchlist_assets:
         asset_config = config.assets[asset]
         current_price = live_prices[asset]
+        closes = crud.get_close_prices_ascending(db, asset=asset)
 
         changes = {
             duration: _reference_change(
                 db,
                 asset=asset,
+                duration=duration,
+                today=today,
+                current_price=current_price,
+            )
+            for duration in VALID_DURATIONS
+        }
+        sparklines = {
+            duration: _sparkline(
+                closes=closes,
                 duration=duration,
                 today=today,
                 current_price=current_price,
@@ -219,10 +234,37 @@ def get_watchlist(db: Session) -> list[schemas.WatchlistAsset]:
                 market=asset_config.market.value,
                 current_price=current_price,
                 changes=changes,
+                sparklines=sparklines,
             )
         )
 
     return watchlist
+
+
+def _sparkline(
+    closes: list[tuple[datetime.date, Decimal]],
+    duration: str,
+    today: datetime.date,
+    current_price: Decimal,
+) -> list[Decimal]:
+    """
+    The closes inside a duration's window followed by the live price, thinned to at
+    most `SPARKLINE_POINTS` evenly spaced values. `closes` must be ascending by date.
+    """
+    start_date = window_start_date(duration=duration, today=today)
+    window = [
+        price for date, price in closes if start_date is None or date >= start_date
+    ]
+    return _downsample(values=window + [current_price], points=SPARKLINE_POINTS)
+
+
+def _downsample(values: list[Decimal], points: int) -> list[Decimal]:
+    """Keeps at most `points` evenly spaced values, always including the first and last"""
+    if len(values) <= points:
+        return values
+
+    step = (len(values) - 1) / (points - 1)
+    return [values[round(index * step)] for index in range(points)]
 
 
 def _reference_change(

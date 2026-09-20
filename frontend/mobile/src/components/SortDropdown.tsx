@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Dimensions } from 'react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 
@@ -31,7 +31,22 @@ interface SortDropdownProps<T extends string> {
 export default function SortDropdown<T extends string>({ selectedSort, onSortChange, options }: SortDropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
 
+  // The options render in a Modal (a separate native window), so the trigger's window
+  // position is measured on open to anchor the menu directly beneath it, right-aligned
+  const triggerRef = useRef<View>(null);
+  const [anchor, setAnchor] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+
   const selectedOption = options.find(option => option.value === selectedSort);
+
+  const openDropdown = () => {
+    triggerRef.current?.measureInWindow((x, y, width, height) => {
+      setAnchor({
+        top: y + height + theme.spacing.xs,
+        right: Dimensions.get('window').width - (x + width),
+      });
+      setIsOpen(true);
+    });
+  };
 
   const handleOptionSelect = (option: T) => {
     onSortChange(option);
@@ -39,10 +54,10 @@ export default function SortDropdown<T extends string>({ selectedSort, onSortCha
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} ref={triggerRef}>
       <TouchableOpacity
         style={styles.trigger}
-        onPress={() => setIsOpen(true)}
+        onPress={openDropdown}
       >
         <Text style={styles.triggerText} numberOfLines={1}>
           {selectedOption?.label || 'Sort'}
@@ -61,7 +76,7 @@ export default function SortDropdown<T extends string>({ selectedSort, onSortCha
           activeOpacity={1}
           onPress={() => setIsOpen(false)}
         >
-          <View style={styles.dropdown}>
+          <View style={[styles.dropdown, { top: anchor.top, right: anchor.right }]}>
             <ScrollView style={styles.optionsList}>
               {options.map((option) => (
                 <TouchableOpacity
@@ -119,15 +134,15 @@ const styles = createStyles({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   dropdown: {
+    position: 'absolute',
     backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.lg,
+    // Clip the option rows (the selected one is filled) to the rounded corners
+    overflow: 'hidden',
     maxHeight: 300,
     minWidth: 180,
-    marginHorizontal: theme.spacing.xl,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -136,6 +151,9 @@ const styles = createStyles({
   },
   optionsList: {
     maxHeight: 280,
+    // A ScrollView grows to its maxHeight by default, leaving dead space under short
+    // option lists (the watch list has three) - size it to the content instead
+    flexGrow: 0,
   },
   option: {
     paddingHorizontal: theme.spacing.md,

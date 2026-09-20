@@ -419,6 +419,19 @@ def get_close_price_on_or_before(
     return price[0] if price else None
 
 
+def get_close_prices_ascending(
+    db: Session, asset: str
+) -> list[tuple[datetime.date, Decimal]]:
+    """Returns every stored (date, close) for the asset, oldest first"""
+    rows = (
+        db.query(models.HistoricalPrice.date, models.HistoricalPrice.price)
+        .where(models.HistoricalPrice.asset == asset)
+        .order_by(models.HistoricalPrice.date.asc())
+        .all()
+    )
+    return [(row.date, row.price) for row in rows]
+
+
 def get_earliest_close_price(db: Session, asset: str) -> Decimal | None:
     """Returns the close price from the earliest stored HistoricalPrice row"""
     price = (

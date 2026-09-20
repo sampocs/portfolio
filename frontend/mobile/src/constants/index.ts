@@ -47,7 +47,9 @@ export const STORAGE_KEYS = {
 
 // API Configuration
 export const API = {
-  BASE_URL: 'https://portfolio-backend-production-29dc.up.railway.app',
+  // Override locally with EXPO_PUBLIC_API_BASE_URL (e.g. a backend on localhost) - it is
+  // read at bundler start, so restart `expo start` after changing it
+  BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://portfolio-backend-production-29dc.up.railway.app',
   REQUEST_TIMEOUT: 120000, // 2 minutes default timeout
 } as const;
 

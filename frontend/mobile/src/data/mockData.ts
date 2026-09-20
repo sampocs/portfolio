@@ -354,14 +354,45 @@ const zeroWatchlistChanges: Record<PortfolioDuration, string> = DURATIONS.PORTFO
   {} as Record<PortfolioDuration, string>,
 );
 
+const MOCK_SPARKLINE_POINTS = 40;
+
+// A deterministic price path that starts where the duration's percent change implies and
+// ends at the current price, with a small wobble so it reads as a chart rather than a ramp
+const mockSparkline = (currentPrice: string, changePercent: string, seed: number): string[] => {
+  const end = parseFloat(currentPrice);
+  const start = end / (1 + parseFloat(changePercent) / 100);
+  return Array.from({ length: MOCK_SPARKLINE_POINTS }, (_, index) => {
+    const progress = index / (MOCK_SPARKLINE_POINTS - 1);
+    const wobble = Math.sin(index * 1.7 + seed) * 0.02 * (1 - progress);
+    return (start + (end - start) * progress + end * wobble).toFixed(2);
+  });
+};
+
+const mockSparklines = (
+  currentPrice: string,
+  changes: Record<PortfolioDuration, string>,
+  seed: number,
+): Record<PortfolioDuration, string[]> =>
+  DURATIONS.PORTFOLIO.reduce(
+    (sparklines, duration) => ({
+      ...sparklines,
+      [duration]: mockSparkline(currentPrice, changes[duration], seed),
+    }),
+    {} as Record<PortfolioDuration, string[]>,
+  );
+
 // Watch list is every mock position with a non-zero target allocation, mirroring the
 // backend's /watchlist filter (assets.yaml entries with target_allocation > 0)
 export const mockWatchlist: WatchlistAsset[] = mockPositions
   .filter(position => parseFloat(position.target_allocation) > 0)
-  .map(position => ({
-    asset: position.asset,
-    description: position.description,
-    market: position.market,
-    current_price: position.current_price,
-    changes: mockWatchlistChanges[position.asset] ?? zeroWatchlistChanges,
-  }));
+  .map((position, index) => {
+    const changes = mockWatchlistChanges[position.asset] ?? zeroWatchlistChanges;
+    return {
+      asset: position.asset,
+      description: position.description,
+      market: position.market,
+      current_price: position.current_price,
+      changes,
+      sparklines: mockSparklines(position.current_price, changes, index),
+    };
+  });
