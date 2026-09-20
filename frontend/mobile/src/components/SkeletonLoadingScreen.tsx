@@ -11,8 +11,8 @@ interface SkeletonLoadingScreenProps {
 /**
  * SkeletonLoadingScreen - Displays animated skeleton UI while content is loading
  * 
- * Shows animated placeholder elements that match the structure of either
- * the Portfolio or Allocations screen based on the title prop. Uses pulsing
+ * Shows animated placeholder elements that match the structure of the Portfolio,
+ * Watch List, or Allocations screen based on the title prop. Uses pulsing
  * animations to provide visual feedback during data loading.
  */
 export default function SkeletonLoadingScreen({ title }: SkeletonLoadingScreenProps) {
@@ -47,7 +47,8 @@ export default function SkeletonLoadingScreen({ title }: SkeletonLoadingScreenPr
       </View>
       
       <View style={styles.content}>
-        {/* Category selector placeholder */}
+        {/* The watch list has no category segments, so it starts at the duration row */}
+        {title !== 'Watch List' && (
         <View style={styles.categorySection}>
           <View style={styles.buttonRow}>
             <Animated.View style={[styles.button, { opacity: pulseAnim }]} />
@@ -57,8 +58,38 @@ export default function SkeletonLoadingScreen({ title }: SkeletonLoadingScreenPr
             )}
           </View>
         </View>
+        )}
 
-        {title === 'Portfolio' ? (
+        {title === 'Watch List' && (
+          <>
+            {/* Duration buttons placeholder */}
+            <View style={styles.watchlistDurationSection}>
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Animated.View
+                  key={index}
+                  style={[styles.durationButton, { opacity: pulseAnim }]}
+                />
+              ))}
+            </View>
+
+            {/* Sort pill placeholder, right-aligned like the real dropdown */}
+            <View style={styles.sortRow}>
+              <Animated.View style={[styles.sortPill, { opacity: pulseAnim }]} />
+            </View>
+
+            {/* Card list placeholder */}
+            <View style={styles.assetListSection}>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Animated.View
+                  key={index}
+                  style={[styles.assetRow, { opacity: pulseAnim }]}
+                />
+              ))}
+            </View>
+          </>
+        )}
+
+        {title === 'Portfolio' && (
           <>
             {/* Summary placeholder */}
             <View style={styles.summarySection}>
@@ -90,7 +121,9 @@ export default function SkeletonLoadingScreen({ title }: SkeletonLoadingScreenPr
               ))}
             </View>
           </>
-        ) : (
+        )}
+
+        {title === 'Allocations' && (
           <>
             {/* Donut chart placeholder */}
             <Animated.View style={[styles.donutChartPlaceholder, { opacity: pulseAnim }]} />
@@ -193,6 +226,26 @@ const styles = createStyles({
   },
   assetListSection: {
     gap: theme.spacing.sm,
+  },
+
+  // Watch list-specific placeholders
+  watchlistDurationSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: theme.spacing.sm,
+  },
+  sortPill: {
+    width: 120,
+    height: 28,
+    backgroundColor: COLORS.SKELETON,
+    borderRadius: 14,
   },
   assetRow: {
     height: UI.ASSET_ROW_HEIGHT,

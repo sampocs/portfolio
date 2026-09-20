@@ -24,6 +24,7 @@ export interface WatchlistAsset {
   market: string;
   current_price: string;
   changes: Record<PortfolioDuration, string>; // Percent move for each portfolio duration
+  sparklines: Record<PortfolioDuration, string[]>; // Downsampled closes over each duration, ending at the live price
 }
 
 export interface AssetPerformancePoint {

@@ -73,6 +73,8 @@ class WatchlistAsset(BaseModel):
     Defines the schema for a single entry in the /watchlist API response. `changes`
     maps each of `VALID_DURATIONS` to the percent move from that duration's reference
     close to `current_price`; `0` when there is no reference row or it is `0`.
+    `sparklines` maps each duration to at most `SPARKLINE_POINTS` evenly spaced closes
+    from the window, always ending with `current_price`, for the row's mini chart.
     """
 
     asset: str
@@ -80,6 +82,7 @@ class WatchlistAsset(BaseModel):
     market: str
     current_price: Decimal
     changes: dict[str, Decimal]
+    sparklines: dict[str, list[Decimal]]
 
 
 class AssetPerformancePoint(BaseModel):

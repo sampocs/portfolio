@@ -1,10 +1,44 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { Svg, Polyline } from 'react-native-svg';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
 import { WatchlistAsset } from '../data/types';
 import { PortfolioDuration } from '../data/assetTypes';
 import { getAssetLogo } from '../utils/assetRegistry';
+
+const SPARKLINE_WIDTH = 64;
+const SPARKLINE_HEIGHT = 24;
+
+interface SparklineProps {
+  points: number[];
+  color: string;
+}
+
+// Price line over the selected duration. The points are already downsampled by the
+// backend, so this only scales them into the box.
+function Sparkline({ points, color }: SparklineProps) {
+  if (points.length < 2) {
+    return <View style={styles.sparkline} />;
+  }
+
+  const low = Math.min(...points);
+  const high = Math.max(...points);
+  const range = high - low || 1;
+  const coordinates = points
+    .map((price, index) => {
+      const x = (index * SPARKLINE_WIDTH) / (points.length - 1);
+      const y = SPARKLINE_HEIGHT - 1 - ((price - low) / range) * (SPARKLINE_HEIGHT - 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+
+  return (
+    <Svg width={SPARKLINE_WIDTH} height={SPARKLINE_HEIGHT} style={styles.sparkline}>
+      <Polyline points={coordinates} fill="none" stroke={color} strokeWidth={1.5} />
+    </Svg>
+  );
+}
 
 interface WatchListRowProps {
   asset: WatchlistAsset;
@@ -21,6 +55,8 @@ export default function WatchListRow({ asset, duration, isFirst = false, isLast 
   const currentPrice = parseFloat(asset.current_price);
   const changePercent = parseFloat(asset.changes[duration]);
   const isPositive = changePercent >= 0;
+  const changeColor = isPositive ? theme.colors.success : theme.colors.destructive;
+  const sparklinePoints = (asset.sparklines[duration] ?? []).map(parseFloat);
 
   // Format numbers - matches AssetRow's formatPrice
   const formatPrice = (value: number): string => {
@@ -76,20 +112,14 @@ export default function WatchListRow({ asset, duration, isFirst = false, isLast 
           <Text style={styles.ticker}>{asset.asset}</Text>
           <Text style={styles.details}>{asset.description}</Text>
         </View>
+        <Sparkline points={sparklinePoints} color={changeColor} />
       </View>
 
       <View style={styles.rightSection}>
-        <Text style={styles.currentPrice}>
-          ${formatPrice(currentPrice)}
+        <Text style={styles.currentPrice}>${formatPrice(currentPrice)}</Text>
+        <Text style={[styles.percentText, { color: changeColor }]}>
+          {formatPercent(changePercent)}
         </Text>
-        <View style={[
-          styles.percentContainer,
-          { backgroundColor: isPositive ? theme.colors.successBackground : theme.colors.destructiveBackground }
-        ]}>
-          <Text style={[styles.percentText, { color: isPositive ? theme.colors.success : theme.colors.destructive }]}>
-            {formatPercent(changePercent)}
-          </Text>
-        </View>
       </View>
     </Component>
   );
@@ -157,24 +187,27 @@ const styles = createStyles({
     fontFamily: theme.typography.fontFamily,
     marginTop: 2,
   },
+  // Sits between the name and the price; the right margin roughly centers it in the
+  // gap once the widest prices are accounted for
+  sparkline: {
+    width: SPARKLINE_WIDTH,
+    height: SPARKLINE_HEIGHT,
+    marginRight: 22,
+  },
   rightSection: {
     alignItems: 'flex-end',
+    minWidth: 96,
   },
   currentPrice: {
     color: theme.colors.foreground,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: theme.typography.weights.bold,
     fontFamily: theme.typography.fontFamily,
-  },
-  percentContainer: {
-    marginTop: 2,
-    paddingHorizontal: theme.spacing.xs,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
   },
   percentText: {
-    fontSize: 12,
-    fontWeight: theme.typography.weights.bold,
+    fontSize: 13,
+    fontWeight: theme.typography.weights.semibold,
     fontFamily: theme.typography.fontFamily,
+    marginTop: 2,
   },
 });
