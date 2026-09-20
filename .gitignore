@@ -4,3 +4,5 @@ auth
 scratch.py
 /data
 .DS_Store
+# brainstorming companion sessions
+.superpowers/

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { theme } from '../styles/theme';
-import { createStyles, getTextStyle, formatCurrency } from '../styles/utils';
+import { createStyles, getTextStyle, formatCurrency, formatTradeDate } from '../styles/utils';
 import { AssetTrade } from '../data/assetTypes';
 
 interface TradeRowProps {
@@ -18,15 +18,6 @@ export default function TradeRow({ trade, isFirst = false, isLast = false }: Tra
   
   const isBuy = action === 'BUY';
   const actionColor = isBuy ? theme.colors.success : theme.colors.destructive;
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-  };
 
   const formatQuantity = (value: number): string => {
     return value.toFixed(4).replace(/\.?0+$/, '');
@@ -60,7 +51,7 @@ export default function TradeRow({ trade, isFirst = false, isLast = false }: Tra
         </View>
         
         <View style={styles.tradeInfo}>
-          <Text style={styles.date}>{formatDate(date)}</Text>
+          <Text style={styles.date}>{formatTradeDate(date)}</Text>
           <Text style={styles.details}>
             {formatQuantity(quantityNum)} @ ${formatPrice(priceNum)}
           </Text>

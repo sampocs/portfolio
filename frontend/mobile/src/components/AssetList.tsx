@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { theme } from '../styles/theme';
 import { createStyles, getTextStyle } from '../styles/utils';
-import { UI } from '../constants';
+import { UI, isClosedPosition } from '../constants';
 import { Asset } from '../data/types';
 import AssetRow from './AssetRow';
 import SortDropdown, { SortOption } from './SortDropdown';
@@ -68,14 +68,15 @@ export default function AssetList({ assets, selectedCategories, onAssetPress }: 
     });
   }, [assets, selectedCategories]);
 
-  // Split into currently held (open) positions and fully sold (closed) positions -
-  // closed positions render collapsed under their own section at the bottom
+  // Split into currently held (open) positions and closed positions (market value
+  // below the closed-position threshold, including dust) - closed positions render
+  // collapsed under their own section at the bottom
   const openAssets = useMemo(
-    () => filteredAssets.filter(asset => parseFloat(asset.quantity) > 0),
+    () => filteredAssets.filter(asset => !isClosedPosition(parseFloat(asset.value))),
     [filteredAssets]
   );
   const closedAssets = useMemo(
-    () => filteredAssets.filter(asset => parseFloat(asset.quantity) === 0),
+    () => filteredAssets.filter(asset => isClosedPosition(parseFloat(asset.value))),
     [filteredAssets]
   );
 

@@ -41,14 +41,19 @@ export interface ProcessedPriceData {
 }
 
 export interface AssetHoldings {
-  currentValue: number;         // Current market value of holdings
-  totalReturn: number;          // Total gains/losses: currentValue + totalSellProceeds - totalBuys
-  totalReturnPercent: number;   // Total return as a percentage of totalBuys
-  realizedGains: number;        // Gains/losses from completed sells
-  unrealizedGains: number;      // Gains/losses from current holdings
-  totalQuantity: number;        // Current quantity held
+  owned: number;                // Current quantity held
   averagePrice: number;         // Average cost per share of current holdings
-  totalBuys: number;            // Total real cash spent on buys (sum of trade.cost)
+  costBasis: number;            // FIFO cost basis of the lots still held
+  marketValue: number;          // Current market value of holdings (owned * currentPrice)
+  unrealized: number;           // Gains/losses from current holdings (marketValue - costBasis)
+  invested: number;             // Total real cash spent on buys (sum of trade.cost)
+  sold: number;                 // Total real cash received from sells (sum of trade.cost)
+  netInvested: number;          // Cash still at risk: invested - sold
+  realized: number;             // Gains/losses from completed sells
+  totalReturn: number;          // Total gains/losses: marketValue + sold - invested
+  totalReturnPercent: number;   // Total return as a percentage of invested
+  tradeCount: number;           // Number of trades replayed
+  lastSellDate: string | null;  // ISO date of the latest SELL trade, or null if none
 }
 
 export type AssetDuration = typeof DURATIONS.ASSET[number];

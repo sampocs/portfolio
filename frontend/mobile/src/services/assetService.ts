@@ -134,6 +134,7 @@ export class AssetService {
     let totalBuys = 0;           // Total real cash spent on buys (trade.cost, net of fees)
     let totalSellProceeds = 0;   // Total real cash received from sells (trade.cost, net of fees)
     let realizedGains = 0;       // Gains/losses from completed sells
+    let lastSellDate: string | null = null; // Date of the latest SELL trade, or null if none
 
     // FIFO method - maintain a queue of buy lots. Cost basis comes from the
     // trade's real cash cost (not quantity * price), so a lot's per-unit
@@ -165,6 +166,7 @@ export class AssetService {
         buyLots.push({ quantity, price: cost / quantity, costBasis: cost });
       } else if (trade.action === 'SELL') {
         totalSellProceeds += cost;
+        lastSellDate = trade.date; // sortedTrades is chronological, so the last SELL seen is the latest
 
         let remainingToSell = quantity;
         let sellProceeds = cost;
@@ -220,15 +222,23 @@ export class AssetService {
     // Average price of current holdings (weighted by quantity)
     const averagePrice = totalQuantity > 0 ? totalCostBasisRemaining / totalQuantity : 0;
 
+    // Cash still at risk: what's been put in minus what's been taken out.
+    const netInvested = totalBuys - totalSellProceeds;
+
     return {
-      currentValue,
+      owned: totalQuantity,
+      averagePrice,
+      costBasis: totalCostBasisRemaining,
+      marketValue: currentValue,
+      unrealized: unrealizedGains,
+      invested: totalBuys,
+      sold: totalSellProceeds,
+      netInvested,
+      realized: realizedGains,
       totalReturn,
       totalReturnPercent,
-      realizedGains,
-      unrealizedGains,
-      totalQuantity,
-      averagePrice,
-      totalBuys
+      tradeCount: sortedTrades.length,
+      lastSellDate
     };
   }
 

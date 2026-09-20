@@ -87,3 +87,12 @@ export const DURATIONS = {
 export const COLORS = {
   SKELETON: '#404040', // Loading screen skeleton color
 } as const;
+
+// A position's market value below this is treated as a closed/dust position
+// everywhere in the mobile app (portfolio list, asset page, allocations).
+export const CLOSED_POSITION_VALUE_USD = 50;
+
+// True when an asset's market value is below the closed-position threshold.
+export function isClosedPosition(value: number): boolean {
+  return value < CLOSED_POSITION_VALUE_USD;
+}
