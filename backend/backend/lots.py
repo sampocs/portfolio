@@ -29,7 +29,7 @@ class LotMatches:
     Result of FIFO-matching buy and sell trades.
 
     `open_lots` holds whatever quantity is left unsold, keyed by asset with all
-    platforms and accounts merged, since positions are tracked per asset only.
+    custodians and accounts merged, since positions are tracked per asset only.
     `slices` holds every sell's consumed pieces, in the order they were matched.
     """
 
@@ -43,18 +43,18 @@ class UnmatchedSellError(Exception):
     def __init__(
         self,
         asset: str,
-        platform: str,
+        custodian: str,
         account: str,
         sell_id: str,
         unmatched_quantity: Decimal,
     ) -> None:
         self.asset = asset
-        self.platform = platform
+        self.custodian = custodian
         self.account = account
         self.sell_id = sell_id
         self.unmatched_quantity = unmatched_quantity
         super().__init__(
-            f"Sell {sell_id} for asset={asset} platform={platform} account={account} "
+            f"Sell {sell_id} for asset={asset} custodian={custodian} account={account} "
             f"has {unmatched_quantity} unmatched quantity with no open lots remaining"
         )
 
@@ -63,26 +63,28 @@ def match_lots(trades: list[models.Trade]) -> LotMatches:
     """
     FIFO-matches buy and sell trades into lot slices.
 
-    Trades are grouped by (asset, platform, account) so a Roth lot is never consumed by
-    a brokerage sell and a lot on one platform is never consumed by a sell on another.
-    Excluded trades are skipped entirely. Within a group, trades are processed in
-    (date, action, id) order with same-day buys applied before sells, so a same-day
-    rebuy can't fund the sale that paid for it, and same-day ties of the same action
-    break on id so ordering is deterministic regardless of input or DB order. Sells
-    consume open lots oldest-first, splitting the last lot consumed when the sell lands
-    mid-lot. A sell that outruns its group's open lots raises UnmatchedSellError rather
-    than inventing a zero-basis slice.
+    Trades are grouped by (asset, custodian, account) so a Roth lot is never consumed by
+    a brokerage sell and a lot held at one custodian is never consumed by a sell at
+    another. Grouping on custodian rather than platform is what lets a sell consume lots
+    that were bought elsewhere and later transferred to the sell's custodian, with their
+    original cost basis and acquisition dates intact. Excluded trades are skipped
+    entirely. Within a group, trades are processed in (date, action, id) order with
+    same-day buys applied before sells, so a same-day rebuy can't fund the sale that paid
+    for it, and same-day ties of the same action break on id so ordering is deterministic
+    regardless of input or DB order. Sells consume open lots oldest-first, splitting the
+    last lot consumed when the sell lands mid-lot. A sell that outruns its group's open
+    lots raises UnmatchedSellError rather than inventing a zero-basis slice.
     """
     groups: dict[tuple[str, str, str], list[models.Trade]] = defaultdict(list)
     for trade in trades:
         if trade.excluded:
             continue
-        groups[(trade.asset, trade.platform, trade.account)].append(trade)
+        groups[(trade.asset, trade.custodian, trade.account)].append(trade)
 
     open_lots_by_asset: dict[str, list[OpenLot]] = defaultdict(list)
     slices: list[LotSlice] = []
 
-    for (asset, _platform, _account), group_trades in groups.items():
+    for (asset, _custodian, _account), group_trades in groups.items():
         group_open_lots: list[OpenLot] = []
 
         for trade in sorted(group_trades, key=_sort_key):
@@ -122,7 +124,7 @@ def _consume_sell(sell: models.Trade, open_lots: list[OpenLot]) -> list[LotSlice
     if remaining > 0:
         raise UnmatchedSellError(
             asset=sell.asset,
-            platform=sell.platform,
+            custodian=sell.custodian,
             account=sell.account,
             sell_id=sell.id,
             unmatched_quantity=remaining,

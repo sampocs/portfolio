@@ -9,6 +9,7 @@ def _trade(**overrides) -> models.Trade:
     defaults = {
         "id": "t-1",
         "platform": "ibkr",
+        "custodian": "ibkr",
         "date": datetime.date(2026, 1, 1),
         "action": models.TradeAction.BUY.value,
         "asset": "AAPL",
@@ -37,6 +38,36 @@ def test_holding_period_is_short_term_at_exactly_one_year():
 
     assert len(tax_lots) == 1
     assert tax_lots[0].holding_period == models.HoldingPeriod.SHORT_TERM.value
+
+
+def test_long_term_holding_period_survives_a_transfer_between_custodians():
+    # Bought at Vanguard over a year ago, then transferred to Robinhood before being
+    # sold there. The original acquisition date must survive the move so the holding
+    # period is still computed from it, not from the transfer date.
+    transferred_buy = _trade(
+        id="b-van",
+        platform="vanguard",
+        custodian="robinhood",
+        date=datetime.date(2025, 1, 1),
+    )
+    robinhood_sell = _trade(
+        id="s-rh",
+        platform="robinhood",
+        custodian="robinhood",
+        date=datetime.date(2026, 1, 2),
+        action=models.TradeAction.SELL.value,
+        quantity=Decimal("10"),
+    )
+
+    matches = lots.match_lots([transferred_buy, robinhood_sell])
+    tax_lots = crud.build_tax_lots(matches)
+
+    assert len(tax_lots) == 1
+    tax_lot = tax_lots[0]
+    assert tax_lot.holding_period == models.HoldingPeriod.LONG_TERM.value
+    assert tax_lot.date_acquired == transferred_buy.date
+    # A sell always executes where the shares are held, so platform == custodian here
+    assert tax_lot.platform == robinhood_sell.platform == robinhood_sell.custodian
 
 
 def test_holding_period_is_long_term_one_day_after_one_year():
