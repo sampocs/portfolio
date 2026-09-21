@@ -14,16 +14,18 @@ import { mockWatchlist } from '../data/mockData';
 import { WatchlistAsset } from '../data/types';
 import { PortfolioDuration } from '../data/assetTypes';
 
-export type WatchlistSortOption = 'alphabetical' | 'highest-change' | 'lowest-change';
+export type WatchlistSortOption = 'default' | 'alphabetical' | 'highest-change' | 'lowest-change';
 
 const WATCHLIST_SORT_OPTIONS: { value: WatchlistSortOption; label: string }[] = [
+  { value: 'default', label: 'Default' },
   { value: 'alphabetical', label: 'Alphabetical' },
   { value: 'highest-change', label: 'Highest Change' },
   { value: 'lowest-change', label: 'Lowest Change' },
 ];
 
 // Sort watch list assets by the currently selected sort option - change sorts use the
-// selected duration's percent since that's the only value that changes with duration
+// selected duration's percent since that's the only value that changes with duration.
+// 'default' keeps the order the API returns, which is the assets.yaml order
 const sortWatchlist = (
   assets: WatchlistAsset[],
   selectedSort: WatchlistSortOption,
@@ -39,8 +41,11 @@ const sortWatchlist = (
       return assetsCopy.sort((a, b) => parseFloat(a.changes[duration]) - parseFloat(b.changes[duration]));
 
     case 'alphabetical':
-    default:
       return assetsCopy.sort((a, b) => a.asset.localeCompare(b.asset));
+
+    case 'default':
+    default:
+      return assetsCopy;
   }
 };
 
@@ -65,7 +70,7 @@ export default function WatchListScreen({ navigation }: WatchListScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<PortfolioDuration>(DURATIONS.INITIAL_PORTFOLIO);
-  const [selectedSort, setSelectedSort] = useState<WatchlistSortOption>('alphabetical');
+  const [selectedSort, setSelectedSort] = useState<WatchlistSortOption>('default');
 
   const fetchWatchlist = async (isRefresh = false) => {
     try {
