@@ -163,7 +163,7 @@ const styles = createStyles({
   optionsList: {
     maxHeight: 280,
     // A ScrollView grows to its maxHeight by default, leaving dead space under short
-    // option lists (the watch list has three) - size it to the content instead
+    // option lists (the watch list has four) - size it to the content instead
     flexGrow: 0,
   },
   option: {
