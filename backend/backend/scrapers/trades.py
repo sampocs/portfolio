@@ -79,6 +79,10 @@ def get_recent_ibkr_trades(
     Scrapes recent IBKR trades
     :param start_date: First date to query orders from, inclusively
     """
+    if not config.ibkr_configured:
+        logger.info("IBKR is not configured, skipping ibkr trades")
+        return []
+
     client = IbkrClient(**config.ibind_client_params)
     client.tickle()
 

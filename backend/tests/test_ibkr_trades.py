@@ -1,6 +1,9 @@
 import datetime
 from decimal import Decimal
 
+import pytest
+
+from backend.config import Config
 from backend.database import models
 from backend.scrapers import trades
 from tests import factories
@@ -169,3 +172,19 @@ def test_distinct_fill_does_not_take_an_excluded_fill_base_id(db_session):
     resolved = trades.resolve_ibkr_trade_id(db_session, new_trade=second_fill)
 
     assert resolved == trades._ibkr_trade_id("HOOD_2026-09-18_SELL_5_110_550_550")
+
+
+def test_get_recent_ibkr_trades_returns_empty_when_ibkr_not_configured(
+    db_session, monkeypatch
+):
+    monkeypatch.setattr(Config, "ibkr_configured", False)
+    monkeypatch.setattr(
+        trades,
+        "IbkrClient",
+        lambda **kwargs: pytest.fail("IBKR client should not be created"),
+    )
+
+    assert (
+        trades.get_recent_ibkr_trades(db_session, start_date=datetime.date(2026, 9, 1))
+        == []
+    )

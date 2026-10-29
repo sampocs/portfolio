@@ -128,7 +128,7 @@ class Config(BaseSettings):
     prices_data_dir: Path = Field(default=PROJECT_HOME / "data" / "prices" / "clean")
 
     coinbase_account_id: str = Field(alias="COINBASE_ACCOUNT_ID")
-    ibkr_account_id: str = Field(alias="IBKR_ACCOUNT_ID")
+    ibkr_account_id: str = Field(alias="IBKR_ACCOUNT_ID", default="")
 
     ibind_use_oauth: bool = Field(alias="IBIND_USE_OAUTH", default=False)
     ibind_oauth1a_consumer_key: str = Field(
@@ -223,13 +223,15 @@ class Config(BaseSettings):
     @model_validator(mode="after")
     def validate_ibind_config(self) -> "Config":
         """Validate OAuth configuration when OAuth is enabled"""
-        if self.ibind_use_oauth:
-            oauth_fields = {
-                "ibind_oauth1a_consumer_key": "IBIND_OAUTH1A_CONSUMER_KEY",
-                "ibind_oauth1a_access_token": "IBIND_OAUTH1A_ACCESS_TOKEN",
-                "ibind_oauth1a_access_token_secret": "IBIND_OAUTH1A_ACCESS_TOKEN_SECRET",
-                "ibind_oauth1a_dh_prime": "IBIND_OAUTH1A_DH_PRIME",
-            }
+        if not self.ibind_use_oauth:
+            return self
+
+        oauth_fields = {
+            "ibind_oauth1a_consumer_key": "IBIND_OAUTH1A_CONSUMER_KEY",
+            "ibind_oauth1a_access_token": "IBIND_OAUTH1A_ACCESS_TOKEN",
+            "ibind_oauth1a_access_token_secret": "IBIND_OAUTH1A_ACCESS_TOKEN_SECRET",
+            "ibind_oauth1a_dh_prime": "IBIND_OAUTH1A_DH_PRIME",
+        }
 
         missing_fields = [
             env_name
@@ -357,6 +359,11 @@ class Config(BaseSettings):
         return {
             asset["asset"]: Asset.from_dict(asset) for asset in asset_data["assets"]
         }
+
+    @property
+    def ibkr_configured(self) -> bool:
+        """IBKR is optional - without an account ID and OAuth credentials, the ibkr sync is skipped"""
+        return bool(self.ibkr_account_id and self.ibind_use_oauth)
 
     @property
     def snaptrade_configured(self) -> bool:

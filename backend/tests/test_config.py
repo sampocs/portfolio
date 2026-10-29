@@ -78,3 +78,23 @@ def test_disabled_sync_platforms_rejects_unknown_platform(monkeypatch) -> None:
 
     with pytest.raises(ValueError, match="ibrk"):
         config.Config()
+
+
+def test_config_loads_without_ibkr_credentials(monkeypatch) -> None:
+    monkeypatch.setenv("IBIND_USE_OAUTH", "False")
+    monkeypatch.setenv("IBKR_ACCOUNT_ID", "")
+
+    assert config.Config().ibkr_configured is False
+
+
+def test_ibkr_is_configured_with_account_id_and_oauth(monkeypatch) -> None:
+    monkeypatch.setenv("IBKR_ACCOUNT_ID", "U1234567")
+    monkeypatch.setenv("IBIND_USE_OAUTH", "True")
+    monkeypatch.setenv("IBIND_OAUTH1A_CONSUMER_KEY", "CONSUMERK")
+    monkeypatch.setenv("IBIND_OAUTH1A_ACCESS_TOKEN", "token")
+    monkeypatch.setenv("IBIND_OAUTH1A_ACCESS_TOKEN_SECRET", "secret")
+    monkeypatch.setenv("IBIND_OAUTH1A_DH_PRIME", "ff")
+    monkeypatch.setenv("IBIND_OAUTH1A_ENCRYPTION_KEY_FP", "/tmp/encryption.pem")
+    monkeypatch.setenv("IBIND_OAUTH1A_SIGNATURE_KEY_FP", "/tmp/signature.pem")
+
+    assert config.Config().ibkr_configured is True
