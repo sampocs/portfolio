@@ -17,6 +17,9 @@ MARKET_TIMEZONE = zoneinfo.ZoneInfo("America/New_York")
 # only the server-side filter keeps those out, so anything else is treated as unknown
 ACCEPTED_ACTIVITY_TYPES = {"BUY", "SELL", "REI"}
 
+# Coinbase can route a USD order to the USDC book, converting between the two 1:1
+COINBASE_QUOTE_CURRENCIES = {"USD", "USDC"}
+
 # IBKR transactions don't carry a commission field, so fees are estimated per share
 IBKR_FEE_PER_SHARE = Decimal("0.0035")
 
@@ -180,12 +183,13 @@ def get_recent_coinbase_trades(start_date: datetime.date) -> list[models.Trade]:
         start_date=f"{start_date.isoformat()}T00:00:00.000000000Z",
     )
     for order in orders["orders"]:
-        if order["product_id"] not in [
-            f"{asset}-USD" for asset in config.crypto_tokens
-        ]:
+        # partition never raises, so futures ids like BTC-PERP-INTX just fail the quote check
+        asset, _, quote_currency = order["product_id"].partition("-")
+        if asset not in config.crypto_tokens:
+            continue
+        if quote_currency not in COINBASE_QUOTE_CURRENCIES:
             continue
 
-        asset = order["product_id"].replace("-USD", "")
         trade_id = f"coinbase-{order['order_id']}"
         date = str(order["last_fill_time"])[:10]
 
