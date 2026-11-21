@@ -1,3 +1,6 @@
+[worktrees]
+	dir = ~/.worktrees/portfolio
+
 [copy]
 include = .env*
 
